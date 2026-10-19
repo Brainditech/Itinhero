@@ -1,0 +1,17 @@
+# secrets — jamais dans le dépôt
+.env
+.env.*
+!.env.example
+
+# dépendances et builds
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+
+# divers
+*.log
+.DS_Store
+Thumbs.db
