@@ -6,16 +6,14 @@
 ## Où on en est
 
 - **Phase en cours** : Prérequis — Maquettes.
-- **Dernière case cochée** : aucune.
-- **Prochaine action** :
-  1. Brainditech crée le dépôt GitHub privé et fait le premier commit sur `main` (D27) : projet créé, recherches, `PLAN.md`, `docs/ETAT.md`, `docs/decisions/`, `docs/architecture.md`.
-  2. Claude rédige ensuite `design/prompt.md` à partir de `PLAN.md`.
+- **Dernière case cochée** : Prérequis — Maquettes · « Prompt d'image rédigé à partir de ce PLAN.md » (`design/prompt.md`, 2026-11-02).
+- **Prochaine action** : Brainditech génère la planche des écrans avec le Prompt 1 et la range dans `design/planche-ecrans.png`.
 
 ## État par phase
 
 | Phase | État | Début | Temps écoulé |
 |---|---|---|---|
-| Prérequis — Maquettes | à faire | — | — |
+| Prérequis — Maquettes | en cours | 2026-11-02 | — |
 | 0 — Socle | à faire | — | — |
 | 1 — Accueil | à faire | — | — |
 | 2 — Confirmation du lieu | à faire | — | — |
@@ -36,6 +34,9 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | Date | Avancée | Preuve |
 |---|---|---|
 | 2026-11-02 | Interview de cadrage terminée, plan approuvé par Brainditech | `docs/decisions/0001-cadrage-v1.md`, `PLAN.md`, `docs/architecture.md` (non commités ; premier commit à faire par Brainditech) |
+| 2026-11-02 | Dépôt GitHub privé créé par Brainditech, premier commit poussé sur `main` (D27) | commit `78e34ad` |
+| 2026-11-02 | `design/prompt.md` rédigé, en attente de relecture par Brainditech (case non cochée) | `design/prompt.md` (non commité) |
+| 2026-11-02 | `design/prompt.md` validé par Brainditech (Prompt 1 écrans, Prompt 2 design system) ; case « Prompt d'image rédigé » cochée | `design/prompt.md`, 2026-11-02 (non commité) |
 
 ## Trous ouverts
 

@@ -144,8 +144,9 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 
 Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissection/`), avec notre propre identité. Jamais leurs logos ni leurs couleurs. Tout est rangé et versionné dans `design/`, et validé par Brainditech.
 
-- [ ] Prompt d'image rédigé à partir de ce PLAN.md.
+- [x] Prompt d'image rédigé à partir de ce PLAN.md.
   Preuve : `design/prompt.md`, daté.
+  Fait : `design/prompt.md`, 2026-11-02, validé par Brainditech.
 - [ ] Planche de tous les écrans.
   Preuve : `design/planche-ecrans.png`, validation de Brainditech datée dans ETAT.
 - [ ] Design system : couleurs, polices, composants (dont les blocs de la frise et les badges d'état).
