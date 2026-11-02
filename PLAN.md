@@ -222,7 +222,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [x] Écran en valeurs en dur, comparé à `design/ecrans/01-*`.
   Preuve : capture côte à côte.
-  Fait (avancé par D34) : `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg`, 2026-11-02. Écarts connus : fond de carte voilé absent (image à produire), puces sur deux lignes (16 sp ne tient pas sur une ligne sur ce téléphone, retour à la ligne voulu par le design system).
+  Fait (avancé par D34) : `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg`, 2026-11-02. Écarts connus : fond de carte voilé absent (image à produire), puces sur deux lignes (16 sp ne tient pas sur une ligne sur ce téléphone, retour à la ligne voulu par le design system). Corrigés par D35 (fond inventé, puces 14 sp, branche `phase-1/formulaire-repli`) ; nouvelle capture côte à côte, clavier ouvert, à fournir.
 - [ ] Clé d'appareil (secure-store, saisie unique) et limites de débit côté serveur.
   Preuve : tests (sans clé ⇒ 401, au-delà des limites ⇒ 429).
 - [ ] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.

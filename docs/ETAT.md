@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle, et Accueil en valeurs en dur avancé (D34), branche `phase-1/accueil`.
+- **Phase en cours** : 0 — Socle, et phase 1 avancée par D34 ; branche `phase-1/fond-carte` (spec 03), puis `phase-1/formulaire-repli` (spec 02).
 - **Dernière case cochée** : Phase 1 · « Écran en valeurs en dur » (côte à côte, 2026-11-02) ; phase 0 · « NativeWind ».
-- **Prochaine action** : Brainditech fusionne la PR `phase-1/accueil`. Ensuite : formulaire de repli (`design/accueil/02-formulaire-repli.png`) en valeurs en dur, puis le serveur et MOTIS pour brancher l'Accueil.
+- **Prochaine action** : Brainditech met `EXPO_PUBLIC_TUILES_URL=https://tiles.openfreemap.org/styles/positron` dans `.env`, lance `npx expo run:android` (development build, Android Studio requis), puis envoie les captures de la spec 03 (carte, glisser/pincer, attribution, mode avion). Ensuite : spec 02 (formulaire).
 
 ## État par phase
 
@@ -50,6 +50,12 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-02 | R8 en partie tranché : dépôt privé sur compte gratuit, pas de protection de branche ; Brainditech choisit de rester gratuit et privé (D33). Spec 01 — CI proposée | `docs/decisions/0001-cadrage-v1.md` (D33), `docs/specs/01-ci.md` (non commités) |
 | 2026-11-02 | D34 : CI reportée, Accueil en dur avancé. NativeWind 4.2.7 (Tailwind 3.4.19) installé avec les jetons de `design/design-system.md` (`src/theme/jetons.js`), police Inter, barre d'onglets flottante (4 onglets), écran Accueil en valeurs en dur, 3 onglets d'attente. `npx expo export --platform android` réussi (R12 : compatible SDK 58 au build, à confirmer sur le téléphone) ; lint, types, tests verts | `src/app/(onglets)/`, `src/composants/` (non commités) |
 | 2026-11-02 | Accueil vu sur le téléphone de Brainditech (Expo Go), comparé à la maquette ; cases « NativeWind » (phase 0) et « Écran en valeurs en dur » (phase 1) cochées. Correction : marge interne Android du champ retirée | `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg` |
+| 2026-11-02 | PR #3 (`phase-1/accueil`) fusionnée par Brainditech. Spec 02 — formulaire de repli proposée, branche `phase-1/formulaire-repli` | commit `e8112a1`, `docs/specs/02-formulaire-repli.md` (non commité) |
+| 2026-11-02 | Capture de Brainditech : l'Accueil ne ressemble pas à la maquette. D35 acceptée et appliquée : fond de carte inventé par script (sha256 `86812f69…` stable sur 3 exécutions), composant `FondCarte` (voile 0,7), puces en 14 sp ; pas de point de position. Lint, types, tests verts ; `npx expo export --platform android` réussi | `docs/preuves/Screenshot_20261102_230618_Expo Go.jpg` (avant), `scripts/generer-fond-carte.py`, `src/composants/FondCarte.tsx` (non commités) |
+| 2026-11-02 | Essai de `design/background/background.png` (carte sombre fournie par Brainditech) : grise et floue sous le voile, retirée. Brainditech choisit une vraie carte MapLibre en fond : D36 et spec 03 proposées, branche `phase-1/fond-carte` | `docs/preuves/Screenshot_20261102_232048_Expo Go.jpg`, `docs/specs/03-fond-carte-maplibre.md` (non commités) |
+| 2026-11-02 | Spec 03 approuvée par Brainditech et appliquée : `expo-dev-client` 58.0.18, `@maplibre/maplibre-react-native` 11.5.1 (épinglé, plugin dans `app.json`), carte Positron qu'on déplace et zoome derrière l'Accueil, voile 0,3, attribution maison au-dessus du voile (l'attribution native serait sous le voile). Lint, types, tests verts ; `expo-doctor` 1.21.5 : 20/20 ; `npx expo export --platform android` réussi. R12 (MapLibre) et case « Development build » en attente du build de Brainditech | `src/composants/FondCarte.tsx`, `src/app/(onglets)/index.tsx` (non commités) |
+| 2026-11-03 | D37 : attribution de la carte de fond repliable en ⓘ (premier geste ou 5 s), texte « © OpenMapTiles © OpenStreetMap » ; spec 03 (point 7, critère 4) et design system mis à jour | `docs/decisions/0001-cadrage-v1.md`, `src/composants/FondCarte.tsx` (non commités) |
+| 2026-11-02 | Accueil lancé dans Expo Go : plantage attendu (« TurboModuleRegistry.getEnforcing(...): 'MLRNCameraModule' could not be found ») ; pas un bug du code, MapLibre exige le development build. Correction : MapLibre chargé seulement hors Expo Go, carte inventée sinon. Lint, types verts | `docs/preuves/Screenshot_20261102_234256_Expo Go.jpg`, `src/composants/FondCarte.tsx` (non commités) |
 
 ## Trous ouverts
 

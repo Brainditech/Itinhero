@@ -92,7 +92,8 @@ Les mêmes couleurs servent aux icônes des notifications (supprimé, retard, co
 
 ## Fond d'écran
 
-- Écrans de l'app : image fixe d'une carte rurale claire et sans libellé (terre `#EEF0F3`, routes blanches, rivières bleu-gris pâle, limites de communes gris pâle), sous un **voile blanc à 70 %**. Purement décoratif : ce n'est pas une carte interactive (D9 inchangée), aucune attribution, aucun bouton.
+- Accueil et sa pile (D36) : **vraie carte MapLibre** (OpenFreeMap Positron) qu'on déplace et zoome aux doigts, sans rotation ni inclinaison, sous un voile blanc (jeton `voile`, 0,3, laisse passer les touchers) ; attribution « © OpenMapTiles © OpenStreetMap » en haut à droite, au-dessus du voile, repliée en bouton ⓘ au premier geste sur la carte ou après 5 secondes (D37). L'image inventée ci-dessous reste dessous en secours (hors connexion, chargement, style absent).
+- Autres écrans de l'app, et secours : image fixe d'une carte rurale claire et sans libellé (terre `#EEF0F3`, routes blanches, rivières bleu-gris pâle, limites de communes gris pâle), sous un **voile blanc à 70 %**. Image inventée par `scripts/generer-fond-carte.py` (`assets/images/fond-carte.png`, D35), sans point de position. Purement décoratif : ce n'est pas une carte interactive (D9 inchangée), aucune attribution, aucun bouton.
 - Écran Détail : la vraie carte du trajet (MapLibre, D9) occupe le haut de l'écran, avec l'attribution « © OpenStreetMap ».
 - Écran verrouillé (notifications) : même motif en version sombre sur `sombre`.
 
@@ -108,7 +109,7 @@ Les mêmes couleurs servent aux icônes des notifications (supprimé, retard, co
 | Bouton désactivé | fond `#E4E6EC`, texte `#8A90A0` | design system |
 | Champ | fond `surface`, contour 1 dp `bordure-champ`, `rayon-champ` ; actif : 2 dp `primaire` ; erreur : 2 dp `#B91C1C` et message dessous en `#B91C1C` | 02, design system |
 | Sélecteur à deux choix | « Arriver avant » / « Partir à », choix actif plein `primaire` | 02 |
-| Puce | pilule ; active : pleine `primaire`, texte blanc ; inactive : blanche, contour `bordure-carte` | 01, 04 |
+| Puce | pilule, texte `badge` 14 sp 500, marge interne 16 dp (D35) ; active : pleine `primaire`, texte blanc ; inactive : blanche, contour `bordure-carte` | 01, 04 |
 | Carte d'itinéraire | heures en `titre-carte` tabulaires, bande horizontale des modes, ligne des modes, avertissement, badge prix | 04 |
 | Bloc de frise | un par mode (voir Modes), heure de montée dans la colonne de gauche, descente en bas du bloc, badges blancs dans le bloc | 05 |
 | Barre d'onglets | pilule blanche flottante, 4 onglets icône au-dessus du libellé : Chercher, Mes trajets, Assistant, Réglages ; onglet actif : icône et libellé `primaire` sur `primaire-doux` | 02 à 07, 09 |

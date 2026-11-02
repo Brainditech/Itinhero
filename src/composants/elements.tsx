@@ -41,11 +41,11 @@ export function Puce({ libelle, active, onPress }: { libelle: string; active: bo
       accessibilityRole="radio"
       accessibilityState={{ checked: active }}
       onPress={onPress}
-      className={`min-h-12 justify-center rounded-full border px-5 ${
+      className={`min-h-12 justify-center rounded-full border px-4 ${
         active ? "border-primaire bg-primaire" : "border-bordure-carte bg-fond"
       }`}
     >
-      <Text className={`font-inter-medium text-secondaire ${active ? "text-fond" : "text-texte"}`}>{libelle}</Text>
+      <Text className={`font-inter-medium text-badge ${active ? "text-fond" : "text-texte"}`}>{libelle}</Text>
     </Pressable>
   );
 }

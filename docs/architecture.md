@@ -34,7 +34,7 @@
 │ MOTIS v2.11.4 ◄─ GTFS SNCF + Mobigo 89, OSM, GTFS-RT SNCF      │
 └────────────────────────────────────────────────────────────────┘
 Sentry ◄─ app et serveur (erreurs techniques seulement)
-Tuiles OpenFreeMap ◄─ app (carte, packs hors ligne)
+Tuiles OpenFreeMap ◄─ app (fond de l'Accueil D36, carte du Détail, packs hors ligne)
 Uber ◄─ app (lien profond pré-rempli, sans API)
 ```
 
