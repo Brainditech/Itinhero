@@ -172,8 +172,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Skills officielles des services dans `.claude/skills`.
   Preuve : liste et source de chaque skill dans le commit.
   Fait : `.claude/skills/SOURCES.md` (Sentry, Inngest, MapLibre, épinglées à leur commit ; Expo par plugin ; aucune skill officielle pour MOTIS, NativeWind, Zod, vitest), 2026-11-02, spec 00.
-- [ ] NativeWind installé et configuré avec les jetons du design system (compatibilité SDK 58 vérifiée, R12).
+- [x] NativeWind installé et configuré avec les jetons du design system (compatibilité SDK 58 vérifiée, R12).
   Preuve : composant de démonstration stylé, plus capture.
+  Fait : NativeWind 4.2.7 (Tailwind 3.4.19), jetons dans `src/theme/jetons.js`, écran d'Accueil stylé sur le téléphone de Brainditech (Expo Go) : `docs/preuves/2026-11-02-phase1-accueil-en-dur.jpg`, 2026-11-02. R12 levé pour NativeWind.
 - [ ] Vérification des variables d'environnement au démarrage, côté app et côté serveur.
   Preuve : test vitest (variable absente ou mal formée ⇒ échec explicite).
 - [x] AGENTS.md complété :
@@ -219,8 +220,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 1 — Accueil
 
-- [ ] Écran en valeurs en dur, comparé à `design/ecrans/01-*`.
+- [x] Écran en valeurs en dur, comparé à `design/ecrans/01-*`.
   Preuve : capture côte à côte.
+  Fait (avancé par D34) : `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg`, 2026-11-02. Écarts connus : fond de carte voilé absent (image à produire), puces sur deux lignes (16 sp ne tient pas sur une ligne sur ce téléphone, retour à la ligne voulu par le design system).
 - [ ] Clé d'appareil (secure-store, saisie unique) et limites de débit côté serveur.
   Preuve : tests (sans clé ⇒ 401, au-delà des limites ⇒ 429).
 - [ ] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.
