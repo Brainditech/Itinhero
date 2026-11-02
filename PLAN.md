@@ -164,27 +164,32 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 0 — Socle
 
-- [ ] App lancée telle que créée.
+- [x] App lancée telle que créée.
   Preuve : capture sur émulateur ou téléphone, datée.
+  Fait : `docs/preuves/2026-11-02-phase0-app-telle-que-creee-expo-go.jpg` (téléphone de Brainditech, Expo Go, 2026-11-02 21:34).
 - [ ] Development build (`expo-dev-client`, `npx expo run:android`).
   Preuve : capture de l'app en development build.
-- [ ] Skills officielles des services dans `.claude/skills`.
+- [x] Skills officielles des services dans `.claude/skills`.
   Preuve : liste et source de chaque skill dans le commit.
+  Fait : `.claude/skills/SOURCES.md` (Sentry, Inngest, MapLibre, épinglées à leur commit ; Expo par plugin ; aucune skill officielle pour MOTIS, NativeWind, Zod, vitest), 2026-11-02, spec 00.
 - [ ] NativeWind installé et configuré avec les jetons du design system (compatibilité SDK 58 vérifiée, R12).
   Preuve : composant de démonstration stylé, plus capture.
 - [ ] Vérification des variables d'environnement au démarrage, côté app et côté serveur.
   Preuve : test vitest (variable absente ou mal formée ⇒ échec explicite).
-- [ ] AGENTS.md complété :
+- [x] AGENTS.md complété :
   - pile et conventions ;
   - ordre de lecture `docs/ETAT.md` → `PLAN.md` → `docs/architecture.md` ;
   - « ne lance jamais l'app toi-même, je la fais tourner dans un autre terminal ».
   
   `CLAUDE.md` l'importe.
   Preuve : diff.
-- [ ] `.claude/settings.json` : refus de lire `.env*`, demande avant `git push`, autorisation de lint, types et tests.
+  Fait : diff de `AGENTS.md` et `CLAUDE.md` (`@AGENTS.md`), 2026-11-02, spec 00.
+- [x] `.claude/settings.json` : refus de lire `.env*`, demande avant `git push`, autorisation de lint, types et tests.
   Preuve : demande de lecture de `.env` refusée, consignée dans ETAT.
-- [ ] vitest.
+  Fait : lecture de `.env` refusée par les permissions le 2026-11-02 (consigné dans ETAT). La demande avant `git push` se constatera à la première poussée.
+- [x] vitest.
   Preuve : `npm test` vert avec un premier test.
+  Fait : vitest 5.1.0, `npm test` vert le 2026-11-02 (5 tests de `src/domaine/verdict.test.ts`), spec 00.
 - [ ] CI GitHub Actions (lint, types, tests, build), avec la fusion bloquée si rouge (protection de `main` à vérifier, R8).
   Preuve : une PR bloquée par une CI rouge volontaire.
 - [ ] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.

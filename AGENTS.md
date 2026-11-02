@@ -1,3 +1,47 @@
+# Itinhero
+
+Application Android (Expo) qui dit à un débutant comment arriver à l'heure en transports en commun dans l'Yonne, avec un serveur (Node, MOTIS) en `docker compose`.
+Langue de travail : français (docs, specs, commits, interface).
+
+## Ordre de lecture pour reprendre le travail
+
+1. [docs/ETAT.md](docs/ETAT.md) : où on en est, prochaine action.
+2. [PLAN.md](PLAN.md) : phases, cases et leur preuve, variables d'environnement, routes.
+3. [docs/architecture.md](docs/architecture.md) : flux, source de chaque valeur, **invariants 1 à 20** (les enfreindre bloque la fusion).
+4. La spec en cours dans `docs/specs/`, et les décisions dans `docs/decisions/`.
+
+## Règles absolues
+
+- **Ne lance jamais l'app toi-même** (`npx expo start`, `npx expo run:android`…) : Brainditech la fait tourner dans un autre terminal. Demande-lui la capture ou le résultat.
+- **Ne lis ni n'écris jamais `.env*`** (sauf `.env.example`). Les secrets sont remplis par Brainditech. `.claude/settings.json` le refuse.
+- **Spec avant chaque fonctionnalité** (`docs/specs/NN-<fonctionnalité>.md`), approuvée par Brainditech, puis appliquée strictement.
+- **Une fonctionnalité = une branche = une PR.** Aucun commit sur `main`. Aucune fusion avec la CI rouge ou une remarque majeure de revue ignorée ; chaque remarque est vérifiée contre le code, jamais « Apply suggestion ».
+- **Une case de PLAN.md ne se coche qu'avec sa preuve**, et `docs/ETAT.md` est mis à jour dans le même commit.
+- **Chaque décision s'écrit quand elle est prise** dans `docs/decisions/` (décision, raison, options écartées).
+- **Doc officielle de la version installée** lue avant de brancher un service. Context7 aide à trouver la doc, il ne tranche pas.
+- **Un bug va dans `docs/issues/`** : reproduction, une hypothèse à la fois, cause racine, test de régression ; analyse approuvée par Brainditech avant la correction.
+- Les règles de ce fichier, les invariants et les specs approuvées priment sur les skills de `.claude/skills/` (sources dans `.claude/skills/SOURCES.md`).
+
+## Pile et conventions
+
+- **App** : Expo SDK 58, React Native 0.88, Expo Router (`src/app/`), Android d'abord. Style : NativeWind avec les jetons de `design/design-system.md` (D28, D30). Stockage local : expo-sqlite, expo-secure-store. Carte : MapLibre.
+- **Serveur** : Node 22 LTS, TypeScript, Zod sur chaque entrée ; MOTIS v2.11.4 auto-hébergé ; Inngest auto-hébergé ; Claude par l'API Anthropic, clé côté serveur seulement.
+- **Suivi d'erreurs** : Sentry (app et serveur), sans aucune donnée de trajet.
+- **Tests** : vitest, TypeScript pur sous Node (`src/domaine/`, fichiers `*.test.ts` à côté du code). Toute logique d'un critère d'acceptation a son test.
+- **Gestionnaire de paquets** : npm (`package-lock.json`). Ajout de dépendance : `npx expo install <paquet>`.
+- **Distribution** : build local (`npx expo run:android --variant release`, D22). EAS Build n'est pas utilisé ; la section EAS plus bas ne s'applique pas sans décision écrite.
+- **Versions épinglées** : jamais `latest` (images Docker, CLI). Chaque version est constatée à l'installation.
+
+## Avant de déclarer une tâche terminée
+
+```bash
+npx expo lint        # lint
+npx tsc --noEmit     # types
+npm test             # tests (vitest run)
+```
+
+---
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data
@@ -21,7 +65,7 @@ npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
-Run lint and typecheck before declaring any task done.
+Run lint, typecheck and tests (`npm test`) before declaring any task done. Never run `npx expo start` yourself: Brainditech runs the app.
 
 ## Navigation & Routing
 

@@ -5,16 +5,16 @@
 
 ## Où on en est
 
-- **Phase en cours** : aucune (Prérequis — Maquettes terminés ; phase 0 — Socle à ouvrir).
-- **Dernière case cochée** : Prérequis — Maquettes · « Logo, notre propre identité » (`design/logo/logo.png`, 2026-11-02). Prérequis — Maquettes terminés.
-- **Prochaine action** : Brainditech commite les maquettes, D30 à D32 et la phase 6 bis, puis on ouvre la phase 0 (Socle).
+- **Phase en cours** : 0 — Socle, ouverte le 2026-11-02 sur la branche `phase-0/outillage`.
+- **Dernière case cochée** : Phase 0 · « App lancée telle que créée » (capture Expo Go, 2026-11-02). Les cinq cases de la spec 00 sont cochées.
+- **Prochaine action** : PR de `phase-0/outillage` (spec 00) relue puis fusionnée par Brainditech. Ensuite : spec 01 — CI.
 
 ## État par phase
 
 | Phase | État | Début | Temps écoulé |
 |---|---|---|---|
 | Prérequis — Maquettes | terminé | 2026-11-02 | 1 jour (terminé le 2026-11-02) |
-| 0 — Socle | à faire | — | — |
+| 0 — Socle | en cours | 2026-11-02 | 0 jour |
 | 1 — Accueil | à faire | — | — |
 | 2 — Confirmation du lieu | à faire | — | — |
 | 3 — Résultat | à faire | — | — |
@@ -41,6 +41,11 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-02 | Maquettes validées par Brainditech, générées une par une (D32) : 9 écrans (Accueil, formulaire de repli, Confirmation du lieu, Résultat, Détail, Mes trajets, Réglages, Notifications, Assistant) et l'image du design system ; jetons écrits ; D30 acceptée, D31 (Assistant) proposée, D32 acceptée ; cases « Planche », « Design system » et « Écrans agrandis » cochées. Défauts connus listés dans `design/design-system.md` | `design/*/0N-*.png`, `design/design-system/design-system.png`, `design/design-system.md` (non commités) |
 | 2026-11-02 | Logo validé par Brainditech : « I » dessiné comme une frise, monochrome (blanc sur indigo pour l'icône, indigo sur blanc pour le logo + nom) ; case « Logo » cochée, prérequis Maquettes terminés | `design/logo/logo.png` (non commité) |
 | 2026-11-02 | D31 (Assistant) acceptée et intégrée : phase 6 bis, route `POST /v1/assistant`, `data/conseils.json` | `PLAN.md`, `docs/architecture.md`, `docs/decisions/0001-cadrage-v1.md` (non commités) |
+| 2026-11-02 | Phase 0 ouverte : branche `phase-0/outillage`, spec 00 proposée (découpage de la phase en 7 PR, outillage) | `docs/specs/00-outillage.md` (non commité) |
+| 2026-11-02 | Spec 00 approuvée par Brainditech | `docs/specs/00-outillage.md` |
+| 2026-11-02 | Refus de `.env` testé : `Read .env` ⇒ « File is in a directory that is denied by your permission settings. » ; `Read .env.local` (inexistant) ⇒ même refus ; `cat .env.local` ⇒ « Permission to use Bash … has been denied. » ; `.env.example` reste lisible | session Claude Code du 2026-11-02, `.claude/settings.json` |
+| 2026-11-02 | Cases « Skills officielles », « AGENTS.md complété », « `.claude/settings.json` » et « vitest » cochées : 7 skills officielles épinglées, `CLAUDE.md`, vitest 5.1.0 avec 5 tests de `verdict()` verts ; `npx expo lint` et `npx tsc --noEmit` verts | `.claude/skills/SOURCES.md`, `src/domaine/verdict.test.ts` (non commités) |
+| 2026-11-02 | App lancée telle que créée par Brainditech (Expo Go, téléphone) ; case cochée | `docs/preuves/2026-11-02-phase0-app-telle-que-creee-expo-go.jpg` |
 
 ## Trous ouverts
 
