@@ -81,18 +81,24 @@ Additional rules:
 11. Never ask me what you can check yourself (repository, official docs, installed versions,
     the research files listed in my description).
 12. Also cover, when relevant: languages, accessibility, third-party quotas and costs, alerts,
-    environments, and what "done" means for v1.
+    environments, prices and where each price comes from, and what "done" means for v1.
 13. Interview me in French, and write every document in French.
+14. Every value the app shows or computes (a time, a price, a total, a status) must name its
+    source: a table and column, an API field, an official file. A value without a real source
+    is a decision nobody made: ask me about it, never invent it.
 
 When the interview is done, also produce:
 5. A DECISION LOG, one line per question: decision, reason, options rejected. It becomes
    docs/decisions/.
+6. The ARCHITECTURE INVARIANTS: the rules the code must never break (what stays server-side,
+   what is private, who may call whom, where each piece of state lives), each written as a
+   prohibition. They become docs/architecture.md.
 
 Begin now by asking me your first batch of questions about the project I'm about to describe.
 
 ---
 
-## Le projet : MobiliteIA — un assistant IA qui me dit exactement comment aller d'un point A à un point B
+## Le projet : Itinhero — un assistant IA qui me montre toutes les façons d'aller d'un point A à un point B
 
 **Pile technique (décidée par moi, à ne pas changer sans me le dire)** :
 - Application : Expo SDK 58 (React Native, TypeScript, Expo Router), Android d'abord.
@@ -106,7 +112,9 @@ Begin now by asking me your first batch of questions about the project I'm about
   sur mon téléphone.
 
 **Le problème** : j'habite Brienon-sur-Armançon (Yonne). Pour aller quelque part, il faut ouvrir
-SNCF Connect, Mobigo, Google Maps, chercher un taxi… et aucune ne trouve vraiment le bon trajet. Exemple
+SNCF Connect, Transit, Mobigo, Google Maps, chercher le numéro d'un taxi ou du transport à la demande… et
+aucune ne trouve vraiment le bon trajet. Je veux une seule app, utilisable par quelqu'un qui n'a jamais pris
+un car ni un train en France. Exemple
 réel : rendez-vous au lieu de rendez-vous à Joigny (19 route de Chamvres) le jeudi 12/11/2026 à
 10:00. Google, Transit et Mobigo ne trouvent rien d'utile (ils proposent le mercredi, 9,8 km de vélo ou
 3 h 49 de marche). Pourtant une voie existe dans les données SNCF : car TER 06:27 Brienon Mairie →
@@ -116,15 +124,41 @@ Saint-Florentin-Vergigny, train 08:50 → 09:09 Joigny, puis 1,09 km à pied jus
 **Le parcours principal** : j'ouvre l'app et je dis (ou j'écris) « je dois être à l'agence France
 Travail de Joigny jeudi à 10h ». L'IA comprend la demande ; le moteur calcule les trajets. L'écran
 affiche d'abord un verdict clair (« transport public seul : possible, départ 06:27 » ou « impossible »),
-puis le trajet en frise verticale d'étapes (car, marche, train, marche), chacune avec son horaire, son
-état (temps réel ou théorique), et son action (réserver avant telle heure, appeler ce taxi, ouvrir Uber
-pré-rempli). Je l'enregistre ; le jour J il est disponible hors ligne et je suis prévenu d'un retard.
+puis **toutes** les possibilités trouvées, et c'est moi qui choisis. Chacune montre son heure de départ et
+d'arrivée, sa durée, sa marche à pied, s'il faut réserver, et son prix **avec sa source** ; un prix sans
+source s'affiche « prix non publié », jamais estimé. On peut les classer : arrivée la plus tôt, moins cher,
+moins de marche, sans réservation. La possibilité choisie s'ouvre en frise verticale d'étapes (car, marche,
+train, marche), chacune avec son horaire, son état et son action (réserver avant telle heure, appeler ce
+numéro, ouvrir Uber pré-rempli). Je l'enregistre ; le jour J elle est disponible hors ligne et je suis
+prévenu d'un retard.
+
+**Pour un débutant complet** : chaque étape dit quoi faire concrètement, sans jargon : où attendre (nom de
+l'arrêt, et le repère quand la source le donne), quel billet prendre, où l'acheter, quel numéro appeler et
+avant quelle heure pour un transport à la demande ou un taxi. Un mot technique (TER, TAD, correspondance)
+est expliqué la première fois qu'il apparaît.
+
+**Les retards, honnêtement** : temps réel seulement quand la source existe (GTFS-RT SNCF). Les recherches ont
+constaté qu'aucun temps réel n'est publié pour les cars Mobigo : ces étapes affichent « horaire prévu, sans
+suivi en direct ». L'app ne prétend jamais savoir un retard qu'aucune source ne donne.
 Plus tard : je prends une photo et l'app me dit si je vais dans la bonne direction, y compris en
 sous-sol sans réseau.
+
+**Les écrans, tels que ce parcours les fait apparaître** (à compléter pendant l'interview) :
+1. Accueil : je dis ou j'écris où je dois être, et quand.
+2. Résultat : le verdict, puis toutes les possibilités, classables, chacune avec son prix et sa source.
+3. Détail d'une possibilité : la frise d'étapes avec leurs horaires, leur état, leurs actions et l'explication
+   pour débutant.
+4. Mes trajets : les trajets enregistrés, disponibles hors ligne le jour J, avec l'alerte de retard.
+5. Réglages : mon domicile.
 
 **Ce qui ne se négocie pas** : l'IA n'invente JAMAIS un horaire, un arrêt ou une correspondance. Chaque
 étape affichée vient des données officielles (GTFS/GTFS-RT) ou d'une fiche taxi sourcée ; l'IA comprend
 et explique, le moteur calcule.
+
+**Le scénario de référence** : le trajet Brienon → lieu de rendez-vous à Joigny, jeudi 12/11/2026,
+arrivée avant 10:00. Il devient le **premier test automatisé** du projet, rejoué à chaque pull request : le moteur
+doit retrouver la voie car → marche → train → marche. Les valeurs attendues (arrêts, horaires, distances) se tirent
+des GTFS figés de `fixtures/`, jamais du texte ci-dessus.
 
 **Recherches déjà faites, à lire au lieu de me les demander** :
 - `docs/03-marche/` : concurrents, données de l'Yonne, API tierces (Uber, BlaBlaCar, taxis : aucune API
@@ -153,5 +187,21 @@ après la gare d'arrivée, covoiturage.
 - Comparer les options à l'objectif AVANT de choisir (pas de service ajouté par réflexe).
 - Revue de code : chaque remarque est vérifiée contre le code actuel ; jamais « Apply suggestion » ni
   « Autofix ».
+- Avant chaque fonctionnalité, tu écris `docs/specs/NN-<fonctionnalité>.md` : but, décisions, fichiers touchés,
+  source de chaque valeur affichée, sécurité, critères d'acceptation, étapes de vérification. Tu attends mon
+  approbation, puis tu relis la spec approuvée et tu l'appliques strictement.
+- Chaque critère d'acceptation qui porte de la logique a son test automatisé. L'intégration continue (lint,
+  types, tests, build) tourne sur chaque pull request et bloque la fusion si elle est rouge.
+- Un bug va dans `docs/issues/` : le reproduire, une seule hypothèse à la fois, la cause racine, un test de
+  régression. Tu me fais approuver l'analyse avant de corriger.
+- `.claude/settings.json` interdit la lecture de `.env*`, demande avant `git push`, autorise lint, types et
+  tests. On teste l'interdiction en te demandant de lire `.env`. C'est moi qui remplis `.env`, jamais toi.
+- `AGENTS.md` reste court : une ligne n'y reste que si l'enlever te ferait supposer faux. Il se met à jour à
+  chaque décision et s'élague quand une ligne devient fausse.
+
+**Pour finir** : le projet Expo (SDK 58, modèle nettoyé) vient d'être créé dans ce dossier : lis-le avant tes
+questions, ainsi que les recherches listées plus haut. Pose-moi tes questions par lots. Quand tout est
+tranché, crée `PLAN.md` à la racine, en phases à cases à cocher, et `docs/ETAT.md` pour le suivi.
+N'installe rien et n'implémente rien.
 
 =====
