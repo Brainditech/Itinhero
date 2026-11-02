@@ -46,6 +46,7 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 |---|---|
 | `GET /health` | état de l'API, de MOTIS et date du jeu GTFS actif |
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond |
+| `POST /v1/assistant` | demande + réglages en cours → action ou identifiant de conseil par Claude, sous limite et plafond (D31) |
 | `GET /v1/lieux?q=` | candidats du géocodeur MOTIS |
 | `POST /v1/itineraires` | verdict + possibilités (segments sourcés, tous les tarifs applicables) |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) |
