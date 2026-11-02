@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle, ouverte le 2026-11-02 sur la branche `phase-0/outillage`.
-- **Dernière case cochée** : Phase 0 · « App lancée telle que créée » (capture Expo Go, 2026-11-02). Les cinq cases de la spec 00 sont cochées.
-- **Prochaine action** : PR de `phase-0/outillage` (spec 00) relue puis fusionnée par Brainditech. Ensuite : spec 01 — CI.
+- **Phase en cours** : 0 — Socle, et Accueil en valeurs en dur avancé (D34), branche `phase-1/accueil`.
+- **Dernière case cochée** : Phase 1 · « Écran en valeurs en dur » (côte à côte, 2026-11-02) ; phase 0 · « NativeWind ».
+- **Prochaine action** : Brainditech fusionne la PR `phase-1/accueil`. Ensuite : formulaire de repli (`design/accueil/02-formulaire-repli.png`) en valeurs en dur, puis le serveur et MOTIS pour brancher l'Accueil.
 
 ## État par phase
 
@@ -15,7 +15,7 @@
 |---|---|---|---|
 | Prérequis — Maquettes | terminé | 2026-11-02 | 1 jour (terminé le 2026-11-02) |
 | 0 — Socle | en cours | 2026-11-02 | 0 jour |
-| 1 — Accueil | à faire | — | — |
+| 1 — Accueil | en cours (avancé par D34) | 2026-11-02 | 0 jour |
 | 2 — Confirmation du lieu | à faire | — | — |
 | 3 — Résultat | à faire | — | — |
 | 4 — Détail | à faire | — | — |
@@ -46,6 +46,10 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-02 | Refus de `.env` testé : `Read .env` ⇒ « File is in a directory that is denied by your permission settings. » ; `Read .env.local` (inexistant) ⇒ même refus ; `cat .env.local` ⇒ « Permission to use Bash … has been denied. » ; `.env.example` reste lisible | session Claude Code du 2026-11-02, `.claude/settings.json` |
 | 2026-11-02 | Cases « Skills officielles », « AGENTS.md complété », « `.claude/settings.json` » et « vitest » cochées : 7 skills officielles épinglées, `CLAUDE.md`, vitest 5.1.0 avec 5 tests de `verdict()` verts ; `npx expo lint` et `npx tsc --noEmit` verts | `.claude/skills/SOURCES.md`, `src/domaine/verdict.test.ts` (non commités) |
 | 2026-11-02 | App lancée telle que créée par Brainditech (Expo Go, téléphone) ; case cochée | `docs/preuves/2026-11-02-phase0-app-telle-que-creee-expo-go.jpg` |
+| 2026-11-02 | PR #2 (spec 00, outillage) fusionnée par Brainditech | commit `3353963` |
+| 2026-11-02 | R8 en partie tranché : dépôt privé sur compte gratuit, pas de protection de branche ; Brainditech choisit de rester gratuit et privé (D33). Spec 01 — CI proposée | `docs/decisions/0001-cadrage-v1.md` (D33), `docs/specs/01-ci.md` (non commités) |
+| 2026-11-02 | D34 : CI reportée, Accueil en dur avancé. NativeWind 4.2.7 (Tailwind 3.4.19) installé avec les jetons de `design/design-system.md` (`src/theme/jetons.js`), police Inter, barre d'onglets flottante (4 onglets), écran Accueil en valeurs en dur, 3 onglets d'attente. `npx expo export --platform android` réussi (R12 : compatible SDK 58 au build, à confirmer sur le téléphone) ; lint, types, tests verts | `src/app/(onglets)/`, `src/composants/` (non commités) |
+| 2026-11-02 | Accueil vu sur le téléphone de Brainditech (Expo Go), comparé à la maquette ; cases « NativeWind » (phase 0) et « Écran en valeurs en dur » (phase 1) cochées. Correction : marge interne Android du champ retirée | `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg` |
 
 ## Trous ouverts
 
@@ -62,5 +66,5 @@ Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 - R9 : juridique, à vérifier (ODbL, OSM, FCM).
 - R10 : nom de domaine et HTTPS du VPS.
 - R11 : dates relatives et fuseau.
-- R12 : compatibilité SDK 58 de MapLibre RN et de NativeWind.
+- R12 : compatibilité SDK 58 de MapLibre RN (NativeWind : vérifié le 2026-11-02 sur le téléphone).
 - R13 : sauvegarde de la clé de signature.
