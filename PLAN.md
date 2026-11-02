@@ -103,6 +103,7 @@ Rien de secret ne porte le préfixe `EXPO_PUBLIC_`. La clé d'appareil n'est pas
 **Serveur, fichiers versionnés** (validés par schéma Zod) :
 - `data/tarifs.json` : réseau, produit, montant, réductions officielles (par exemple carte TRAIN Mobigo Solidaire −75 %), canal de vente, URL officielle, date de lecture ;
 - `data/fiches/` : taxis et transport à la demande, avec nom, téléphone, communes desservies, délai de réservation, URL source, date de constat, « validé par Brainditech le … ». Seules les fiches validées s'affichent.
+- `data/conseils.json` : gabarits de conseils de l'Assistant (D31), chacun avec un identifiant, un texte relu à trous remplis par les valeurs du moteur et des fiches, et « validé par Brainditech le … ». Seuls les gabarits validés s'affichent.
 
 **Serveur, seule table persistante** : `abonnements_alerte` (id, trip_id, date de service, jeton push, expiration).
 - Elle est stockée dans un fichier SQLite sur un volume Docker (A20) et purgée à J+1 (A21).
@@ -123,6 +124,7 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 |---|---|---|
 | `GET /health` | état de l'API, de MOTIS et date du jeu GTFS actif | 0 (squelette), 9 |
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond | 1 |
+| `POST /v1/assistant` | demande + réglages en cours (sans historique ni coordonnées) → `{action, parametres}` ou `{conseil_id, valeurs}` par Claude, sous limite et plafond (D31) | 6 bis |
 | `GET /v1/lieux?q=` | candidats du géocodeur MOTIS | 2 |
 | `POST /v1/itineraires` | origine, destination, date, heure, sens, marge → verdict + possibilités (segments sourcés, tous les tarifs applicables) | 3 |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) | 3, 4 |
@@ -147,14 +149,18 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Prompt d'image rédigé à partir de ce PLAN.md.
   Preuve : `design/prompt.md`, daté.
   Fait : `design/prompt.md`, 2026-11-02, validé par Brainditech.
-- [ ] Planche de tous les écrans.
+- [x] Planche de tous les écrans.
   Preuve : `design/planche-ecrans.png`, validation de Brainditech datée dans ETAT.
-- [ ] Design system : couleurs, polices, composants (dont les blocs de la frise et les badges d'état).
+  Fait autrement (D32) : un écran par image au lieu d'une planche, les 9 écrans validés par Brainditech le 2026-11-02 (`design/<écran>/0N-*.png`).
+- [x] Design system : couleurs, polices, composants (dont les blocs de la frise et les badges d'état).
   Preuve : `design/design-system.md` (jetons), plus image, validés.
-- [ ] Logo, notre propre identité.
+  Fait : `design/design-system.md` et `design/design-system/design-system.png`, 2026-11-02, validés par Brainditech (défauts connus listés dans `design/design-system.md`).
+- [x] Logo, notre propre identité.
   Preuve : `design/logo.*`, validé.
-- [ ] Chaque écran principal agrandi : Accueil, Confirmation du lieu, Résultat, Détail, Mes trajets, Réglages.
+  Fait : `design/logo/logo.png`, 2026-11-02, validé par Brainditech (symbole monochrome ; fichier d'icône 1024 px à produire en phase 0).
+- [x] Chaque écran principal agrandi : Accueil, Confirmation du lieu, Résultat, Détail, Mes trajets, Réglages.
   Preuve : `design/ecrans/NN-*.png`, validés.
+  Fait (chemin changé par D32) : `design/accueil/01-accueil.png`, `02-formulaire-repli.png`, `design/confirmation-lieu/03-confirmation-lieu.png`, `design/resultat/04-resultat.png`, `design/detail/05-detail.png`, `design/mes-trajets/06-mes-trajets.png`, `design/reglages/07-reglages.png`, `design/notifications/08-notifications.png`, `design/assistant/09-assistant.png`, 2026-11-02, validés par Brainditech.
 
 ### Phase 0 — Socle
 
@@ -279,6 +285,23 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : test (Solidaire −75 % sur un train Mobigo), aucune carte envoyée au serveur.
 - [ ] « Depuis ma position » (autorisation au premier plan seulement).
   Preuve : capture de la demande d'autorisation, plus test.
+
+### Phase 6 bis — Assistant (D31)
+
+- [ ] Écran en valeurs en dur, comparé à `design/assistant/09-assistant.png`.
+  Preuve : capture côte à côte.
+- [ ] `POST /v1/assistant` : Claude transforme la demande en action (relancer avec de nouveaux réglages, trier, choisir un conseil), sortie validée par Zod. Aucune heure, aucun arrêt, aucun prix ni numéro dans la sortie de Claude.
+  Preuve : tests (sortie hors schéma ⇒ rejet ; requête sans historique ni coordonnées).
+- [ ] Jeu d'au moins 30 demandes (changer la marge, l'heure, le jour, le départ, « moins de marche », « si je rate le car »…).
+  Preuve : réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
+- [ ] `data/conseils.json` : gabarits relus, validés par Brainditech, remplis par les valeurs du moteur et des fiches.
+  Preuve : tests (gabarit non validé ⇒ non affiché ; valeur absente ⇒ « — »), au moins un gabarit validé.
+- [ ] Confirmation avant toute modification : rien n'est relancé ni modifié sans « Relancer la recherche ».
+  Preuve : test.
+- [ ] Même clé d'appareil, mêmes limites de débit et même plafond de coût que `/v1/comprendre`. Au-delà, message et renvoi vers le formulaire.
+  Preuve : tests (sans clé ⇒ 401, limites ⇒ 429, plafond ⇒ repli).
+- [ ] Branchement réel.
+  Preuve : capture de « Je voudrais 20 min d'avance au lieu de 10. » relancée et du nouveau résultat.
 
 ### Phase 7 — Temps réel et alertes
 
