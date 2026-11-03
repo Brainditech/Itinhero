@@ -78,7 +78,7 @@ Chaque variable est vérifiée au démarrage (présence et format). Le serveur r
 | `CLAUDE_PLAFOND_MENSUEL_EUR` | plafond mensuel de coût | .env du PC, .env du VPS |
 | `CLES_APPAREILS` | empreintes des clés d'appareil autorisées | .env du PC, .env du VPS |
 | `LIMITE_REQ_MINUTE`, `LIMITE_REQ_JOUR` | limites de débit par clé | .env du PC, .env du VPS |
-| `MOTIS_URL` | adresse interne de MOTIS dans le compose | .env du PC, .env du VPS |
+| `MOTIS_URL` | adresse interne de MOTIS dans le compose (non secrète) | `docker-compose.yml` (spec 04 : elle découle du compose) |
 | `GTFS_SNCF_URL`, `GTFS_MOBIGO_URL`, `GTFS_RT_SNCF_URL` | sources officielles des horaires | .env du PC, .env du VPS |
 | `SENTRY_DSN_SERVEUR`, `SENTRY_ENVIRONNEMENT` | Sentry serveur, `dev` ou `prod` | .env du PC, .env du VPS |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | Inngest | configuration du serveur Inngest et .env de l'API (PC, VPS) |
@@ -178,6 +178,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait : NativeWind 4.2.7 (Tailwind 3.4.19), jetons dans `src/theme/jetons.js`, écran d'Accueil stylé sur le téléphone de Brainditech (Expo Go) : `docs/preuves/2026-11-02-phase1-accueil-en-dur.jpg`, 2026-11-02. R12 levé pour NativeWind.
 - [ ] Vérification des variables d'environnement au démarrage, côté app et côté serveur.
   Preuve : test vitest (variable absente ou mal formée ⇒ échec explicite).
+  Fait à moitié (spec 04) : côté serveur, `serveur/src/env.test.ts` (5 tests : absente, mal formée sans recopier la valeur, protocole, port), 2026-11-03. Manque : côté app, avec la première variable `EXPO_PUBLIC_API_URL` lue par l'app (phase 1, branchement réel).
 - [x] AGENTS.md complété :
   - pile et conventions ;
   - ordre de lecture `docs/ETAT.md` → `PLAN.md` → `docs/architecture.md` ;
@@ -196,17 +197,20 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : une PR bloquée par une CI rouge volontaire.
 - [ ] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.
   Preuve : configuration, plus test du nettoyage `beforeSend`.
-- [ ] `docker compose` : MOTIS v2.11.4 épinglé, avec sa configuration et un serveur API squelette. Configuration MOTIS :
-  - `max_footpath_length=45` ;
+- [x] `docker compose` : MOTIS v2.11.4 épinglé, avec sa configuration et un serveur API squelette. Configuration MOTIS :
+  - `max_footpath_length=50` (45 révisé par D42) ;
   - `osr_footpath` ;
   - routage à pied et en voiture ;
   - `geocoding`.
   
   Preuve : `docker compose up`, puis `/health` vert.
+  Fait (spec 04, D39, D40) : le 2026-11-03 sur le PC de Brainditech, `docker compose up -d --build` sur un volume vide ⇒ `motis` (`ghcr.io/motis-project/motis:2.11.4`, utilisateur `motis`) et `api` (`itinhero-api:0.1.0`, utilisateur `node`) en `healthy` ; `curl localhost:3000/health` ⇒ 200, `motis: "ok"`, SNCF `feed_version` 2026-10-18 et Mobigo du 2026-09-21 avec leurs sha256 ; MOTIS arrêté ⇒ 503 `motis: "injoignable"`, API toujours `healthy`. Recherche MOTIS Brienon Mairie → Joigny du 12/11 : car K941 06:27, marche de 3 431 m, train K7 08:50 → Joigny 09:09 (heures de Paris). Tests `serveur/src/routes/health.test.ts`.
 - [ ] `fixtures/manifest.json` (URL, date, feed_version, sha256 par fichier) et extrait OSM du couloir Brienon–Saint-Florentin–Joigny figé (sha256, date).
   Preuve : script de vérification des sha256, vert en CI.
-- [ ] Mesure de la mémoire de MOTIS chargé avec les fixtures (R1).
+  Fait à moitié (spec 04, D41) : `fixtures/manifest.json` (SNCF, Mobigo, extrait OSM `couloir-yonne-2026-11-02.osm.pbf` avec son origine Geofabrik), vérification des sha256 verte en local (`serveur/src/manifest.test.ts`), 2026-11-03. Manque : la même vérification verte en CI (spec 06).
+- [x] Mesure de la mémoire de MOTIS chargé avec les fixtures (R1).
   Preuve : valeur, méthode et date dans `docs/decisions/`.
+  Fait : `docs/decisions/0002-memoire-motis.md`, 2026-11-03 : 64 à 75 Mio au repos, 117 Mio au plus haut pendant les recherches, 60,8 Mo de données. À refaire avec l'OSM de production avant le choix du VPS.
 - [ ] Oracle GTFS : lecteur indépendant de MOTIS qui tire les valeurs attendues des fixtures.
   Preuve : tests unitaires sur stop_times et calendar_dates.
 - [ ] Test Joigny : voie car → marche → train → marche retrouvée le 12/11/2026, arrivée avant 10:00 moins la marge. Cas limites :
@@ -410,7 +414,7 @@ La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune av
 | # | Risque | Où il se tranche |
 |---|---|---|
 | R1 | Mémoire de MOTIS avec le GTFS SNCF national inconnue. Elle décide de la taille et du prix du VPS | Phase 0 (mesure), phase 10 |
-| R2 | Distance réelle à pied Saint-Florentin-Ville → gare non mesurée. Au-delà de 45 min, le test Joigny échoue et une décision est à prendre | Phase 0 |
+| R2 | ~~Distance réelle à pied Saint-Florentin-Ville → gare non mesurée~~ Tranché le 2026-11-03 : 3 431 m, 47,8 min (MOTIS) ; limite portée à 50 min (D42) | Phase 0 |
 | R3 | Couverture des cars TER K941 par le GTFS-RT SNCF inconnue | Phase 7 |
 | R4 | Le lieu de rendez-vous à Joigny peut manquer dans OSM ou y être mal nommée. Repli : saisie de l'adresse | Phase 2 |
 | R5 | Tarifs TER/SNCF non ouverts, tarif Mobigo à vérifier : beaucoup de « prix non publié », donc un tri « moins cher » peu utile | Phase 3 |

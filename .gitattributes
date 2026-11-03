@@ -1,0 +1,7 @@
+# Fins de ligne : les scripts shell et les fichiers lus dans les conteneurs Linux restent en LF (spec 04).
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+# Fixtures figées : jamais converties (invariant 14).
+*.zip binary
+*.pbf binary

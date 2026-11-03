@@ -1,0 +1,56 @@
+# Itinhero, développement sur le PC (spec 04). Démarrer : docker compose up -d --build
+# MOTIS n'est publié que sur 127.0.0.1 : le téléphone ne passe que par l'API (invariant 2).
+name: itinhero
+
+services:
+  motis-import:
+    image: ghcr.io/motis-project/motis:2.11.4
+    command: ["/motis", "import", "-c", "/config/config.yml", "-d", "/data"]
+    volumes:
+      - ./motis/config.yml:/config/config.yml:ro
+      - ./fixtures:/fixtures:ro
+      - motis-data:/data
+    restart: "no"
+
+  motis:
+    image: ghcr.io/motis-project/motis:2.11.4
+    command: ["/motis", "server", "/data"]
+    depends_on:
+      motis-import:
+        condition: service_completed_successfully
+    volumes:
+      - motis-data:/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/v1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  api:
+    build: ./serveur
+    image: itinhero-api:0.1.0
+    environment:
+      MOTIS_URL: http://motis:8080
+      PORT: "3000"
+    depends_on:
+      motis:
+        condition: service_healthy
+    volumes:
+      - ./fixtures/manifest.json:/fixtures/manifest.json:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      # L'API est vivante si elle répond, même 503 quand MOTIS est arrêté.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(()=>process.exit(0),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  motis-data:

@@ -1,0 +1,17 @@
+# Configuration MOTIS v2.11.4 (spec 04). Doc : docs/setup.md du tag v2.11.4.
+# Les chemins pointent vers fixtures/, monté en lecture seule sur /fixtures.
+server:
+  port: 8080
+osm: /fixtures/osm/couloir-yonne-2026-11-02.osm.pbf
+timetable:
+  first_day: 2026-10-19        # jamais TODAY : les fixtures sont figées
+  num_days: 120                # environ 4 mois : couvre le 11/11, le 12/11 et le 15/11
+  max_footpath_length: 50      # D3 révisée par D42 (marche mesurée de 48 min à Saint-Florentin)
+  datasets:
+    sncf:
+      path: /fixtures/_rapatrie-2026-10-19/sncf.zip
+    mobigo:
+      path: /fixtures/_rapatrie-2026-10-19/mobigo89.zip
+street_routing: true           # marche et voiture
+osr_footpath: true
+geocoding: true

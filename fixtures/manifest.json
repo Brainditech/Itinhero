@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "fichiers": [
+    {
+      "jeu": "sncf",
+      "type": "gtfs",
+      "chemin": "_rapatrie-2026-10-19/sncf.zip",
+      "url_source": "https://www.data.gouv.fr/api/1/datasets/r/9ae758ec-cd7a-40cd-a890-bb3963224942",
+      "licence": "ODbL",
+      "date_telechargement": "2026-10-19",
+      "feed_version": "2026-10-18",
+      "date_fichiers": null,
+      "taille": 5445708,
+      "sha256": "6892f10eb62e48e2a6dc6fd0ea6e27cbadcc1163d44b34e64661dae6be701dce"
+    },
+    {
+      "jeu": "mobigo",
+      "type": "gtfs",
+      "chemin": "_rapatrie-2026-10-19/mobigo89.zip",
+      "url_source": "https://www.data.gouv.fr/api/1/datasets/r/5c995d2c-8e79-4e40-b4a6-c0583c647201",
+      "licence": "LOv2",
+      "date_telechargement": "2026-10-19",
+      "feed_version": null,
+      "date_fichiers": "2026-09-21",
+      "taille": 2040812,
+      "sha256": "201780dac66a1663607d4c12f138d60c7e2b78ee7ae896eae06abbdc85d09db6"
+    },
+    {
+      "jeu": "osm",
+      "type": "osm",
+      "chemin": "osm/couloir-yonne-2026-11-02.osm.pbf",
+      "url_source": "https://download.geofabrik.de/europe/france/bourgogne-261102.osm.pbf",
+      "licence": "ODbL",
+      "date_telechargement": "2026-11-03",
+      "feed_version": null,
+      "date_fichiers": "2026-11-02",
+      "taille": 4478456,
+      "sha256": "d2857da7f7dbe44541934504fdb7b36522d30488a913fe570d342c6830a5a717",
+      "origine": {
+        "nom": "bourgogne-261102.osm.pbf",
+        "taille": 200754012,
+        "sha256": "a523fb36c589c613d5778ca7beef533020d1c054665ff0fd2592196706142951",
+        "decoupage": "osmium-tool 1.15.0, extract --bbox 3.35,47.92,3.80,48.05 --strategy complete_ways (scripts/extraire-osm.sh)"
+      }
+    }
+  ]
+}
