@@ -49,4 +49,7 @@ const rayons = {
 // Ombre des cartes flottantes : flou 12, décalage vertical 4, #14161F à 8 %.
 const ombreFlottante = "0px 4px 12px rgba(20, 22, 31, 0.08)";
 
-module.exports = { couleurs, polices, tailles, rayons, ombreFlottante };
+// Voile blanc posé sur le fond de carte (opacité), à ajuster à l'œil.
+const voile = 0.3;
+
+module.exports = { couleurs, polices, tailles, rayons, ombreFlottante, voile };
