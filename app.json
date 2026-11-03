@@ -34,7 +34,8 @@
           "imageWidth": 76
         }
       ],
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

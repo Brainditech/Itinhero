@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
+import { router } from "expo-router";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,7 +12,7 @@ import { couleurs } from "@/theme/jetons";
 type Depart = "domicile" | "position";
 
 // Phase 1, étape 1 : écran en valeurs en dur, comparé à design/accueil/01-accueil.png.
-// Rien n'est branché : « Chercher » et le lien ne font encore rien. Derrière : la carte (D36).
+// « Chercher » ne fait encore rien ; le lien ouvre le formulaire de repli (spec 02). Derrière : la carte (D36).
 export default function Accueil() {
   const insets = useSafeAreaInsets();
   const clavier = useAnimatedKeyboard();
@@ -60,7 +61,7 @@ export default function Accueil() {
             </View>
             {/* Dans la carte, et non sur le fond : posé sur la carte MapLibre, il se perdait parmi les noms de villages. */}
             <View className="mt-2 items-center">
-              <Lien libelle="Remplir un formulaire à la place" onPress={() => {}} />
+              <Lien libelle="Remplir un formulaire à la place" onPress={() => router.push("/formulaire")} />
             </View>
           </CarteFlottante>
         </View>

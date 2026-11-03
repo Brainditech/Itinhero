@@ -46,3 +46,6 @@ example
 
 # captures de preuve : gardées sur le PC, jamais versionnées (D38)
 /docs/preuves/
+
+# Android Studio
+/.idea/

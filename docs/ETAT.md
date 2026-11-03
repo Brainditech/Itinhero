@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle, et phase 1 avancée par D34 ; branche `phase-1/fond-carte` (spec 03), puis `phase-1/formulaire-repli` (spec 02).
+- **Phase en cours** : 0 — Socle, et phase 1 avancée par D34 ; branche `phase-1/formulaire-repli` (spec 02).
 - **Dernière case cochée** : Phase 0 · « Development build » (2026-11-03, spec 03).
-- **Prochaine action** : Brainditech approuve (ou corrige) la spec 02 (formulaire de repli). Puis choix du chemin suivant : écrans en dur ou serveur MOTIS.
+- **Prochaine action** : Brainditech reconstruit l'app (`npx expo run:android --device`, nouveau module natif : sélecteur de date) et vérifie les critères 1 à 4 de la spec 02 (lien vers le formulaire, ressemblance avec la maquette, sélecteurs de date et d'heure, marge masquée avec « Partir à ») ; bandeau par `adb shell am start -a android.intent.action.VIEW -d "itinhero://formulaire?raison=indisponible"`. Puis PR.
 
 ## État par phase
 
@@ -60,6 +60,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-03 | Spec 03 constatée sur le téléphone de Brainditech : attribution dépliée puis repliée en ⓘ, glisser, pincer, pas de rotation, clavier fermé au toucher (« tout est ok ») ; en mode avion (build release), Accueil sans erreur avec la carte en cache (critère 5 reformulé avec l'accord de Brainditech). Issue 0003 (build : `app.fingerprint` en double) close. Lien « Remplir un formulaire à la place » en 14 sp, choix de Brainditech | `docs/preuves/2026-11-03-spec03-telephone-*.jpg`, `docs/preuves/2026-11-03-spec03-release-mode-avion-*.jpg`, `docs/issues/0003-*.md` |
 | 2026-11-02 | Accueil lancé dans Expo Go : plantage attendu (« TurboModuleRegistry.getEnforcing(...): 'MLRNCameraModule' could not be found ») ; pas un bug du code, MapLibre exige le development build. Correction : MapLibre chargé seulement hors Expo Go, carte inventée sinon. Lint, types verts | `docs/preuves/Screenshot_20261102_234256_Expo Go.jpg`, `src/composants/FondCarte.tsx` (non commités) |
 | 2026-11-03 | PR #4 (spec 03, carte de fond) fusionnée par Brainditech. D38 : captures de preuve retirées du dépôt, `docs/preuves/` ignoré par git ; la preuve s'écrit dans PLAN et ETAT | commit `c5f4dcc`, `docs/decisions/0001-cadrage-v1.md` (D38) |
+| 2026-11-03 | Spec 02 (formulaire de repli) mise à jour puis approuvée par Brainditech (« vas-y, implémente »), marge masquée avec « Partir à ». Appliquée : pile de l'onglet Chercher (`(chercher)/`), écran `formulaire`, `Champ`, `SelecteurDeuxChoix`, `BandeauInfo`, `src/domaine/demande.ts` (schéma Zod, `validerFormulaire`, `formaterDate`) ; `@react-native-community/datetimepicker` 9.2.1 et zod 4.6.7. 25 tests verts, lint, types, expo-doctor 20/20, bundle Android exporté. Case non cochée : captures de Brainditech attendues | `src/domaine/demande.test.ts`, branche `phase-1/formulaire-repli` |
 
 ## Trous ouverts
 
