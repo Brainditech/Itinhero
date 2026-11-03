@@ -1,6 +1,6 @@
 # Itinhero
 
-Application Android (Expo) qui dit à un débutant comment arriver à l'heure en transports en commun dans l'Yonne, avec un serveur (Node, MOTIS) en `docker compose`.
+Application Android (Expo) qui remplace les autres applications de déplacement : elle calcule les trajets dans toute la France (trains, métro, bus, cars, transport à la demande, taxi, covoiturage) et planifie tout le voyage d'un débutant, de porte à porte, aller et retour, consultable hors réseau (D45). Premier cas réel : l'Yonne. Serveur (Node, MOTIS) en `docker compose`.
 Langue de travail : français (docs, specs, commits, interface).
 
 ## Ordre de lecture pour reprendre le travail

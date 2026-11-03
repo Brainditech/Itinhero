@@ -1,6 +1,6 @@
 # PLAN — Itinhero v1
 
-> Créé le 2026-11-02 à l'issue de l'interview de cadrage.
+> Créé le 2026-11-02 à l'issue de l'interview de cadrage. Objectif élargi le 2026-11-04 (D45 à D51) : une seule application, toute la France, de porte à porte, aller et retour, tout dans la v1.
 > Décisions : [docs/decisions/0001-cadrage-v1.md](docs/decisions/0001-cadrage-v1.md).
 > Invariants : [docs/architecture.md](docs/architecture.md).
 > Suivi : [docs/ETAT.md](docs/ETAT.md).
@@ -52,13 +52,15 @@
 - Inngest (SDK et serveur auto-hébergé) ;
 - Zod ;
 - @maplibre/maplibre-react-native ;
-- expo-sqlite, expo-secure-store, expo-notifications, expo-location.
+- expo-sqlite, expo-secure-store, expo-notifications, expo-location ;
+- GTFS d'Île-de-France Mobilités, GTFS régionaux et urbains (transport.data.gouv.fr), OSM France entière (D46) ;
+- accès au covoiturage (D50, R14).
 
 **Choix de pile** :
 - Android d'abord ;
 - Expo Router ;
 - MapLibre (cartes hors ligne) ;
-- MOTIS auto-hébergé en Docker ;
+- MOTIS auto-hébergé en Docker, chargé avec les données de toute la France (D46) ;
 - Claude par l'API Anthropic, clé côté serveur uniquement ;
 - Inngest auto-hébergé ;
 - Sentry ;
@@ -127,6 +129,9 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 | `POST /v1/assistant` | demande + réglages en cours (sans historique ni coordonnées) → `{action, parametres}` ou `{conseil_id, valeurs}` par Claude, sous limite et plafond (D31) | 6 bis |
 | `GET /v1/lieux?q=` | candidats du géocodeur MOTIS | 2 |
 | `POST /v1/itineraires` | origine, destination, date, heure, sens, marge → verdict + possibilités (segments sourcés, tous les tarifs applicables) | 3 |
+| `POST /v1/itineraires` (suite) | heure de fin du rendez-vous facultative → retour lié (D47) ; taxi comme étape (D48) | 3 |
+| `POST /v1/itineraires` (suite) | covoiturage quand aucun transport public n'arrive à l'heure (D50) | 6 ter |
+| `POST /v1/numeros` | lieu et type → numéros des fiches validées, ou trouvés sur une page publique vérifiée par le serveur, « non vérifié » (D49) | 4 |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) | 3, 4 |
 | `POST /v1/etat-courses` | trip_ids + date → état temps réel | 7 |
 | `POST /v1/abonnements`, `DELETE /v1/abonnements/:id` | abonnement d'alerte minimal | 7 |
@@ -138,7 +143,8 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 |---|---|---|---|
 | `suivi-retards` | cron toutes les minutes tant qu'il y a des abonnements actifs | lit le temps réel MOTIS, applique les seuils de D21, envoie par Expo Push | 7 |
 | `purge-abonnements` | cron quotidien | supprime les abonnements expirés | 7 |
-| `ingestion-gtfs` | cron nocturne (Europe/Paris) | téléchargement, sha256, import MOTIS à part, contrôles, bascule ou alerte Sentry | 8 |
+| `replanification` | événement de `suivi-retards` | relance la recherche depuis le prochain arrêt prévu, envoie l'alternative (D51) | 7 |
+| `ingestion-gtfs` | cron nocturne (Europe/Paris) | pour chaque jeu (D46) : téléchargement, sha256, import MOTIS à part, contrôles, bascule ou alerte Sentry | 8 |
 
 ## 6. Phases
 
@@ -211,6 +217,8 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Mesure de la mémoire de MOTIS chargé avec les fixtures (R1).
   Preuve : valeur, méthode et date dans `docs/decisions/`.
   Fait : `docs/decisions/0002-memoire-motis.md`, 2026-11-03 : 64 à 75 Mio au repos, 117 Mio au plus haut pendant les recherches, 60,8 Mo de données. À refaire avec l'OSM de production avant le choix du VPS.
+- [ ] Mesure de la mémoire de MOTIS chargé avec les données de toute la France (D46, R1 rouvert).
+  Preuve : valeur (au repos, pendant les recherches, pendant l'import), méthode et date dans `docs/decisions/0002-memoire-motis.md`.
 - [ ] Oracle GTFS : lecteur indépendant de MOTIS qui tire les valeurs attendues des fixtures.
   Preuve : tests unitaires sur stop_times et calendar_dates.
 - [ ] Test Joigny : voie car → marche → train → marche retrouvée le 12/11/2026, arrivée avant 10:00 moins la marge. Cas limites :
@@ -249,6 +257,17 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] Confirmation demandée quand il y a plusieurs candidats.
   Preuve : test, plus capture.
 
+### Phase 2 bis — Données nationales (D46)
+
+- [ ] GTFS d'Île-de-France Mobilités et OSM Île-de-France dans MOTIS (versions, tailles, licences et sha256 constatés).
+  Preuve : test d'intégration Laroche-Migennes → Flers le 12/11 avec une étape métro ou RER à Paris, arrivée au plus tard à celle de la chaîne TER + K4 tirée par l'oracle (environ 10:01, au lieu de 16:16 : issue 0006).
+- [ ] GTFS régionaux et urbains de transport.data.gouv.fr et OSM France entière.
+  Preuve : liste des jeux chargés (URL, date, sha256) dans le manifeste ; test Brienon-sur-Armançon → Wissous.
+- [ ] Refus explicite hors des données chargées (étranger, réseau sans données).
+  Preuve : test (départ ou arrivée hors données ⇒ « hors de la zone couverte », aucune possibilité affichée).
+- [ ] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
+  Preuve : carte de Flers affichée en mode avion.
+
 ### Phase 3 — Résultat
 
 - [ ] Écran en valeurs en dur, comparé à sa maquette.
@@ -259,6 +278,10 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests (Joigny « possible, départ 06:27 », 11/11, marge dite dans la phrase).
 - [ ] Tris : arrivée la plus tôt, moins cher, moins de marche, sans réservation.
   Preuve : tests.
+- [ ] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
+  Preuve : test Joigny aller et retour (fin du rendez-vous donnée ⇒ retour du même jour, ou « impossible » dit clairement).
+- [ ] Taxi comme étape au début et à la fin (D48) : heure de prise en charge et heure limite pour appeler.
+  Preuve : tests (heure de prise en charge = départ de l'étape suivante − durée de route − attente ; sans fiche ⇒ « délai non connu »).
 - [ ] `data/tarifs.json` : schéma, collecte, validation par Brainditech, application des cartes côté client.
   Preuve : test (« prix non publié » sans fiche), au moins une fiche tarifaire validée.
 
@@ -276,6 +299,8 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests (« aucun numéro connu »), au moins une fiche taxi validée.
 - [ ] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
   Preuve : test du lien, plus capture.
+- [ ] Numéros trouvés hors des fiches, « non vérifié » (D49, `POST /v1/numeros`).
+  Preuve : tests (numéro absent de la page ⇒ non affiché ; page injoignable ⇒ « aucun numéro connu » ; numéro affiché avec URL, date et « non vérifié » ; fiche validée ⇒ mention retirée), plus capture.
 
 ### Phase 5 — Mes trajets
 
@@ -287,6 +312,8 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : carte affichée en mode avion.
 - [ ] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
   Preuve : test de programmation, plus notification reçue.
+- [ ] Plan de voyage complet enregistré : aller, retour, appels à passer (taxi, transport à la demande) avec leurs rappels (« appelez le taxi maintenant »).
+  Preuve : test de l'instantané, plus capture en mode avion.
 
 ### Phase 6 — Réglages
 
@@ -316,6 +343,13 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] Branchement réel.
   Preuve : capture de « Je voudrais 20 min d'avance au lieu de 10. » relancée et du nouveau résultat.
 
+### Phase 6 ter — Covoiturage (D50)
+
+- [ ] Source du covoiturage constatée (accès développeur BlaBlaCar ou lien profond, R14), décision écrite.
+  Preuve : doc officielle lue et datée dans `docs/decisions/`.
+- [ ] Covoiturage proposé quand aucun transport public n'arrive à l'heure, et en option sinon.
+  Preuve : test (jour sans train ⇒ proposition de covoiturage), plus capture.
+
 ### Phase 7 — Temps réel et alertes
 
 - [ ] GTFS-RT SNCF branché dans MOTIS, et couverture des cars K941 vérifiée (R3).
@@ -326,10 +360,12 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : flux GTFS-RT simulé ⇒ notification reçue, app fermée.
 - [ ] Rafraîchissement d'un trajet enregistré (`/v1/etat-courses`).
   Preuve : test.
+- [ ] Replanification (D51) : course supprimée ou correspondance cassée ⇒ alternative depuis le prochain arrêt prévu, envoyée par notification, rien remplacé sans accord.
+  Preuve : suppression simulée dans un flux GTFS-RT de test ⇒ alternative reçue, app fermée.
 
 ### Phase 8 — Ingestion nocturne
 
-- [ ] `ingestion-gtfs` : import à part, contrôles (arrêt Brienon Mairie présent, couverture au-delà de J+30), bascule ou alerte.
+- [ ] `ingestion-gtfs` pour chaque jeu (D46) : import à part, contrôles par jeu (arrêt Brienon Mairie présent, couverture au-delà de J+30), bascule ou alerte ; un jeu cassé n'empêche pas les autres.
   Preuve : tests (fichier cassé ⇒ ancien jeu conservé, plus événement Sentry).
 - [ ] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
   Preuve : test, plus capture.
@@ -359,7 +395,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 10 — Déploiement VPS
 
-- [ ] Choix du VPS argumenté à partir de la mesure de la phase 0.
+- [ ] Choix du VPS argumenté à partir de la mesure de la phase 0 avec les données de toute la France.
   Preuve : décision dans `docs/decisions/`, avec le prix et sa source.
 - [ ] Domaine et HTTPS (R10).
   Preuve : `/health` en HTTPS depuis le téléphone, PC éteint.
@@ -396,15 +432,19 @@ La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune av
 - [ ] `.claude/settings.json` : lecture de `.env` refusée, testée.
 - [ ] Au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app avec leur source.
 - [ ] Sur le VPS : la version déployée porte son étiquette (jamais seulement `latest`), et un retour à la version précédente a été essayé une fois.
+- [ ] Trajet national juste : Laroche-Migennes → Flers par Paris (métro ou RER), comparé à SNCF Connect ou Google Maps (D46).
+- [ ] Voyage planifié de porte à porte, aller et retour, avec taxi et heure d'appel, enregistré et rouvert en mode avion (D47, D48).
+- [ ] Un numéro « non vérifié » affiché avec sa source (D49).
+- [ ] Covoiturage proposé un jour sans train (D50).
+- [ ] Alternative reçue après une suppression simulée (D51).
 
 ## 8. Hors v1
+
+Révisé le 2026-11-04 par D45 : « France entière », « trajet dans Paris après la gare d'arrivée » et « covoiturage » sont entrés dans la v1.
 
 - Paiement et réservation intégrés.
 - iPhone.
 - Grand public, publication sur un store, pages légales, comptes utilisateurs (l'app n'est pas publiée).
-- France entière.
-- Trajet dans Paris après la gare d'arrivée.
-- Covoiturage.
 - Guidage photo (y compris en sous-sol sans réseau).
 - Guidage pas-à-pas en cours de trajet.
 - Réglage de la marche maximale.
@@ -413,7 +453,7 @@ La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune av
 
 | # | Risque | Où il se tranche |
 |---|---|---|
-| R1 | Mémoire de MOTIS avec le GTFS SNCF national inconnue. Elle décide de la taille et du prix du VPS | Phase 0 (mesure), phase 10 |
+| R1 | Mémoire de MOTIS inconnue avec les données de toute la France (OSM 4,8 Go, tous les GTFS, D46). Elle décide de la taille et du prix du VPS. Mesurée le 2026-11-03 sur le couloir seulement (117 Mio) | Phase 0 (mesure), phase 10 |
 | R2 | ~~Distance réelle à pied Saint-Florentin-Ville → gare non mesurée~~ Tranché le 2026-11-03 : 3 431 m, 47,8 min (MOTIS) ; limite portée à 50 min (D42) | Phase 0 |
 | R3 | Couverture des cars TER K941 par le GTFS-RT SNCF inconnue | Phase 7 |
 | R4 | Le lieu de rendez-vous à Joigny peut manquer dans OSM ou y être mal nommée. Repli : saisie de l'adresse | Phase 2 |
@@ -426,3 +466,7 @@ La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune av
 | R11 | Dates relatives (« jeudi », heure d'été) : le serveur fournit à Claude la date et le fuseau Europe/Paris | Phase 1 |
 | R12 | Compatibilité SDK 58 / RN 0.88.1 de MapLibre RN et de NativeWind (NativeWind constaté seulement en SDK 57 dans Tripagent) | Phases 0 et 4 |
 | R13 | Perte de la clé de signature release : aucune mise à jour possible de l'APK installé | Phase 11 |
+| R14 | Accès au covoiturage : accès développeur BlaBlaCar ouvert ou non, conditions ; à défaut, lien profond seulement | Phase 6 ter |
+| R15 | Nombre et qualité des GTFS régionaux et urbains, rythme de mise à jour de chacun, jeux cassés | Phases 2 bis et 8 |
+| R16 | Conditions d'utilisation des pages publiques où l'on lit les numéros (D49) | Phase 4 |
+| R17 | Taille du pack de carte hors ligne pour un voyage national | Phases 2 bis et 5 |

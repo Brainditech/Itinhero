@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/serveur-motis` (spec 04).
+- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `plan/objectif-porte-a-porte` (PR de documentation), puis `phase-0/joigny` (spec 05).
 - **Dernière case cochée** : Phase 0 · « `docker compose` » et « Mesure de la mémoire de MOTIS » (2026-11-03, spec 04).
-- **Prochaine action** : Brainditech relit et fusionne la PR `phase-0/serveur-motis`. Puis spec 05 : oracle GTFS et test Joigny.
+- **Prochaine action** : Brainditech relit et fusionne la PR `plan/objectif-porte-a-porte` (objectif élargi, D45 à D51). Puis, dans l'ordre : spec 05 (oracle et test Joigny, `docs/specs/05-oracle-joigny.md`, à approuver ; Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs), spec 06 (CI), phase 1. Les nouvelles phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite.
 
 ## État par phase
 
@@ -64,12 +64,16 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-03 | Case phase 1 « Formulaire de repli » cochée. Constaté sur le téléphone de Brainditech : formulaire conforme à la maquette, bandeau (lien profond), sélecteurs, marge masquée avec « Partir à », message d'erreur. Issue 0004 (« Chercher » sous le clavier, retour qui quittait l'app après un lien profond) corrigée et close. Remarques laissées : sélecteurs d'Android en vert (couleur par défaut, réglable par le plugin et un rebuild) ; erreurs de tuiles MapLibre affichées en rond rouge en mode développement quand le réseau coupe | `src/domaine/demande.test.ts`, `docs/issues/0004-*.md` |
 | 2026-11-03 | PR #6 (spec 02) fusionnée par Brainditech. Brainditech choisit le chemin B (serveur MOTIS). Spec 04 — serveur et MOTIS proposée (découpage du chemin B en specs 04, 05, 06 ; D39 Fastify, D40 dossier `serveur/`, D41 extrait OSM proposées), branche `phase-0/serveur-motis` | commit `df76008`, `docs/specs/04-serveur-motis.md` (non commité) |
 | 2026-11-03 | Spec 04 approuvée par Brainditech (« vas-y ») et appliquée : D39 (Fastify 5.12.8), D40 (`serveur/`), D41 (extrait OSM du couloir, osmium 1.15.0, 4,5 Mo, sha256 `d2857da7…`). R2 tranché : 47,8 min de marche Saint-Florentin-Ville → gare ; à 45 la voie Joigny n'existe pas, Brainditech choisit 50 (D42). `docker compose up` : `motis` et `api` `healthy`, `/health` 200 puis 503 MOTIS arrêté ; voie retrouvée le 12/11 (car 06:27, marche 3 431 m, train 08:50 → Joigny 09:09). Mémoire MOTIS 64 à 117 Mio (R1). Cases « `docker compose` » et « Mesure de la mémoire » cochées ; manifeste et variables d'environnement à moitié. Serveur : 13 tests verts ; racine : lint, types, 25 tests verts | `docs/decisions/0002-memoire-motis.md`, `serveur/src/**/*.test.ts`, branche `phase-0/serveur-motis` |
+| 2026-11-03 | PR #7 (spec 04) fusionnée par Brainditech. Spec 05 — oracle GTFS et test Joigny proposée (D43 `fflate` + `csv-parse`, D44 recherche au départ sur le jour demandé, filtrée par l'API), branche `phase-0/joigny`. Constats tirés des fixtures : car 06:27 (service `000015`) absent le 11/11 et le 15/11, 803 de 08:25 en correspondance nulle avec le train de 08:50 | commit `41d99ff`, `docs/specs/05-oracle-joigny.md` (non commité) |
+| 2026-11-03 | Comparaisons MOTIS demandées par Brainditech. Brienon → agence de Joigny : 12/11 deux trajets (arrivée 08:26 et 09:24), 11/11 et 15/11 aucun ; MOTIS mêle d'autres jours à sa réponse (D44 les écarte). Laroche-Migennes → Flers : détour de plus de 10 h au lieu d'environ 5 h, faute de métro et de carte des rues de Paris (issue 0006) | `docs/issues/0006-trajet-par-paris-detour.md` (non commité) |
+| 2026-11-04 | Objectif élargi par Brainditech (« il faut mille applications pour se déplacer ») : une seule app, toute la France, de porte à porte, aller et retour, tout dans la v1. D45 à D51 acceptées (données nationales, retour planifié, taxi comme étape, numéros « non vérifié », covoiturage, replanification) ; invariant 16 révisé ; phases 2 bis et 6 ter ajoutées ; issue 0006 : correction A + B choisie | `docs/decisions/0001-cadrage-v1.md`, `PLAN.md`, `docs/architecture.md`, branche `plan/objectif-porte-a-porte` |
 
 ## Trous ouverts
 
 Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 
-- R1 : mémoire de MOTIS (taille du VPS).
+- R1 : mémoire de MOTIS (taille du VPS), rouvert pour toute la France (D46).
+- R14 à R17 : covoiturage, GTFS régionaux, pages des numéros, pack hors ligne national (PLAN.md §9).
 - R3 : couverture des cars K941 par le GTFS-RT SNCF.
 - R4 : lieu de rendez-vous à Joigny dans OSM.
 - R5 : tarifs publiés (Mobigo, TER).
