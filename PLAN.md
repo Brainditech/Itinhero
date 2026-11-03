@@ -167,8 +167,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] App lancée telle que créée.
   Preuve : capture sur émulateur ou téléphone, datée.
   Fait : `docs/preuves/2026-11-02-phase0-app-telle-que-creee-expo-go.jpg` (téléphone de Brainditech, Expo Go, 2026-11-02 21:34).
-- [ ] Development build (`expo-dev-client`, `npx expo run:android`).
+- [x] Development build (`expo-dev-client`, `npx expo run:android`).
   Preuve : capture de l'app en development build.
+  Fait : `docs/preuves/2026-11-03-spec03-accueil-carte-attribution-repliee.png` (émulateur Android Studio « Medium Phone API 36.1 », 2026-11-03 12:04), spec 03.
 - [x] Skills officielles des services dans `.claude/skills`.
   Preuve : liste et source de chaque skill dans le commit.
   Fait : `.claude/skills/SOURCES.md` (Sentry, Inngest, MapLibre, épinglées à leur commit ; Expo par plugin ; aucune skill officielle pour MOTIS, NativeWind, Zod, vitest), 2026-11-02, spec 00.
