@@ -105,7 +105,7 @@ Les mêmes couleurs servent aux icônes des notifications (supprimé, retard, co
 | Carte flottante | `fond`, `rayon-carte`, bordure `bordure-carte`, `ombre-flottante` | toutes |
 | Bouton principal | plein `primaire`, texte blanc 20 sp 600, pleine largeur moins `marge-ecran`, `hauteur-bouton`, `rayon-bouton` ; un seul par écran | toutes |
 | Bouton secondaire | contour 1,5 dp `primaire`, texte `primaire` | design system |
-| Lien | texte `primaire`, 18 sp 500 | 01, 03 |
+| Lien | texte `primaire`, 14 sp 500 (`badge`, choisi par Brainditech le 2026-11-03) | 01, 03 |
 | Bouton désactivé | fond `#E4E6EC`, texte `#8A90A0` | design system |
 | Champ | fond `surface`, contour 1 dp `bordure-champ`, `rayon-champ` ; actif : 2 dp `primaire` ; erreur : 2 dp `#B91C1C` et message dessous en `#B91C1C` | 02, design system |
 | Sélecteur à deux choix | « Arriver avant » / « Partir à », choix actif plein `primaire` | 02 |

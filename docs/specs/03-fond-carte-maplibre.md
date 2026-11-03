@@ -1,6 +1,6 @@
 # Spec 03 — Vraie carte MapLibre en fond de l'Accueil
 
-> Rédigée le 2026-11-02. État : **approuvée par Brainditech le 2026-11-02 (« implémente »), appliquée ; en attente des captures du development build.**
+> Rédigée le 2026-11-02. État : **approuvée par Brainditech le 2026-11-02 (« implémente »), appliquée ; critères 1 à 6 constatés le 2026-11-03.**
 > Branche : `phase-1/fond-carte` (elle porte aussi D35 : fond inventé, puces en 14 sp). Une seule PR.
 > Décisions liées : D9 (révisée par D36), D37 (attribution repliable, 2026-11-03), D34 (point 3 : development build), D35, A8, R8, R9, R12.
 
@@ -71,7 +71,7 @@ Cases de PLAN.md touchées :
 2. Derrière l'Accueil, la carte du couloir est nette et claire, sous le voile ; on reconnaît l'Yonne. *(capture)*
 3. Glisser un doigt sur la zone vide déplace la carte ; pincer zoome ; deux doigts qui tournent ne la font pas pivoter. Le champ, les puces, le lien et « Chercher » marchent comme avant, et toucher la carte ferme le clavier. *(constat de Brainditech)*
 4. Au lancement, l'attribution est lisible en haut à droite et s'ouvre au toucher ; elle se replie en ⓘ au premier geste sur la carte ou après 5 secondes ; toucher ⓘ la rouvre. *(captures dépliée et repliée)*
-5. En mode avion, l'Accueil affiche la carte inventée, sans erreur. *(capture)*
+5. En mode avion, l'Accueil s'affiche sans erreur, avec la carte gardée en mémoire ou, à défaut, l'image de secours. *(capture)* (Corrigé le 2026-11-03 avec l'accord de Brainditech : en mode avion, MapLibre affiche les tuiles déjà vues, gardées en cache.)
 6. `npx expo lint`, `npx tsc --noEmit`, `npm test` et `npx expo-doctor` sont verts.
 
 ## 7. Vérification
