@@ -20,6 +20,7 @@ const couleurs = {
   "mode-taxi": "#2E2E38",
   "desactive-fond": "#E4E6EC",
   "desactive-texte": "#8A90A0",
+  erreur: "#B91C1C",
 };
 
 const polices = {

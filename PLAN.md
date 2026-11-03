@@ -230,8 +230,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : jeu d'au moins 30 phrases réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
 - [ ] Plafond mensuel et compteur de coût.
   Preuve : test (plafond atteint ⇒ formulaire de repli).
-- [ ] Formulaire de repli : lieu, date, heure, « arriver avant » / « partir à », marge.
+- [x] Formulaire de repli : lieu, date, heure, « arriver avant » / « partir à », marge.
   Preuve : test, plus capture.
+  Fait : `src/domaine/demande.test.ts` (20 tests : validation, Europe/Paris, `formaterDate`, schéma Zod) ; captures du téléphone de Brainditech regardées le 2026-11-03 (hors dépôt, D38) : formulaire conforme à la maquette, bandeau, sélecteurs de date et d'heure, marge masquée avec « Partir à », erreur « Indiquez le lieu du rendez-vous. », « Chercher » au-dessus du clavier ; retour vers l'Accueil. Spec 02, issue 0004.
 - [ ] Branchement réel.
   Preuve : capture d'une phrase dictée au clavier, comprise.
 

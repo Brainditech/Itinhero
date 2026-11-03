@@ -11,7 +11,7 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
 export const HAUTEUR_BARRE_ONGLETS = 72;
 
 const ONGLETS: Record<string, { libelle: string; icone: AndroidSymbol }> = {
-  index: { libelle: "Chercher", icone: "search" },
+  "(chercher)": { libelle: "Chercher", icone: "search" },
   "mes-trajets": { libelle: "Mes trajets", icone: "bookmark" },
   assistant: { libelle: "Assistant", icone: "smart_toy" },
   reglages: { libelle: "Réglages", icone: "settings" },
