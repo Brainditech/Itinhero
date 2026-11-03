@@ -49,3 +49,10 @@ example
 
 # Android Studio
 /.idea/
+
+# serveur (spec 04)
+/serveur/node_modules/
+/serveur/dist/
+
+# téléchargements locaux (extrait Geofabrik Bourgogne, 200 Mo, D41)
+/.cache/

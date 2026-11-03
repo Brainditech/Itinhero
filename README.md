@@ -54,3 +54,20 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Serveur Itinhero (MOTIS + API), spec 04
+
+Docker Desktop doit tourner. Depuis la racine du dépôt :
+
+```bash
+docker compose up -d --build     # importe les horaires figés, démarre MOTIS puis l'API
+docker compose ps                # motis et api doivent être « healthy »
+curl http://localhost:3000/health
+docker compose down              # arrête (garde les données importées)
+docker compose down -v           # arrête et efface les données : le prochain « up » réimporte
+```
+
+- MOTIS (interface de débogage) : http://localhost:8080, joignable depuis le PC seulement.
+- Configuration : `motis/config.yml` ; fixtures et sha256 : `fixtures/manifest.json`.
+- Tests du serveur : `cd serveur && npm test`.
+- Extrait OSM du couloir : `scripts/extraire-osm.sh`, lancé une seule fois (D41). Ne pas le relancer pour « réparer » un sha256.
