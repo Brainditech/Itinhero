@@ -54,7 +54,7 @@ export function Puce({ libelle, active, onPress }: { libelle: string; active: bo
 export function Lien({ libelle, onPress }: { libelle: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} className="min-h-12 items-center justify-center">
-      <Text className="font-inter-medium text-corps text-primaire">{libelle}</Text>
+      <Text className="font-inter-medium text-secondaire text-primaire">{libelle}</Text>
     </Pressable>
   );
 }
