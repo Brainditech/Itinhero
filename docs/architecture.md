@@ -2,13 +2,16 @@
 
 > Créé le 2026-11-02. Décisions : [decisions/0001-cadrage-v1.md](decisions/0001-cadrage-v1.md).
 > Toute modification de ce fichier passe par une décision écrite dans `docs/decisions/`.
+> Objectif élargi le 2026-11-04 (D45 à D51) : toute la France, de porte à porte, aller et retour.
 
 ## Principe
 
 **L'IA comprend et explique, le moteur calcule.** Claude ne transforme une phrase qu'en paramètres de requête. Chaque horaire, arrêt, correspondance, distance, prix ou numéro affiché vient d'une source nommée :
 - les GTFS ou le GTFS-RT officiels, via MOTIS ;
 - OSM, via MOTIS ;
-- une fiche sourcée et validée.
+- une fiche sourcée et validée ;
+- une page publique téléchargée par le serveur, pour un numéro « non vérifié » (D49) ;
+- le service de covoiturage (D50).
 
 ## Flux
 
@@ -26,12 +29,15 @@
 │   ├─► Claude (API Anthropic) : phrase → paramètres seulement   │
 │   ├─► MOTIS : calcul, géocodage, marche/voiture, temps réel    │
 │   ├─► data/tarifs.json, data/fiches/ (versionnés, validés)     │
+│   ├─► pages publiques des numéros (D49) · covoiturage (D50)    │
 │   └─► SQLite : abonnements_alerte (seule table persistante)    │
 │ Inngest (auto-hébergé)                                         │
 │   ├─ ingestion-gtfs (nuit) ─► data.gouv.fr (GTFS officiels)    │
 │   ├─ suivi-retards (1 min) ─► Expo Push ─► FCM ─► téléphone    │
+│   ├─ replanification (D51) ─► MOTIS ─► Expo Push               │
 │   └─ purge-abonnements (jour)                                  │
-│ MOTIS v2.11.4 ◄─ GTFS SNCF + Mobigo 89, OSM, GTFS-RT SNCF      │
+│ MOTIS v2.11.4 ◄─ GTFS SNCF, IDFM, régionaux et urbains (D46),  │
+│                  OSM France, GTFS-RT SNCF                      │
 └────────────────────────────────────────────────────────────────┘
 Sentry ◄─ app et serveur (erreurs techniques seulement)
 Tuiles OpenFreeMap ◄─ app (fond de l'Accueil D36, carte du Détail, packs hors ligne)
@@ -48,7 +54,8 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond |
 | `POST /v1/assistant` | demande + réglages en cours → action ou identifiant de conseil par Claude, sous limite et plafond (D31) |
 | `GET /v1/lieux?q=` | candidats du géocodeur MOTIS |
-| `POST /v1/itineraires` | verdict + possibilités (segments sourcés, tous les tarifs applicables) |
+| `POST /v1/itineraires` | verdict + possibilités (segments sourcés, tous les tarifs applicables) ; avec l'heure de fin du rendez-vous, le retour lié (D47) ; taxi comme étape (D48) ; covoiturage (D50) |
+| `POST /v1/numeros` | lieu et type (taxi, transport à la demande) → numéros des fiches validées, ou trouvés sur une page publique vérifiée par le serveur, « non vérifié » (D49) |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) |
 | `POST /v1/etat-courses` | état temps réel de trip_ids pour une date |
 | `POST /v1/abonnements`, `DELETE /v1/abonnements/:id` | abonnement d'alerte minimal (trip_id, date, jeton push) |
@@ -58,9 +65,10 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 
 | Tâche | Déclencheur | Rôle |
 |---|---|---|
-| `ingestion-gtfs` | cron nocturne (Europe/Paris) | téléchargement, sha256, import MOTIS à part, contrôles, bascule ou alerte Sentry (l'ancien jeu est conservé) |
+| `ingestion-gtfs` | cron nocturne (Europe/Paris) | pour chaque jeu (D46) : téléchargement, sha256, import MOTIS à part, contrôles, bascule ou alerte Sentry (l'ancien jeu est conservé) |
 | `suivi-retards` | cron toutes les minutes tant qu'il y a des abonnements actifs | temps réel MOTIS → seuils (suppression, retard ≥ 5 min, correspondance menacée) → Expo Push |
 | `purge-abonnements` | cron quotidien | supprime les abonnements expirés (J+1) |
+| `replanification` | événement de `suivi-retards` (course supprimée, correspondance cassée) | relance la recherche depuis le prochain arrêt prévu et envoie l'alternative (D51) ; rien n'est remplacé sans l'accord de l'utilisateur |
 
 ## Où vit chaque état
 
@@ -83,10 +91,13 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 | Nom d'arrêt, repère | GTFS `stops.stop_name`. Le repère n'apparaît que si `stop_desc` ou `platform_code` existe |
 | Distance et durée de marche | routage piéton MOTIS sur l'extrait OSM daté (sha256) |
 | Durée en taxi | routage voiture MOTIS, libellé « durée de route estimée, hors attente » |
+| Heure de prise en charge du taxi | calcul déterministe : départ de l'étape suivante − durée de route − attente prévue (D48) |
+| Retour | seconde recherche MOTIS « partir à » l'heure de fin du rendez-vous (D47) |
+| Covoiturage | service de covoiturage (D50) : trajet, heure et prix tels qu'il les publie, ou lien profond sans prix |
 | Prix | `data/tarifs.json` (URL + date) combiné aux cartes cochées sur le téléphone. Sans fiche : « prix non publié ». Jamais calculé pour un taxi |
 | Où acheter le billet | champ « canal de vente » de la fiche tarifaire, sinon « information non publiée » |
 | Réservation obligatoire | GTFS `pickup_type=2` ou `route_type 715` |
-| Échéance de réservation, numéro à appeler | fiche validée, sinon « délai non connu » / « aucun numéro connu » |
+| Échéance de réservation, numéro à appeler | fiche validée ; sinon numéro lu sur une page publique téléchargée par le serveur, avec l'URL, la date et « non vérifié » (D49) ; sinon « délai non connu » / « aucun numéro connu » |
 | Verdict | calcul déterministe : arrivée ≤ heure du rendez-vous − marge (10 min par défaut, ou valeur dite dans la phrase) |
 | Lieu de destination | géocodeur MOTIS (OSM), candidat confirmé |
 | « Horaires du JJ/MM » | `feed_info.feed_version` ou date d'ingestion du jeu actif |
@@ -112,7 +123,7 @@ Chaque règle est une interdiction. Les enfreindre bloque la fusion.
 13. **Pas de changement de jour silencieux.** Quand rien n'existe le jour demandé, le verdict le dit.
 14. **Pas de bascule sans contrôles.** Aucun jeu GTFS n'est basculé en production sans contrôles réussis. Aucune fixture n'est retéléchargée pour « réparer » un sha256.
 15. **Valeurs attendues tirées des fixtures.** Le test de référence ne tire jamais une valeur attendue d'ailleurs que `fixtures/`.
-16. **Numéros validés seulement.** Aucun numéro de taxi ou de transport à la demande n'est affiché sans fiche validée par Brainditech.
+16. **Numéros sourcés seulement** (révisé par D49). Aucun numéro de taxi ou de transport à la demande n'est affiché sans fiche validée par Brainditech, ou sans page publique téléchargée par le serveur où il figure. Le second cas porte toujours l'URL, la date de lecture et la mention « non vérifié ». Claude n'écrit jamais un numéro (invariant 3).
 17. **Conteneurs sûrs.** Aucun conteneur exécuté en root, aucun sans healthcheck, aucune image `latest` en production. Dev et prod ne partagent ni `.env`, ni données, ni environnement Sentry.
 18. **Pas de commit sur `main`.** Aucun commit direct sur `main` (seule exception : le premier commit, D27). Aucune fusion avec une CI rouge ou une remarque majeure de revue ignorée.
 19. **`.env*` inaccessible à Claude.** Claude ne lit ni n'écrit jamais `.env*`, et ne lance jamais l'app : Brainditech la fait tourner.
