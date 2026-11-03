@@ -43,3 +43,6 @@ example
 # generated native folders
 /ios
 /android
+
+# captures de preuve : gardées sur le PC, jamais versionnées (D38)
+/docs/preuves/

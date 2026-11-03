@@ -7,7 +7,7 @@
 
 - **Phase en cours** : 0 — Socle, et phase 1 avancée par D34 ; branche `phase-1/fond-carte` (spec 03), puis `phase-1/formulaire-repli` (spec 02).
 - **Dernière case cochée** : Phase 0 · « Development build » (2026-11-03, spec 03).
-- **Prochaine action** : Brainditech relit et fusionne la PR `phase-1/fond-carte` (spec 03). Ensuite : approbation de la spec 02 (formulaire), puis choix du chemin suivant (écrans en dur ou serveur MOTIS).
+- **Prochaine action** : Brainditech approuve (ou corrige) la spec 02 (formulaire de repli). Puis choix du chemin suivant : écrans en dur ou serveur MOTIS.
 
 ## État par phase
 
@@ -59,6 +59,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-03 | Case phase 0 « Development build » cochée. `expo-doctor` rouge (7 paquets en retard d'un correctif) corrigé par `npx expo install --fix` : expo 58.0.23, expo-router 58.0.30, expo-linking 58.0.16, expo-splash-screen 58.0.13, expo-constants 58.0.15, @expo/ui 58.0.27, react-native-safe-area-context 5.11.1 ; `expo-doctor` 20/20, lint, types et tests (5) verts | `docs/preuves/2026-11-03-spec03-accueil-carte-attribution-repliee.png`, `package.json` |
 | 2026-11-03 | Spec 03 constatée sur le téléphone de Brainditech : attribution dépliée puis repliée en ⓘ, glisser, pincer, pas de rotation, clavier fermé au toucher (« tout est ok ») ; en mode avion (build release), Accueil sans erreur avec la carte en cache (critère 5 reformulé avec l'accord de Brainditech). Issue 0003 (build : `app.fingerprint` en double) close. Lien « Remplir un formulaire à la place » en 14 sp, choix de Brainditech | `docs/preuves/2026-11-03-spec03-telephone-*.jpg`, `docs/preuves/2026-11-03-spec03-release-mode-avion-*.jpg`, `docs/issues/0003-*.md` |
 | 2026-11-02 | Accueil lancé dans Expo Go : plantage attendu (« TurboModuleRegistry.getEnforcing(...): 'MLRNCameraModule' could not be found ») ; pas un bug du code, MapLibre exige le development build. Correction : MapLibre chargé seulement hors Expo Go, carte inventée sinon. Lint, types verts | `docs/preuves/Screenshot_20261102_234256_Expo Go.jpg`, `src/composants/FondCarte.tsx` (non commités) |
+| 2026-11-03 | PR #4 (spec 03, carte de fond) fusionnée par Brainditech. D38 : captures de preuve retirées du dépôt, `docs/preuves/` ignoré par git ; la preuve s'écrit dans PLAN et ETAT | commit `c5f4dcc`, `docs/decisions/0001-cadrage-v1.md` (D38) |
 
 ## Trous ouverts
 
