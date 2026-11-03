@@ -111,10 +111,11 @@ export default function Formulaire() {
         </View>
 
         {/* flexGrow 0 : la zone sous le bouton reste à la carte ; avec le clavier, la liste rétrécit et défile. */}
+        {/* pb-1 : l'ombre de la carte n'est pas coupée par le bord de la liste. */}
         <ScrollView
           ref={defilement}
           style={{ flexGrow: 0 }}
-          contentContainerClassName="gap-3 px-4 pb-2"
+          contentContainerClassName="gap-3 px-4 pb-1"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -170,9 +171,12 @@ export default function Formulaire() {
               ) : null}
             </View>
           </CarteFlottante>
-
-          <BoutonPrincipal libelle="Chercher" onPress={chercher} />
         </ScrollView>
+
+        {/* Hors de la liste (issue 0004) : sous la carte du formulaire, et posé sur le clavier quand il est ouvert. */}
+        <View className="px-4 pt-3" style={{ pointerEvents: "box-none" }}>
+          <BoutonPrincipal libelle="Chercher" onPress={chercher} />
+        </View>
 
         <View className="flex-1" style={{ pointerEvents: "box-none" }} />
       </Animated.View>

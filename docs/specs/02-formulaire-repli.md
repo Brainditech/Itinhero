@@ -1,6 +1,6 @@
 # Spec 02 — Formulaire de repli (phase 1)
 
-> Rédigée le 2026-11-02. État : **approuvée par Brainditech le 2026-11-03 (« vas-y, implémente »)**, après sa mise à jour du même jour (fond de carte déjà fait par la spec 03, captures hors dépôt par D38, development build).
+> Rédigée le 2026-11-02. État : **approuvée par Brainditech le 2026-11-03 (« vas-y, implémente »), appliquée, critères 1 à 7 constatés le 2026-11-03**, après sa mise à jour du même jour (fond de carte déjà fait par la spec 03, captures hors dépôt par D38, development build).
 > Branche : `phase-1/formulaire-repli`. Une seule PR (D34 : ce qui se vérifie ensemble).
 > Maquette : `design/accueil/02-formulaire-repli.png`. Décisions liées : D7, D15, D17, D34, A15, R11.
 
