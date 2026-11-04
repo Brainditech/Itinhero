@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/ci` (spec 06, appliquée, en attente des exécutions GitHub).
-- **Dernière case cochée** : Phase 0 · « Oracle GTFS » et « Test Joigny » (2026-11-04, spec 05).
-- **Prochaine action** : PR `phase-0/ci` et `essai/ci-rouge` sur le dépôt public : constater le rouge de l'essai (fusion refusée, fermée sans fusion) et le vert de `phase-0/ci` ; Claude coche les cases CI avec les liens et les durées, puis Brainditech fusionne. Ensuite : phase 1. Les nouvelles phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite. Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs.
+- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/ci` (spec 06, appliquée, CI verte).
+- **Dernière case cochée** : Phase 0 · « CI GitHub Actions », « Job CI qui lance MOTIS et le test Joigny » et « `fixtures/manifest.json` » (2026-11-04, spec 06).
+- **Prochaine action** : Brainditech relit et fusionne la PR #2 (`phase-0/ci`, verte). Puis la phase 0 se termine avec Sentry (app et serveur) et la mesure mémoire de MOTIS sur toute la France ; ensuite la phase 1. Les phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite. Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs.
 
 ## État par phase
 
@@ -70,6 +70,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-04 | PR #8 (objectif élargi) fusionnée par Brainditech. Spec 05 approuvée par Brainditech (« oui vas y ») et appliquée : D43 (`fflate` 0.8.3, `csv-parse` 7.0.3) et D44 acceptées ; oracle GTFS (`serveur/src/oracle/`), heure de Paris (`serveur/src/temps.ts`), recherche et verdict (`serveur/src/itineraires/`), test Joigny. 12/11 : car 06:27 → marche 48 min → train 08:50 → agence 09:24, « possible » ; 11/11 et 15/11 « impossible » ; correspondance 803 de 0 min jamais proposée. Hypothèse « arriver avant » vérifiée (MOTIS remonte au 10/11). Cases « Oracle GTFS » et « Test Joigny » cochées. Serveur : 39 tests et `test:joigny` (4) verts ; racine : lint, types, 25 tests verts | commit `aeaa4a6`, `serveur/src/joigny/joigny.integration.test.ts`, `docs/specs/05-oracle-joigny.md` §11, branche `phase-0/joigny` |
 | 2026-11-04 | PR #9 (spec 05) fusionnée par Brainditech. Spec 06 — CI (remplace la spec 01) rédigée et appliquée sur la demande de Brainditech : `.github/workflows/ci.yml`, jobs `verifications` (app : lint, types, tests, bundle Android ; serveur : types, tests, build) et `joigny` (import MOTIS, `up --wait`, `/health`, `test:joigny`). Node 22.23.4, actions épinglées par SHA. Répété en local : export Android 15 s, import MOTIS 3 s, `healthy` en 12 s, test Joigny 4 verts en 41 s. Cases CI pas encore cochées (exécutions GitHub attendues) | commit `6a1e3ec`, `docs/specs/06-ci.md`, branche `phase-0/ci` |
 | 2026-11-04 | Aucune exécution Actions ne démarrait sur le dépôt privé (blocage de facturation, 0,01 $). D52 : historique anonymisé (git-filter-repo 2.47.0), ancien dépôt renommé `Itinhero-prive` (privé), nouveau dépôt public `Brainditech/Itinhero`, protection de `main` ; identifiants de commit des preuves recalés sur le nouvel historique | `docs/decisions/0001-cadrage-v1.md` (D52) |
+| 2026-11-04 | CI verte sur le dépôt public. PR d'essai #1 : `verifications` rouge à « Tests (app) », fusion bloquée (`BLOCKED`), fermée sans fusion. PR #2 : `verifications` 1 min 24 s et `joigny` 1 min 23 s, verts (environ 3 min facturables par poussée, gratuites sur un dépôt public). Correctif : `expo-env.d.ts` écrit par la CI avant `tsc` (TS2882 sur `global.css`). Cases « CI GitHub Actions », « Job CI qui lance MOTIS et le test Joigny » et « `fixtures/manifest.json` » cochées | https://github.com/Brainditech/Itinhero/actions/runs/41756823866, https://github.com/Brainditech/Itinhero/actions/runs/41756803879 |
 
 ## Trous ouverts
 
@@ -82,7 +83,7 @@ Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 - R5 : tarifs publiés (Mobigo, TER).
 - R6 : numéros de taxi publics.
 - R7 : notifications (FCM, `projectId` EAS, Android 13+).
-- R8 : quotas et conditions (Sentry, OpenFreeMap, Inngest, Expo Push). Actions et protection de branche tranchées par D52 (dépôt public) ; durée des jobs CI à relever (spec 06).
+- R8 : quotas et conditions (Sentry, OpenFreeMap, Inngest, Expo Push). Actions et protection de branche tranchées par D52 (dépôt public) ; durée des jobs CI relevée : environ 1 min 25 s chacun (spec 06).
 - R9 : juridique, à vérifier (ODbL, OSM, FCM).
 - R10 : nom de domaine et HTTPS du VPS.
 - R11 : dates relatives et fuseau.

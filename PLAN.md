@@ -199,9 +199,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] vitest.
   Preuve : `npm test` vert avec un premier test.
   Fait : vitest 5.1.0, `npm test` vert le 2026-11-02 (5 tests de `src/domaine/verdict.test.ts`), spec 00.
-- [ ] CI GitHub Actions (lint, types, tests, build) sur chaque PR et sur `main`, fusion bloquée si rouge (protection de `main`, possible depuis que le dépôt est public, D52).
+- [x] CI GitHub Actions (lint, types, tests, build) sur chaque PR et sur `main`, fusion bloquée si rouge (protection de `main`, possible depuis que le dépôt est public, D52).
   Preuve : une PR d'essai avec un test rouge volontaire, fusion refusée par GitHub (lien), jamais fusionnée ; puis la PR de la spec 06, verte.
-  En cours (spec 06) : `.github/workflows/ci.yml`, job `verifications` ; vert en local le 2026-11-04. Manque : les deux exécutions sur GitHub.
+  Fait (spec 06, D52) : PR d'essai #1 (`essai/ci-rouge`), `verifications` rouge à l'étape « Tests (app) », fusion bloquée par la protection de `main` (`BLOCKED`), fermée sans fusion : https://github.com/Brainditech/Itinhero/actions/runs/41756823866 ; PR #2 (`phase-0/ci`) verte, `verifications` 1 min 24 s : https://github.com/Brainditech/Itinhero/actions/runs/41756803879, 2026-11-04.
 - [ ] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.
   Preuve : configuration, plus test du nettoyage `beforeSend`.
 - [x] `docker compose` : MOTIS v2.11.4 épinglé, avec sa configuration et un serveur API squelette. Configuration MOTIS :
@@ -212,9 +212,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   
   Preuve : `docker compose up`, puis `/health` vert.
   Fait (spec 04, D39, D40) : le 2026-11-03 sur le PC de Brainditech, `docker compose up -d --build` sur un volume vide ⇒ `motis` (`ghcr.io/motis-project/motis:2.11.4`, utilisateur `motis`) et `api` (`itinhero-api:0.1.0`, utilisateur `node`) en `healthy` ; `curl localhost:3000/health` ⇒ 200, `motis: "ok"`, SNCF `feed_version` 2026-10-18 et Mobigo du 2026-09-21 avec leurs sha256 ; MOTIS arrêté ⇒ 503 `motis: "injoignable"`, API toujours `healthy`. Recherche MOTIS Brienon Mairie → Joigny du 12/11 : car K941 06:27, marche de 3 431 m, train K7 08:50 → Joigny 09:09 (heures de Paris). Tests `serveur/src/routes/health.test.ts`.
-- [ ] `fixtures/manifest.json` (URL, date, feed_version, sha256 par fichier) et extrait OSM du couloir Brienon–Saint-Florentin–Joigny figé (sha256, date).
+- [x] `fixtures/manifest.json` (URL, date, feed_version, sha256 par fichier) et extrait OSM du couloir Brienon–Saint-Florentin–Joigny figé (sha256, date).
   Preuve : script de vérification des sha256, vert en CI.
-  Fait à moitié (spec 04, D41) : `fixtures/manifest.json` (SNCF, Mobigo, extrait OSM `couloir-yonne-2026-11-02.osm.pbf` avec son origine Geofabrik), vérification des sha256 verte en local (`serveur/src/manifest.test.ts`), 2026-11-03. Manque : la même vérification verte en CI (spec 06).
+  Fait (spec 04, D41, spec 06) : `fixtures/manifest.json` (SNCF, Mobigo, extrait OSM `couloir-yonne-2026-11-02.osm.pbf` avec son origine Geofabrik), vérification des sha256 verte en local (`serveur/src/manifest.test.ts`), 2026-11-03. Vert en CI le 2026-11-04 (étape « Tests (serveur, dont sha256 du manifeste) ») : https://github.com/Brainditech/Itinhero/actions/runs/41756803879.
 - [x] Mesure de la mémoire de MOTIS chargé avec les fixtures (R1).
   Preuve : valeur, méthode et date dans `docs/decisions/`.
   Fait : `docs/decisions/0002-memoire-motis.md`, 2026-11-03 : 64 à 75 Mio au repos, 117 Mio au plus haut pendant les recherches, 60,8 Mo de données. À refaire avec l'OSM de production avant le choix du VPS.
@@ -231,9 +231,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   
   Preuve : test vert, valeurs attendues tirées par l'oracle depuis `fixtures/`.
   Fait (spec 05, D44) : `cd serveur && npm run test:joigny`, 4 tests verts contre MOTIS v2.11.4 en `docker compose`, 2026-11-04. 12/11 : car K941 06:27 → marche 48 min → train K7 08:50 → Joigny 09:09 → agence 09:24, verdict « possible » ; 11/11 et 15/11 : « impossible » ; correspondance 803 → train de 0 min jamais proposée. Le test échoue si la marche est limitée à 45 min ou si MOTIS est injoignable (essayé). Manque : le même test vert en CI (case suivante, spec 06).
-- [ ] Job CI qui lance MOTIS et le test Joigny.
+- [x] Job CI qui lance MOTIS et le test Joigny.
   Preuve : exécution GitHub Actions verte, avec son lien.
-  En cours (spec 06) : job `joigny` de `.github/workflows/ci.yml` ; scénario répété en local le 2026-11-04 (import 3 s, `healthy` en 12 s, 4 tests verts). Manque : l'exécution sur GitHub.
+  Fait (spec 06) : job `joigny` vert en 1 min 23 s (import MOTIS, `up --wait`, `/health` 200, `test:joigny` 4 tests) : https://github.com/Brainditech/Itinhero/actions/runs/41756803879, 2026-11-04.
 
 ### Phase 1 — Accueil
 
