@@ -26,6 +26,9 @@ export default function Resultat() {
   if (!recherche?.reponse || !depart || !arrivee) return <Redirect href="/formulaire" />;
   const { reponse, demande } = recherche;
   const verdict = phraseVerdict(reponse);
+  // Vert seulement pour « Possible » ; une nuit dehors est en orange avec le triangle (spec 15, D79).
+  const teinte = verdict.etat === "possible" ? couleurs.possible : verdict.etat === "nuit" ? couleurs.avertissement : couleurs.erreur;
+  const iconeVerdict = verdict.etat === "possible" ? "check_circle" : verdict.etat === "nuit" ? "warning" : "cancel";
   const horaires = finHoraires(reponse.possibilites);
   const modifier = () => router.dismissTo("/formulaire");
 
@@ -43,23 +46,24 @@ export default function Resultat() {
         style={{ boxShadow: ombreFlottante }}
       >
         <View className="flex-row">
-          <View style={{ width: 6, backgroundColor: verdict.possible ? couleurs.possible : couleurs.erreur }} />
+          <View style={{ width: 6, backgroundColor: teinte }} />
           <View className={`flex-1 gap-2 py-5 pl-5 pr-1 ${verdictOuvert ? "" : "pb-3 pt-3"}`}>
             <View className="flex-row items-center gap-2">
               <SymbolView
-                name={verdict.possible ? { android: "check_circle", web: "check_circle" } : { android: "cancel", web: "cancel" }}
+                name={{ android: iconeVerdict, web: iconeVerdict }}
                 size={28}
-                tintColor={verdict.possible ? couleurs.possible : couleurs.erreur}
+                tintColor={teinte}
               />
-              <Text
-                className="flex-1 font-inter-bold text-verdict"
-                style={{ color: verdict.possible ? couleurs.possible : couleurs.erreur }}
-              >
-                {verdict.titre}
+              <View className="flex-1 flex-row flex-wrap items-baseline gap-x-3">
+                <Text className="font-inter-bold text-verdict" style={{ color: teinte }}>
+                  {verdict.titre}
+                </Text>
                 {!verdictOuvert && verdict.heureDepart ? (
-                  <Text className="font-inter-semibold text-corps text-texte">{`  ·  Départ ${verdict.heureDepart}`}</Text>
+                  <Text className="font-inter-semibold text-corps text-texte" style={{ fontVariant: ["tabular-nums"] }}>
+                    {`Départ ${verdict.heureDepart}`}
+                  </Text>
                 ) : null}
-              </Text>
+              </View>
               <BoutonRepli ouvert={verdictOuvert} nom="Verdict" onPress={() => setVerdictOuvert((o) => !o)} />
             </View>
             {verdictOuvert ? (
@@ -81,6 +85,7 @@ export default function Resultat() {
           key={`${p.depart_utc}-${p.arrivee_utc}-${i}`}
           possibilite={p}
           destination={arrivee.nom}
+          date={demande.date}
           adresse={reponse.arrivee.adresse}
         />
       ))}

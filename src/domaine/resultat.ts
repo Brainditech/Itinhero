@@ -115,32 +115,93 @@ export function formaterDistance(metres: number): string {
 
 // ——— Verdict ———
 
-export type PhraseVerdict = { possible: boolean; titre: string; heureDepart: string | null; detail: string };
+export type EtatVerdict = "possible" | "nuit" | "impossible";
+export type PhraseVerdict = { possible: boolean; etat: EtatVerdict; titre: string; heureDepart: string | null; detail: string };
 
 /**
- * Carte du verdict. « Impossible » ne montre aucune heure (invariant 13 : pas de changement de jour,
- * pas de trajet d'un autre jour proposé à la place).
+ * Verdict dit en mots (spec 10 §4.2, spec 15) : il s'appuie sur la première possibilité sans nuit dehors,
+ * sinon sur la première. Une nuit dehors n'est jamais « Possible » en vert (D79) ; une arrivée le lendemain
+ * est toujours dite.
  */
 export function phraseVerdict(r: ReponseItineraires): PhraseVerdict {
-  const premiere = r.possibilites[0];
-  if (r.verdict === "impossible" || !premiere) {
+  const choisie = r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
+  if (r.verdict === "impossible" || !choisie) {
     const quand = r.demande.sens === "arriver" ? `pour arriver avant ${r.demande.limite ?? r.demande.heure}` : `au départ de ${r.demande.heure}`;
     return {
       possible: false,
+      etat: "impossible",
       titre: "Impossible",
       heureDepart: null,
       detail: `Aucun trajet ce jour-là ${quand}.`,
+    };
+  }
+  const plus = joursEnPlus(choisie);
+  const arrivee = plus > 0 ? `${jourApres(r.demande.date, plus)} ${choisie.arrivee}` : choisie.arrivee;
+  const nuit = nuitDehors(choisie);
+  if (nuit) {
+    return {
+      possible: false,
+      etat: "nuit",
+      titre: "Nuit dehors",
+      heureDepart: choisie.depart,
+      detail: `Arrivée ${arrivee} après ${formaterAttente(nuit.minutes)} d'attente de nuit à ${nuit.lieu}. Aucun trajet sans nuit dehors trouvé.`,
     };
   }
   let detail: string;
   if (r.demande.sens === "arriver") {
     const marge = r.demande.marge ?? 0;
     const precision = marge > 0 ? `rendez-vous ${r.demande.heure}, marge ${marge} min` : `rendez-vous ${r.demande.heure}, sans marge`;
-    detail = `À faire : être sur place avant ${r.demande.limite ?? r.demande.heure} (${precision}). Arrivée prévue à ${premiere.arrivee}.`;
+    detail = `À faire : être sur place avant ${r.demande.limite ?? r.demande.heure} (${precision}). Arrivée prévue à ${arrivee}.`;
   } else {
-    detail = `Arrivée prévue à ${premiere.arrivee}.`;
+    detail = `Arrivée prévue ${plus > 0 ? "" : "à "}${arrivee}.`;
   }
-  return { possible: true, titre: "Possible", heureDepart: premiere.depart, detail };
+  return { possible: true, etat: "possible", titre: "Possible", heureDepart: choisie.depart, detail };
+}
+
+// ——— Jour d'arrivée et nuit dehors (spec 15, D79) ———
+
+const minutesDuJour = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+
+/** Jours entre le départ et l'arrivée : heure de départ + durée totale, sans fuseau (Hermes). */
+export function joursEnPlus(p: Possibilite): number {
+  return Math.floor((minutesDuJour(p.depart) + p.duree_minutes) / 1440);
+}
+
+/** « 2026-11-12 » + 1 ⇒ « vendredi ». */
+export function jourApres(date: string, n: number): string {
+  const [a, m, j] = date.split("-").map(Number);
+  const d = new Date(Date.UTC(a!, m! - 1, j! + n));
+  return JOURS[d.getUTCDay()]!.toLowerCase();
+}
+
+/** « 12 min », « 1 h », « 7 h 51 ». */
+export function formaterAttente(minutes: number): string {
+  return formaterDuree(minutes);
+}
+
+/** D79 : une nuit dehors est une attente d'au moins 60 min qui touche 22:00 – 05:00. */
+export const NUIT_ATTENTE_MIN = 60;
+const NUIT_DEBUT = 22 * 60;
+const NUIT_FIN = 5 * 60;
+
+function toucheLaNuit(debut: string, minutes: number): boolean {
+  const d = minutesDuJour(debut);
+  for (let t = 0; t <= minutes; t += 5) {
+    const h = (d + t) % 1440;
+    if (h >= NUIT_DEBUT || h < NUIT_FIN) return true;
+  }
+  return false;
+}
+
+/** La plus longue attente de nuit d'une possibilité (D79), avec le lieu où l'on attend ; null s'il n'y en a pas. */
+export function nuitDehors(p: Possibilite): { lieu: string; minutes: number } | null {
+  let meilleure: { lieu: string; minutes: number } | null = null;
+  p.etapes.forEach((e, i) => {
+    const n = attenteApres(p.etapes, i);
+    if (n === null || n < NUIT_ATTENTE_MIN || !toucheLaNuit(e.arrivee, n)) return;
+    if (!meilleure || n > meilleure.minutes) meilleure = { lieu: e.a.nom, minutes: n };
+  });
+  return meilleure;
 }
 
 // ——— Étapes ———

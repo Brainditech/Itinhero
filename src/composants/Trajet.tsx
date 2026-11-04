@@ -9,11 +9,15 @@ import {
   attenteApres,
   directionEtape,
   formaterDistance,
+  formaterAttente,
   formaterDuree,
   jetonMode,
+  jourApres,
+  joursEnPlus,
   libelleCorrespondances,
   libelleEtape,
   nomLieuEtape,
+  nuitDehors,
   phraseMontee,
   phraseReservation,
   resumePossibilite,
@@ -78,6 +82,18 @@ function AvertissementMarche() {
       <SymbolView name={{ android: "warning", web: "warning" }} size={20} tintColor={couleurs.avertissement} />
       <Text className="font-inter-medium text-badge" style={{ color: couleurs.avertissement }}>
         Marche de plus de 15 min
+      </Text>
+    </View>
+  );
+}
+
+/** Badge « Nuit dehors à Laroche-Migennes (7 h 51) » (spec 15, D79) : mot et triangle, jamais la couleur seule. */
+function AvertissementNuit({ lieu, minutes }: { lieu: string; minutes: number }) {
+  return (
+    <View className="flex-row items-center gap-2">
+      <SymbolView name={{ android: "bedtime", web: "bedtime" }} size={20} tintColor={couleurs.avertissement} />
+      <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
+        {`Nuit dehors à ${lieu} (${formaterAttente(minutes)})`}
       </Text>
     </View>
   );
@@ -166,10 +182,13 @@ function LigneAttente({ texte }: { texte: string }) {
 export function CartePossibilite({
   possibilite,
   destination,
+  date,
   adresse,
 }: {
   possibilite: Possibilite;
   destination: string;
+  /** Jour demandé (« 2026-11-12 »), pour dire « vendredi » quand l'arrivée est le lendemain (spec 15). */
+  date: string;
   adresse: string | null;
 }) {
   const [ouverte, setOuverte] = useState(false);
@@ -177,11 +196,14 @@ export function CartePossibilite({
   const premiereMontee = p.etapes.findIndex((e) => e.mode !== "marche");
   const montee = phraseMontee(p);
   const aReserver = p.etapes.find((e) => e.reservation === "appel");
+  const nuit = nuitDehors(p);
+  const plus = joursEnPlus(p);
+  const jourArrivee = plus > 0 ? jourApres(date, plus) : null;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ expanded: ouverte }}
-      accessibilityLabel={`${p.depart} à ${p.arrivee}, ${formaterDuree(p.duree_minutes)}, ${resumePossibilite(p)}`}
+      accessibilityLabel={`${p.depart} à ${jourArrivee ? `${jourArrivee} ` : ""}${p.arrivee}, ${formaterDuree(p.duree_minutes)}, ${nuit ? `nuit dehors à ${nuit.lieu}, ` : ""}${resumePossibilite(p)}`}
       accessibilityHint={ouverte ? "Replie les étapes" : "Montre les étapes"}
       onPress={() => setOuverte((o) => !o)}
       className="gap-3 rounded-carte border border-bordure-carte bg-fond p-5"
@@ -194,9 +216,13 @@ export function CartePossibilite({
         <Text className="font-inter text-secondaire text-texte-secondaire">{formaterDuree(p.duree_minutes)}</Text>
         <Chevron ouvert={ouverte} />
       </View>
+      {jourArrivee ? (
+        <Text className="-mt-2 font-inter-semibold text-badge text-texte-secondaire">{`Arrivée ${jourArrivee}`}</Text>
+      ) : null}
       <Frise etapes={p.etapes} />
       <Text className="font-inter text-secondaire text-texte-secondaire">{resumePossibilite(p)}</Text>
       <Text className="font-inter text-badge text-texte-secondaire">{libelleCorrespondances(p.correspondances)}</Text>
+      {nuit ? <AvertissementNuit lieu={nuit.lieu} minutes={nuit.minutes} /> : null}
       {aReserver ? (
         <View className="flex-row items-center gap-2">
           <SymbolView name={{ android: "call", web: "call" }} size={20} tintColor={couleurs.avertissement} />
@@ -214,7 +240,7 @@ export function CartePossibilite({
           {p.etapes.map((e, i) => {
             const attente = attenteApres(p.etapes, i);
             // Avant la première montée, la ligne dit l'heure d'arrivée à l'arrêt et le passage du véhicule.
-            const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${attente} min` : null;
+            const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${formaterAttente(attente)}` : null;
             return (
               <View key={i}>
                 <LigneEtape etape={e} />
