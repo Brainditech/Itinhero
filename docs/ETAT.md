@@ -7,7 +7,7 @@
 
 - **Phase en cours** : 0 — Socle, avec les phases 1 et 2 bis avancées (D34, D54) ; spec 08 fusionnée (PR #4), issue 0007 fusionnée (PR #5), spec 09 fusionnée (PR #7). La spec 07 (Sentry) attend sur `phase-0/sentry`, repoussée par D54.
 - **Dernière case cochée** : Phase 3 · « `POST /v1/itineraires` : normalisation de la réponse MOTIS en segments sourcés » et phase 2 · « `GET /v1/lieux` » (2026-11-04, spec 09).
-- **Prochaine action** (D54) : Brainditech relit la PR de l'issue 0008 (D62, marches « coûteuses ») ; puis tranche l'issue 0008 §7 (corriger 13 stations dans OSM ou signaler à MOTIS), l'issue 0009 (Toulouse → aéroport) et les points en attente de la spec 09 §11.5 (Annuaire santé, compte data.grandlyon) ; ensuite spec 10, l'app branchée. Le MOTIS national tourne sur le PC (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api`) ; le stack des fixtures est arrêté.
+- **Prochaine action** (D54) : Brainditech relit et approuve la spec 10 (`docs/specs/10-app-branchee.md`, branche `app/branchee`) : l'app branchée, avec la clé au premier lancement, le domicile, la position, la Confirmation et le Résultat réels. En attente aussi : l'issue 0008 §7 (13 stations à corriger dans OSM ou à signaler à MOTIS), l'issue 0009 (Toulouse → aéroport) et la spec 09 §11.5 (Annuaire santé, compte data.grandlyon). Le MOTIS national tourne sur le PC (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api`) ; le stack des fixtures est arrêté.
 
 ## État par phase
 
@@ -94,3 +94,4 @@ Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 - R11 : dates relatives et fuseau.
 - R12 : compatibilité SDK 58 de MapLibre RN (NativeWind : vérifié le 2026-11-02 sur le téléphone).
 - R13 : sauvegarde de la clé de signature.
+| 2026-11-04 | PR #8 (issue 0008, D62) fusionnée par Brainditech ; API du stack national reconstruite depuis `main` (`up -d --build api`, `/health` 200), `npm run test:national` 5/5 verts. Spec 10 rédigée sur la branche `app/branchee`, à approuver ; choix de Brainditech : départ depuis le domicile et la position, clé demandée au premier lancement | `docs/specs/10-app-branchee.md` |
