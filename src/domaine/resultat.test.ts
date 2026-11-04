@@ -32,6 +32,7 @@ import {
   joursEnPlus,
   jourApres,
   nuitDehors,
+  phraseTaxi,
 } from "./resultat";
 
 const chatelet = REPONSE_CHATELET.possibilites[0]!;
@@ -424,5 +425,32 @@ describe("nuit dehors et changement de jour (spec 15)", () => {
   it("une arrivée le lendemain sans nuit dehors est dite", () => {
     const tard = { ...chatelet, depart: "23:30", arrivee: "00:20", duree_minutes: 50 };
     expect(phraseVerdict({ ...RETOUR_DIJON, possibilites: [tard] }).detail).toBe("Arrivée prévue vendredi 00:20.");
+  });
+});
+
+// ——— Spec 16 : taxi comme étape (D48, D80) ———
+
+describe("taxi comme étape (spec 16)", () => {
+  const taxi = etape({ mode: "taxi", mode_motis: "CAR", ligne: null, depart: "18:31", arrivee: "18:43", duree_minutes: 12 });
+  const soirTaxi: Possibilite = { ...chatelet, depart: "17:23", arrivee: "18:43", duree_minutes: 80, etapes: [etape({ depart: "17:23", arrivee: "18:30" }), taxi] };
+
+  it("libellé et consigne : prise en charge, route estimée, délai non connu, aucun numéro", () => {
+    expect(libelleEtape(taxi)).toBe("Taxi 12 min");
+    expect(phraseTaxi(taxi)).toBe(
+      "À réserver : prise en charge à 18:31. 12 min de route estimée, hors attente. Délai pour appeler non connu.",
+    );
+    expect(phraseTaxi(metro)).toBeNull();
+  });
+
+  it("le verdict préfère le taxi du soir à une nuit dehors, et le dit", () => {
+    const r = phraseVerdict({ ...RETOUR_DIJON, possibilites: [soirTaxi, NUIT] });
+    expect(r.etat).toBe("possible");
+    expect(r.heureDepart).toBe("17:23");
+    expect(r.detail).toBe("Arrivée prévue à 18:43. Avec un taxi à réserver (prix non publié).");
+  });
+
+  it("le verdict préfère un trajet sans taxi quand il n'impose pas de nuit", () => {
+    const soir = { ...chatelet, depart: "19:00", arrivee: "20:10", duree_minutes: 70 };
+    expect(phraseVerdict({ ...RETOUR_DIJON, possibilites: [soirTaxi, soir] }).heureDepart).toBe("19:00");
   });
 });

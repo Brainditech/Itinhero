@@ -21,6 +21,7 @@ export type Mode =
   | "train"
   | "bateau"
   | "remontee"
+  | "taxi"
   | "autre";
 
 const MODES: Record<string, Mode> = {
@@ -44,6 +45,7 @@ const MODES: Record<string, Mode> = {
   AERIAL_LIFT: "remontee",
   AREAL_LIFT: "remontee",
   CABLE_CAR: "remontee",
+  CAR: "taxi", // la voiture n'est demandée à MOTIS que pour un taxi (spec 16, D48)
 };
 
 export const modeAffiche = (modeMotis: string): Mode => MODES[modeMotis] ?? "autre";
@@ -141,7 +143,8 @@ function sourceEtape(e: Etape, idx: IndexManifest, horaires?: IndexHoraires): So
     const fin_validite = horaires?.finValidite(t.jeu) ?? null;
     return { type: "gtfs", jeu: t.jeu, version, trip_id: t.trip_id, date_service: t.date_service, fin_validite };
   }
-  if (e.mode === "WALK" && idx.osm) return { type: "osm", jeu: idx.osm.jeu, version: idx.osm.version };
+  // Marche et taxi : routage de MOTIS sur la carte OSM chargée.
+  if ((e.mode === "WALK" || e.mode === "CAR") && idx.osm) return { type: "osm", jeu: idx.osm.jeu, version: idx.osm.version };
   return null;
 }
 
@@ -202,7 +205,7 @@ type Contexte = { idx: IndexManifest; horaires?: IndexHoraires; noms: NomsDemand
 function lieu(l: { nom: string; arret?: string }, coord: { lat: number; lon: number }, mode: Mode, ctx: Contexte): LieuEtape {
   const n = nomLieu(l.nom, ctx.noms);
   // Le type d'un lieu de marche est repris de l'étape voisine (`typerMarches`).
-  const type = n.type ?? (mode === "marche" ? "arret" : typeLieuDuMode(mode));
+  const type = n.type ?? (mode === "marche" || mode === "taxi" ? "arret" : typeLieuDuMode(mode));
   return { nom: n.nom, type, arret: arretGtfs(l.arret, ctx.idx), lat: coord.lat, lon: coord.lon };
 }
 
@@ -231,14 +234,15 @@ function etapeAffichee(e: Etape, source: SourceEtape, ctx: Contexte, avanceMs: n
   };
 }
 
-/** Une marche qui mène à un arrêt (ou en part) prend le type de lieu de l'étape en commun voisine. */
+/** Une marche ou un taxi qui mène à un arrêt (ou en part) prend le type de lieu de l'étape en commun voisine. */
 function typerMarches(etapes: EtapeAffichee[]): void {
   etapes.forEach((e, i) => {
-    if (e.mode !== "marche") return;
+    if (e.mode !== "marche" && e.mode !== "taxi") return;
     const avant = etapes[i - 1];
     const apres = etapes[i + 1];
-    if (e.de.type === "arret" && avant && avant.mode !== "marche") e.de = { ...e.de, type: avant.a.type };
-    if (e.a.type === "arret" && apres && apres.mode !== "marche") e.a = { ...e.a, type: apres.de.type };
+    const enCommun = (x: EtapeAffichee | undefined) => x && x.mode !== "marche" && x.mode !== "taxi";
+    if (e.de.type === "arret" && enCommun(avant)) e.de = { ...e.de, type: avant!.a.type };
+    if (e.a.type === "arret" && enCommun(apres)) e.a = { ...e.a, type: apres!.de.type };
   });
 }
 
@@ -252,7 +256,8 @@ export function avanceMontee(
   reservation: boolean,
   auPlusTot: Date | undefined,
 ): { avanceMs: number; indexMontee: number } {
-  const k = p.etapes.findIndex((e) => e.mode !== "WALK");
+  // Première montée dans un transport en commun : un taxi au départ n'en est pas une (spec 16).
+  const k = p.etapes.findIndex((e) => e.mode !== "WALK" && e.mode !== "CAR");
   if (k < 0) return { avanceMs: 0, indexMontee: -1 };
   const vehicule = p.etapes[k]!;
   const arriveeArret = k > 0 ? p.etapes[k - 1]!.arrivee : vehicule.depart;
@@ -290,7 +295,7 @@ export function normaliser(possibilites: Possibilite[], manifest: Manifest, opti
     }
     // Sans avance d'abord : il faut savoir si la première montée est sur réservation.
     const brutes = p.etapes.map((e, i) => etapeAffichee(e, sources[i]!, ctx, 0));
-    const k = brutes.findIndex((e) => e.mode_motis !== "WALK");
+    const k = brutes.findIndex((e) => e.mode_motis !== "WALK" && e.mode_motis !== "CAR");
     const { avanceMs, indexMontee } = avanceMontee(p, k >= 0 && brutes[k]!.reservation !== null, options.auPlusTot);
     const etapes = p.etapes.map((e, i) =>
       i < indexMontee && avanceMs > 0 ? etapeAffichee(e, sources[i]!, ctx, avanceMs) : brutes[i]!,
@@ -353,4 +358,47 @@ export function retirerDomines(ps: PossibiliteAffichee[]): PossibiliteAffichee[]
     return true;
   });
   return uniques.filter((p) => !uniques.some((q) => domine(q, p)));
+}
+
+// ——— Taxi comme étape (spec 16, D48, D80) ———
+
+/** Gain minimal d'un taxi sur le meilleur trajet sans taxi, en minutes (D80). */
+export const GAIN_TAXI_MINUTES = 30;
+/** Au plus deux possibilités avec taxi sont montrées (D80). */
+export const MAX_TAXIS = 2;
+
+const minutesDe = (ps: EtapeAffichee[], garder: (e: EtapeAffichee) => boolean) =>
+  ps.filter(garder).reduce((n, e) => n + e.duree_minutes, 0);
+
+/**
+ * Possibilités avec taxi qui valent d'être montrées (D80) :
+ * - au moins une étape en taxi et une en transport en commun (15 min de route au plus, demandé à MOTIS) ;
+ * - « partir » : elle arrive au moins 30 min avant la première arrivée sans taxi (ou il n'y en a aucune) ;
+ * - « arriver » : elle part au moins 30 min après le dernier départ sans taxi (ou il n'y en a aucun) ;
+ * - deux au plus : les arrivées les plus tôt (« partir »), les départs les plus tard (« arriver »).
+ */
+export function taxisUtiles(
+  avecTaxi: PossibiliteAffichee[],
+  sansTaxi: PossibiliteAffichee[],
+  sens: "partir" | "arriver",
+): PossibiliteAffichee[] {
+  const t = (iso: string) => Date.parse(iso);
+  const gain = GAIN_TAXI_MINUTES * 60_000;
+  const candidats = avecTaxi.filter((p) => {
+    const taxi = minutesDe(p.etapes, (e) => e.mode === "taxi");
+    const commun = minutesDe(p.etapes, (e) => e.source.type === "gtfs");
+    return taxi > 0 && commun > 0;
+  });
+  if (sens === "partir") {
+    const meilleure = Math.min(...sansTaxi.map((p) => t(p.arrivee_utc)));
+    return candidats
+      .filter((p) => t(p.arrivee_utc) <= meilleure - gain)
+      .sort((a, b) => t(a.arrivee_utc) - t(b.arrivee_utc))
+      .slice(0, MAX_TAXIS);
+  }
+  const meilleur = Math.max(...sansTaxi.map((p) => t(p.depart_utc)));
+  return candidats
+    .filter((p) => t(p.depart_utc) >= meilleur + gain)
+    .sort((a, b) => t(b.depart_utc) - t(a.depart_utc))
+    .slice(0, MAX_TAXIS);
 }

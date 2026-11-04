@@ -124,7 +124,9 @@ export type PhraseVerdict = { possible: boolean; etat: EtatVerdict; titre: strin
  * est toujours dite.
  */
 export function phraseVerdict(r: ReponseItineraires): PhraseVerdict {
-  const choisie = r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
+  // D80 : un trajet sans nuit et sans taxi d'abord, puis sans nuit avec taxi, puis le premier.
+  const choisie =
+    r.possibilites.find((p) => !nuitDehors(p) && !avecTaxi(p)) ?? r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
   if (r.verdict === "impossible" || !choisie) {
     const quand = r.demande.sens === "arriver" ? `pour arriver avant ${r.demande.limite ?? r.demande.heure}` : `au départ de ${r.demande.heure}`;
     return {
@@ -155,7 +157,23 @@ export function phraseVerdict(r: ReponseItineraires): PhraseVerdict {
   } else {
     detail = `Arrivée prévue ${plus > 0 ? "" : "à "}${arrivee}.`;
   }
+  if (avecTaxi(choisie)) detail += " Avec un taxi à réserver (prix non publié).";
   return { possible: true, etat: "possible", titre: "Possible", heureDepart: choisie.depart, detail };
+}
+
+// ——— Taxi comme étape (spec 16, D48) ———
+
+export function avecTaxi(p: Possibilite): boolean {
+  return p.etapes.some((e) => e.mode === "taxi");
+}
+
+/**
+ * Consigne d'une étape en taxi (D48) : prise en charge, durée de route estimée, délai pour appeler.
+ * Aucune fiche de taxi n'existe encore : le délai n'est pas connu et aucun numéro n'est donné (invariant 16).
+ */
+export function phraseTaxi(e: Etape): string | null {
+  if (e.mode !== "taxi") return null;
+  return `À réserver : prise en charge à ${e.depart}. ${e.duree_minutes} min de route estimée, hors attente. Délai pour appeler non connu.`;
 }
 
 // ——— Jour d'arrivée et nuit dehors (spec 15, D79) ———
@@ -238,6 +256,7 @@ const NOMS_MODES: Record<string, string> = {
   transport_a_la_demande: "Transport à la demande",
   bateau: "Bateau",
   remontee: "Funiculaire ou téléphérique",
+  taxi: "Taxi",
 };
 
 /** Un train régional de la SNCF est un TER (issue 0010, A). */
@@ -248,6 +267,7 @@ function estTer(e: Etape): boolean {
 /** « Métro 14 », « RER B », « Car K941 », « TER K7 », « Marche 4 min ». */
 export function libelleEtape(e: Etape): string {
   if (e.mode === "marche") return `Marche ${e.duree_minutes} min`;
+  if (e.mode === "taxi") return `Taxi ${e.duree_minutes} min`;
   if (e.mode === "train_banlieue") {
     if (e.ligne && /^[A-E]$/.test(e.ligne)) return `RER ${e.ligne}`;
     return e.ligne ? `Train ${e.ligne}` : "Train de banlieue";
