@@ -4,6 +4,7 @@ import type { Manifest } from "../manifest.js";
 import type { Moteur } from "../motis.js";
 import type { IndexHoraires } from "../itineraires/horaires-gtfs.js";
 import { lireReponsePlan, type DemandeRecherche } from "../itineraires/motis-plan.js";
+import { raccourcirCorrespondances } from "../itineraires/correspondances.js";
 import { normaliser, taxisUtiles } from "../itineraires/normaliser.js";
 import { retenir, retenirPartir, verdict } from "../itineraires/verdict.js";
 import type { AdresseInverse } from "../lieux/ign-geocode.js";
@@ -107,11 +108,14 @@ export function routeItineraires(
       // La marge avant la première montée (D68) ne fait jamais partir avant l'heure demandée, ni la veille.
       auPlusTot: d.sens === "partir" ? instantParis(d.jour, d.depuisMinutes) : instantParis(d.jour, 0),
     };
-    const { possibilites: toutesAffichees, retirees } = normaliser(retenir_(toutes), manifest, optionsNormalisation);
+    // Issue 0013 (D81) : une marche de plus de 15 min entre deux transports est redemandée seule à MOTIS.
+    const raccourcies = await raccourcirCorrespondances(retenir_(toutes), async (dd) => lireReponsePlan(await moteur.plan(dd)));
+    const { possibilites: toutesAffichees, retirees } = normaliser(raccourcies, manifest, optionsNormalisation);
     // Au plus 10 : les premiers départs en « partir », les derniers en « arriver » (au plus près du rendez-vous).
     const sansTaxi = r.sens === "partir" ? toutesAffichees.slice(0, MAX_POSSIBILITES) : toutesAffichees.slice(-MAX_POSSIBILITES);
     // Normalisées à part : un taxi ne retire jamais un trajet sans taxi comme « dominé » (D80).
-    const taxis = taxisUtiles(normaliser(retenir_(await avecTaxi), manifest, optionsNormalisation).possibilites, sansTaxi, r.sens);
+    const taxisRaccourcis = await raccourcirCorrespondances(retenir_(await avecTaxi), async (dd) => lireReponsePlan(await moteur.plan(dd)));
+    const taxis = taxisUtiles(normaliser(taxisRaccourcis, manifest, optionsNormalisation).possibilites, sansTaxi, r.sens);
     const possibilites = [...sansTaxi, ...taxis].sort(
       (a, b) => a.depart_utc.localeCompare(b.depart_utc) || a.arrivee_utc.localeCompare(b.arrivee_utc),
     );

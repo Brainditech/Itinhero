@@ -12,7 +12,7 @@
 Un débutant ne doit jamais lire « Possible » en vert pour un trajet qui le laisse **une nuit dehors** ou qui le fait **arriver le lendemain** sans que ce soit dit. Constaté :
 
 - Dijon → Brienon, jeudi 05/11, partir à 17:00 : « Possible », départ 20:11, arrivée 06:32, avec « Attente 471 min » à l'arrêt de Laroche-Migennes (issue 0011) ;
-- Brienon → Lonlay-l'Abbaye, jeudi 12/11 : une possibilité arrive à Flers à 22:17, puis attend le car du vendredi 07:38.
+- Brienon → un village de l'Orne près de Flers, jeudi 12/11 : une possibilité arrive à Flers à 22:17, puis attend le car du vendredi 07:38.
 
 ## 2. Décision D79 (seuils et textes)
 

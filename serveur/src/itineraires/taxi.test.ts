@@ -22,8 +22,9 @@ const REPONSE_TAXI = {
 };
 
 function possibilite(depart: string, arrivee: string, taxi: number, commun: number): PossibiliteAffichee {
+  // Heures de jour qui se suivent : aucune attente de nuit.
   const etape = (mode: string, duree: number, type: "gtfs" | "osm") =>
-    ({ mode, duree_minutes: duree, source: { type } }) as unknown as PossibiliteAffichee["etapes"][number];
+    ({ mode, depart: "12:00", arrivee: "12:00", duree_minutes: duree, source: { type } }) as unknown as PossibiliteAffichee["etapes"][number];
   return {
     depart: "",
     arrivee: "",
@@ -107,6 +108,16 @@ describe("taxisUtiles (D80)", () => {
     // Joigny → Laroche-Migennes en TER (7 min), puis 12 min de taxi : constaté le 2026-11-05.
     const soir = possibilite("2026-11-12T16:27:00Z", "2026-11-12T17:07:00Z", 12, 7);
     expect(taxisUtiles([soir], [nuit], "partir")).toEqual([soir]);
+  });
+
+  it("jamais un taxi qui laisse quand même une nuit dehors (Flers, 2026-11-05)", () => {
+    const etape = (mode: string, depart: string, arrivee: string, type: "gtfs" | "osm") =>
+      ({ mode, depart, arrivee, duree_minutes: 30, source: { type } }) as unknown as PossibiliteAffichee["etapes"][number];
+    const nuitAFlers: PossibiliteAffichee = {
+      ...possibilite("2026-11-12T14:16:00Z", "2026-11-13T06:30:00Z", 15, 60),
+      etapes: [etape("train", "19:43", "22:17", "gtfs"), etape("bus", "07:00", "07:15", "gtfs"), etape("taxi", "07:15", "07:30", "osm")],
+    };
+    expect(taxisUtiles([nuitAFlers], [], "partir")).toEqual([]);
   });
 
   it("sans trajet sans taxi, les deux arrivées les plus tôt", () => {

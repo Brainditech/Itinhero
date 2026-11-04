@@ -273,7 +273,9 @@ export function libelleEtape(e: Etape): string {
     return e.ligne ? `Train ${e.ligne}` : "Train de banlieue";
   }
   const nom = estTer(e) ? "TER" : (NOMS_MODES[e.mode] ?? "Transport");
-  return e.ligne && e.mode !== "transport_a_la_demande" ? `${nom} ${e.ligne}` : nom;
+  // « TER TER » : certains GTFS mettent le nom du mode comme nom de ligne (Nomad, 2026-11-05).
+  const ligne = e.ligne && e.ligne.toLowerCase() !== nom.toLowerCase() ? e.ligne : null;
+  return ligne && e.mode !== "transport_a_la_demande" ? `${nom} ${ligne}` : nom;
 }
 
 /** « n° 17769 vers Lyon Part Dieu », « vers Auxerre », ou null. */
