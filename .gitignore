@@ -56,3 +56,6 @@ example
 
 # téléchargements locaux (extrait Geofabrik Bourgogne, 200 Mo, D41)
 /.cache/
+
+# données nationales chargées dans MOTIS sur le PC (spec 08) — jamais dans le dépôt
+/donnees/

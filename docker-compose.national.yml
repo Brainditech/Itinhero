@@ -1,0 +1,23 @@
+# MOTIS chargé avec toute la France, sur le PC seulement (spec 08). Jamais en CI.
+# Données : donnees/ (ignoré par git), produites par `cd serveur && npm run donnees:nationales`.
+# Projet Docker à part, pour ne pas toucher aux volumes des fixtures :
+#   docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml run --rm motis-import
+#   docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api
+# Mêmes ports que le stack des fixtures : arrêter l'un avant de lancer l'autre.
+
+services:
+  motis-import:
+    volumes:
+      - ./donnees/config.yml:/config/config.yml:ro
+      - ./donnees:/donnees:ro
+
+  motis:
+    healthcheck:
+      # Charger la France en mémoire prend plusieurs minutes.
+      start_period: 900s
+
+  api:
+    environment:
+      FIXTURES_MANIFEST: /donnees/manifest.json
+    volumes:
+      - ./donnees/manifest.json:/donnees/manifest.json:ro
