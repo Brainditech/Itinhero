@@ -56,9 +56,13 @@ export default function Accueil() {
               textAlignVertical="top"
             />
             <View className="my-4 h-px bg-bordure-carte" />
-            <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-3">
-              <Puce libelle="Depuis : Domicile" active={depart === "domicile"} onPress={() => setDepart("domicile")} />
-              <Puce libelle="Depuis ma position" active={depart === "position"} onPress={() => setDepart("position")} />
+            {/* Spec 13, §4.2 : le départ en icône + mot, comme les icônes des champs du formulaire. */}
+            <Text nativeID="libelle-depart" className="mb-2 font-inter text-secondaire text-texte-secondaire">
+              Départ
+            </Text>
+            <View accessibilityRole="radiogroup" accessibilityLabelledBy="libelle-depart" className="flex-row flex-wrap gap-3">
+              <Puce icone="home" libelle="Domicile" active={depart === "domicile"} onPress={() => setDepart("domicile")} />
+              <Puce icone="my_location" libelle="Ma position" active={depart === "position"} onPress={() => setDepart("position")} />
             </View>
             {/* Dans la carte, et non sur le fond : posé sur la carte MapLibre, il se perdait parmi les noms de villages. */}
             <View className="mt-2 items-center">

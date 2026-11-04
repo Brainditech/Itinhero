@@ -269,6 +269,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] Confirmation demandée quand il y a plusieurs candidats.
   Preuve : test, plus capture.
   Fait en partie (spec 10) : écran `confirmation.tsx` (jusqu'à 5 candidats, le premier choisi ; un seul ⇒ Résultat direct ; aucun ⇒ message), textes testés dans `src/domaine/resultat.test.ts`, 2026-11-04. Manque : la capture sur le téléphone.
+  Spec 13 (D77, D78) : départ tapé confirmé lui aussi (« D'où partez-vous ? »), puis l'arrivée ; textes testés dans `src/domaine/resultat.test.ts`, 2026-11-04. Manque : critères 4 à 6 de la spec 13 sur le téléphone.
 
 ### Phase 2 bis — Données nationales (D46, avancée par D54)
 

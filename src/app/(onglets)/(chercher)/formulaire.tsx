@@ -1,61 +1,64 @@
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
+import { Keyboard, ScrollView, View, type ScrollViewInstance } from "react-native";
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
-import { useSQLiteContext } from "expo-sqlite";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
 import {
   BandeauInfo,
+  BoutonEchange,
   BoutonPrincipal,
   CarteErreur,
   CarteFlottante,
+  ChampLieu,
   ChampTexte,
   ChampTouchable,
   Lien,
   MotItinhero,
-  Puce,
   SelecteurDeuxChoix,
 } from "@/composants/elements";
 import { AttributionCarte, FondCarte, useAttributionCarte } from "@/composants/FondCarte";
 import {
   dateChoisie,
+  echangerBouts,
   formaterDate,
   heureChoisie,
   LIEU_MAX,
   maintenantAParis,
   validerFormulaire,
   versDateLocale,
+  type Bout,
   type ChampsFormulaire,
+  type CoteBout,
   type ErreursFormulaire,
   type Sens,
 } from "@/domaine/demande";
-import { messageEchec, type Point } from "@/domaine/api";
-import type { Depart } from "@/domaine/resultat";
-import { useChercherItineraires, useRecherche } from "@/recherche";
-import { useClient, useSession } from "@/session";
-import { MESSAGES_POSITION, lirePosition } from "@/stockage/position";
-import { lireDomicileEnBase } from "@/stockage/reglages";
+import { DOMICILE_ABSENT, useDeroulerRecherche } from "@/recherche";
 
 // Valeurs en dur de la maquette design/accueil/02-formulaire-repli.png (règle 5), marge D17.
 // Remplacées au branchement réel par la sortie de /v1/comprendre.
 const VALEURS_MAQUETTE: ChampsFormulaire = {
-  lieu: "Rendez-vous Joigny",
+  depart: { type: "domicile" },
+  arrivee: { type: "texte", texte: "Rendez-vous Joigny" },
   date: "2026-11-12",
   heure: "10:00",
   sens: "arriver_avant",
   marge: "10",
 };
 
-/** Valeurs de départ : celles de la maquette, sans jamais proposer une date passée. */
-function valeursInitiales(): ChampsFormulaire {
-  const aujourdhui = maintenantAParis(new Date()).date;
-  return VALEURS_MAQUETTE.date < aujourdhui ? { ...VALEURS_MAQUETTE, date: aujourdhui } : VALEURS_MAQUETTE;
+/** Départ choisi sur l'Accueil (`depart=domicile|position`), Domicile sinon. */
+function departDeLAccueil(param: string | undefined): Bout {
+  return param === "position" ? { type: "position" } : { type: "domicile" };
 }
 
-const DOMICILE_ABSENT = "Indiquez votre domicile dans Réglages.";
+/** Valeurs de départ : celles de la maquette, sans jamais proposer une date passée. */
+function valeursInitiales(departParam: string | undefined): ChampsFormulaire {
+  const aujourdhui = maintenantAParis(new Date()).date;
+  const valeurs = { ...VALEURS_MAQUETTE, depart: departDeLAccueil(departParam) };
+  return valeurs.date < aujourdhui ? { ...valeurs, date: aujourdhui } : valeurs;
+}
 
 const CHOIX_SENS = [
   { valeur: "arriver_avant", libelle: "Arriver avant" },
@@ -65,8 +68,9 @@ const CHOIX_SENS = [
 /**
  * Formulaire de repli (spec 02). Ouvert par le lien de l'Accueil, ou par son « Chercher » avec
  * `raison=indisponible` (D15 : /v1/comprendre n'existe pas encore), et le départ choisi (`depart`).
- * « Chercher » (spec 10) : validation, point de départ (domicile ou position), puis `GET /v1/lieux` ;
- * plusieurs candidats ⇒ Confirmation, un seul ⇒ Résultat directement, aucun ⇒ message sur le champ Lieu.
+ * Départ et Arrivée (spec 13) : texte tapé, Domicile ou Ma position, échangés par ⇅.
+ * « Chercher » : validation, puis la recherche dans l'ordre de D78 (`useDeroulerRecherche`) ;
+ * un lieu tapé ambigu ⇒ Confirmation, introuvable ⇒ message sous son champ.
  */
 export default function Formulaire() {
   const insets = useSafeAreaInsets();
@@ -75,30 +79,24 @@ export default function Formulaire() {
   const { raison, depart: departParam } = useLocalSearchParams<{ raison?: string; depart?: string }>();
   const defilement = useRef<ScrollViewInstance>(null);
   const margeActive = useRef(false);
-  const [champs, setChamps] = useState<ChampsFormulaire>(valeursInitiales);
+  const [champs, setChamps] = useState<ChampsFormulaire>(() => valeursInitiales(departParam));
   const [erreurs, setErreurs] = useState<ErreursFormulaire>({});
-  const [depart, setDepart] = useState<Depart>(departParam === "position" ? "position" : "domicile");
-  const [erreurDepart, setErreurDepart] = useState<string | undefined>();
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
   const [enCours, setEnCours] = useState(false);
-  const db = useSQLiteContext();
-  const client = useClient();
-  const { oublierCle } = useSession();
-  const { setRecherche } = useRecherche();
-  const chercherItineraires = useChercherItineraires();
+  const { demarrer } = useDeroulerRecherche();
+
+  // Un champ modifié perd son message d'erreur ; les autres le gardent jusqu'au prochain « Chercher ».
+  function changer<K extends keyof ChampsFormulaire>(cle: K, valeur: ChampsFormulaire[K]) {
+    setChamps((c) => ({ ...c, [cle]: valeur }));
+    setErreurs((e) => ({ ...e, [cle]: undefined }));
+  }
 
   // Le départ choisi sur l'Accueil suit quand on revient au formulaire déjà ouvert
   // (état ajusté pendant le rendu, sans effet : doc React, « You might not need an effect »).
   const [departVu, setDepartVu] = useState(departParam);
   if (departParam !== departVu) {
     setDepartVu(departParam);
-    if (departParam === "position" || departParam === "domicile") setDepart(departParam);
-  }
-
-  // Un champ modifié perd son message d'erreur ; les autres le gardent jusqu'au prochain « Chercher ».
-  function changer<K extends keyof ChampsFormulaire>(cle: K, valeur: ChampsFormulaire[K]) {
-    setChamps((c) => ({ ...c, [cle]: valeur }));
-    setErreurs((e) => ({ ...e, [cle]: undefined }));
+    if (departParam === "position" || departParam === "domicile") changer("depart", departDeLAccueil(departParam));
   }
 
   // La marge est en bas de la carte : quand le clavier s'ouvre pour elle, on la fait remonter.
@@ -126,61 +124,24 @@ export default function Formulaire() {
     });
   }
 
-  function choisirDepart(d: Depart) {
-    setDepart(d);
-    setErreurDepart(undefined);
-  }
-
-  async function pointDepart(): Promise<Point | null> {
-    if (depart === "domicile") {
-      const domicile = await lireDomicileEnBase(db);
-      if (!domicile) setErreurDepart(DOMICILE_ABSENT);
-      return domicile;
-    }
-    const lue = await lirePosition();
-    if (lue.etat !== "ok") {
-      setErreurDepart(MESSAGES_POSITION[lue.etat]);
-      return null;
-    }
-    return lue.point;
+  // ⇅ : l'aller devient le retour ; les messages des deux champs sont effacés (spec 13, §4.1).
+  function echanger() {
+    setChamps(echangerBouts);
+    setErreurs((e) => ({ ...e, depart: undefined, arrivee: undefined }));
   }
 
   async function chercher() {
     if (enCours) return;
     Keyboard.dismiss();
     setErreurRecherche(undefined);
-    setErreurDepart(undefined);
     const resultat = validerFormulaire(champs, new Date());
     setErreurs(resultat.ok ? {} : resultat.erreurs);
     if (!resultat.ok) return;
-    const demande = resultat.demande;
     setEnCours(true);
     try {
-      const point = await pointDepart();
-      if (!point) return;
-      const r = await client.lieux(demande.lieu_texte, point);
-      if (r.etat === "cle_refusee") {
-        await oublierCle();
-        return;
-      }
-      if (r.etat !== "ok") {
-        setErreurRecherche(messageEchec(r));
-        return;
-      }
-      const candidats = r.donnees.slice(0, 5);
-      if (candidats.length === 0) {
-        setErreurs({ lieu: `Aucun lieu trouvé pour « ${demande.lieu_texte} ». Essayez avec la commune.` });
-        return;
-      }
-      const base = { demande, depart, pointDepart: point, candidats };
-      // Un seul candidat : rien à confirmer (phase 2, « confirmation quand il y a plusieurs candidats »).
-      if (candidats.length === 1) {
-        const echec = await chercherItineraires(base, candidats[0]!);
-        if (echec) setErreurRecherche(echec);
-        return;
-      }
-      setRecherche({ ...base, arrivee: null, reponse: null });
-      router.push("/confirmation");
+      const echec = await demarrer(resultat.demande);
+      if (echec?.champ) setErreurs({ [echec.champ]: echec.message });
+      else if (echec) setErreurRecherche(echec.message);
     } catch {
       setErreurRecherche("La recherche a échoué.");
     } finally {
@@ -218,13 +179,16 @@ export default function Formulaire() {
 
           <CarteFlottante>
             <View className="gap-4">
-              <ChampTexte
-                libelle="Lieu"
-                valeur={champs.lieu}
-                onChange={(t) => changer("lieu", t)}
-                erreur={erreurs.lieu}
-                longueurMax={LIEU_MAX}
-              />
+              {/* Écart voulu à la maquette (spec 13, §4) : Départ et Arrivée à la place de « Lieu » et des puces du départ. */}
+              <View>
+                <ChampLieuDuFormulaire cote="depart" champs={champs} erreurs={erreurs} onChange={changer} />
+                {/* Entre les deux champs, à droite ; -my-2 : sans trop les écarter ; zIndex : au-dessus du libellé
+                    « Arrivée » qu'il chevauche, pour le dessin comme pour le toucher. */}
+                <View className="-my-2 items-end" style={{ pointerEvents: "box-none", zIndex: 1 }}>
+                  <BoutonEchange onPress={echanger} />
+                </View>
+                <ChampLieuDuFormulaire cote="arrivee" champs={champs} erreurs={erreurs} onChange={changer} />
+              </View>
               <View className="flex-row gap-3">
                 <View className="flex-[1.4]">
                   <ChampTouchable
@@ -262,24 +226,6 @@ export default function Formulaire() {
                   }}
                 />
               ) : null}
-              {/* Écart voulu à la maquette (spec 10, §4.2) : sans ces puces, le formulaire ne dit pas d'où l'on part. */}
-              <View className="gap-2">
-                <Text className="font-inter text-secondaire text-texte-secondaire">Départ</Text>
-                <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-3">
-                  <Puce libelle="Depuis : Domicile" active={depart === "domicile"} onPress={() => choisirDepart("domicile")} />
-                  <Puce libelle="Depuis ma position" active={depart === "position"} onPress={() => choisirDepart("position")} />
-                </View>
-                {erreurDepart ? (
-                  <View className="items-start">
-                    <Text accessibilityLiveRegion="polite" className="font-inter-medium text-badge text-erreur">
-                      {erreurDepart}
-                    </Text>
-                    {erreurDepart === DOMICILE_ABSENT ? (
-                      <Lien libelle="Ouvrir Réglages" onPress={() => router.navigate("/reglages")} />
-                    ) : null}
-                  </View>
-                ) : null}
-              </View>
             </View>
           </CarteFlottante>
           {erreurRecherche ? <CarteErreur message={erreurRecherche} onReessayer={chercher} /> : null}
@@ -292,6 +238,38 @@ export default function Formulaire() {
 
         <View className="flex-1" style={{ pointerEvents: "box-none" }} />
       </Animated.View>
+    </View>
+  );
+}
+
+/** Départ ou Arrivée, avec le lien vers Réglages quand le domicile manque. */
+function ChampLieuDuFormulaire({
+  cote,
+  champs,
+  erreurs,
+  onChange,
+}: {
+  cote: CoteBout;
+  champs: ChampsFormulaire;
+  erreurs: ErreursFormulaire;
+  onChange: (cle: CoteBout, bout: Bout) => void;
+}) {
+  const erreur = erreurs[cote];
+  return (
+    <View>
+      <ChampLieu
+        libelle={cote === "depart" ? "Départ" : "Arrivée"}
+        nomCourt={cote === "depart" ? "départ" : "arrivée"}
+        bout={champs[cote]}
+        onChange={(b) => onChange(cote, b)}
+        erreur={erreur}
+        longueurMax={LIEU_MAX}
+      />
+      {erreur === DOMICILE_ABSENT ? (
+        <View className="items-start">
+          <Lien libelle="Ouvrir Réglages" onPress={() => router.navigate("/reglages")} />
+        </View>
+      ) : null}
     </View>
   );
 }
