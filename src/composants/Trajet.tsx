@@ -20,6 +20,7 @@ import {
   nuitDehors,
   phraseMontee,
   phraseReservation,
+  phraseTaxi,
   resumePossibilite,
 } from "@/domaine/resultat";
 import { Chevron } from "@/composants/Repli";
@@ -38,6 +39,7 @@ const ICONES: Record<string, AndroidSymbol> = {
   train: "train",
   bateau: "directions_boat",
   remontee: "funicular",
+  taxi: "local_taxi",
 };
 
 function icone(mode: string): AndroidSymbol {
@@ -119,7 +121,7 @@ function LigneEtape({ etape }: { etape: Etape }) {
   const marche = etape.mode === "marche";
   const couleur = couleurs[jetonMode(etape.mode)];
   const direction = directionEtape(etape);
-  const reservation = phraseReservation(etape);
+  const reservation = phraseReservation(etape) ?? phraseTaxi(etape);
   return (
     <View className="flex-row gap-3">
       <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
@@ -152,12 +154,14 @@ function LigneEtape({ etape }: { etape: Etape }) {
                 </Text>
               </View>
             ) : null}
-            <View className="flex-row items-center gap-1 self-start rounded-full px-2 py-0.5" style={{ backgroundColor: couleurs["prevu-teinte"] }}>
-              <SymbolView name={{ android: "schedule", web: "schedule" }} size={14} tintColor={couleurs["prevu-texte"]} />
-              <Text className="font-inter text-badge" style={{ color: couleurs["prevu-texte"] }}>
-                Horaire prévu, sans suivi en direct
-              </Text>
-            </View>
+            {etape.mode === "taxi" ? null : (
+              <View className="flex-row items-center gap-1 self-start rounded-full px-2 py-0.5" style={{ backgroundColor: couleurs["prevu-teinte"] }}>
+                <SymbolView name={{ android: "schedule", web: "schedule" }} size={14} tintColor={couleurs["prevu-texte"]} />
+                <Text className="font-inter text-badge" style={{ color: couleurs["prevu-texte"] }}>
+                  Horaire prévu, sans suivi en direct
+                </Text>
+              </View>
+            )}
           </>
         )}
       </View>
@@ -195,7 +199,8 @@ export function CartePossibilite({
   const p = possibilite;
   const premiereMontee = p.etapes.findIndex((e) => e.mode !== "marche");
   const montee = phraseMontee(p);
-  const aReserver = p.etapes.find((e) => e.reservation === "appel");
+  // Un taxi se réserve toujours (spec 16, D48).
+  const aReserver = p.etapes.find((e) => e.reservation === "appel" || e.mode === "taxi");
   const nuit = nuitDehors(p);
   const plus = joursEnPlus(p);
   const jourArrivee = plus > 0 ? jourApres(date, plus) : null;

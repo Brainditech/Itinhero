@@ -21,6 +21,11 @@ type Commun = {
    * absente ⇒ MARCHE_AUX_BOUTS_SECONDES. Ce n'est pas une durée : voir `marche-couteuse.ts`.
    */
   coutMarche?: { depart: number; arrivee: number };
+  /**
+   * Spec 16 (D48, D80) : un taxi permis au début (départ → premier arrêt) OU à la fin (dernier arrêt → arrivée),
+   * jamais aux deux : sinon MOTIS encadre un bus d'une minute par deux trajets en voiture (constaté le 2026-11-05).
+   */
+  taxi?: "debut" | "fin";
 };
 
 export type DemandeRecherche =
@@ -37,6 +42,9 @@ export const FENETRE_SECONDES = 3600;
 export const MARCHE_AUX_BOUTS_SECONDES = 1800;
 
 export const NB_MINIMUM = 5;
+
+/** Route la plus longue d'un taxi au début ou à la fin (D80) : 15 min. */
+export const TAXI_MAX_SECONDES = 900;
 
 /** Instant UTC de référence : H (partir) ou H − M (arriver), heure de Paris. */
 export function instantReference(d: DemandeRecherche): Date {
@@ -55,6 +63,14 @@ export function construireUrlPlan(motisUrl: string, d: DemandeRecherche): URL {
   url.searchParams.set("maxPreTransitTime", String(d.coutMarche?.depart ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("maxPostTransitTime", String(d.coutMarche?.arrivee ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("useRoutedTransfers", "true"); // obligatoire, spec 04 §11
+  if (d.taxi) {
+    // openapi.yaml v2.11.4 : `CAR` est un mode de rue, permis avant (`preTransitModes`) ou après (`postTransitModes`)
+    // les transports en commun. Le trajet direct reste à pied (`directModes` par défaut) : jamais un taxi de bout en bout.
+    // 15 min de route au plus : MOTIS doit aller jusqu'à la gare la plus proche du domicile ou du rendez-vous (D80).
+    const cote = d.taxi === "debut" ? "Pre" : "Post";
+    url.searchParams.set(`${cote.toLowerCase()}TransitModes`, "WALK,CAR");
+    url.searchParams.set(`max${cote}TransitTime`, String(TAXI_MAX_SECONDES));
+  }
   return url;
 }
 

@@ -4,7 +4,7 @@ import type { Manifest } from "../manifest.js";
 import type { Moteur } from "../motis.js";
 import type { IndexHoraires } from "../itineraires/horaires-gtfs.js";
 import { lireReponsePlan, type DemandeRecherche } from "../itineraires/motis-plan.js";
-import { normaliser } from "../itineraires/normaliser.js";
+import { normaliser, taxisUtiles } from "../itineraires/normaliser.js";
 import { retenir, retenirPartir, verdict } from "../itineraires/verdict.js";
 import type { AdresseInverse } from "../lieux/ign-geocode.js";
 import { hhmm, instantParis } from "../temps.js";
@@ -84,18 +84,37 @@ export function routeItineraires(
     const d = demandeMoteur(r);
 
     const adresse = adresseOuRien(options.adresse, r.arrivee); // demandée pendant que MOTIS cherche
+    // Spec 16 (D48) : la même recherche avec un taxi permis au début et à la fin. Son échec ne fait jamais échouer la recherche.
+    const avecTaxi = Promise.all(
+      (["debut", "fin"] as const).map((taxi) =>
+        moteur
+          .plan({ ...d, taxi })
+          .then(lireReponsePlan)
+          .catch((e: unknown) => {
+            requete.log.warn({ err: (e as Error).name, taxi }, "recherche avec taxi impossible");
+            return [];
+          }),
+      ),
+    ).then((listes) => listes.flat());
     const toutes = await appelMoteur(reponse, async () => lireReponsePlan(await moteur.plan(d)));
     if (toutes === undefined) return reponse;
 
-    const retenues = d.sens === "partir" ? retenirPartir(toutes, d.jour, d.depuisMinutes) : retenir(toutes, d.jour, d.limiteMinutes);
-    const { possibilites: toutesAffichees, retirees } = normaliser(retenues, manifest, {
+    const retenir_ = (ps: Awaited<typeof avecTaxi>) =>
+      d.sens === "partir" ? retenirPartir(ps, d.jour, d.depuisMinutes) : retenir(ps, d.jour, d.limiteMinutes);
+    const optionsNormalisation = {
       horaires: options.horaires,
       noms: r.noms,
       // La marge avant la première montée (D68) ne fait jamais partir avant l'heure demandée, ni la veille.
       auPlusTot: d.sens === "partir" ? instantParis(d.jour, d.depuisMinutes) : instantParis(d.jour, 0),
-    });
+    };
+    const { possibilites: toutesAffichees, retirees } = normaliser(retenir_(toutes), manifest, optionsNormalisation);
     // Au plus 10 : les premiers départs en « partir », les derniers en « arriver » (au plus près du rendez-vous).
-    const possibilites = r.sens === "partir" ? toutesAffichees.slice(0, MAX_POSSIBILITES) : toutesAffichees.slice(-MAX_POSSIBILITES);
+    const sansTaxi = r.sens === "partir" ? toutesAffichees.slice(0, MAX_POSSIBILITES) : toutesAffichees.slice(-MAX_POSSIBILITES);
+    // Normalisées à part : un taxi ne retire jamais un trajet sans taxi comme « dominé » (D80).
+    const taxis = taxisUtiles(normaliser(retenir_(await avecTaxi), manifest, optionsNormalisation).possibilites, sansTaxi, r.sens);
+    const possibilites = [...sansTaxi, ...taxis].sort(
+      (a, b) => a.depart_utc.localeCompare(b.depart_utc) || a.arrivee_utc.localeCompare(b.arrivee_utc),
+    );
     if (retirees > 0) requete.log.warn({ retirees }, "possibilités sans source retirées");
 
     return {

@@ -298,8 +298,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests.
 - [ ] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
   Preuve : test Joigny aller et retour (fin du rendez-vous donnée ⇒ retour du même jour, ou « impossible » dit clairement).
-- [ ] Taxi comme étape au début et à la fin (D48) : heure de prise en charge et heure limite pour appeler.
+- [x] Taxi comme étape au début et à la fin (D48) : heure de prise en charge et heure limite pour appeler.
   Preuve : tests (heure de prise en charge = départ de l'étape suivante − durée de route − attente ; sans fiche ⇒ « délai non connu »).
+  Fait (spec 16, D80) : `serveur/src/itineraires/taxi.test.ts` (taxi au début : prise en charge 06:58 = train 07:15 − marge 5 − route 12) et `src/domaine/resultat.test.ts` (« Délai pour appeler non connu », aucun numéro), 2026-11-05 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : arrivée 18:07 avec un taxi au lieu du vendredi 06:32).
 - [ ] `data/tarifs.json` : schéma, collecte, validation par Brainditech, application des cartes côté client.
   Preuve : test (« prix non publié » sans fiche), au moins une fiche tarifaire validée.
 
