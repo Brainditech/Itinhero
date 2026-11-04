@@ -22,16 +22,61 @@ export function CarteFlottante({ children }: { children: ReactNode }) {
   );
 }
 
-/** Bouton principal : un seul par écran, plein indigo, 56 dp. */
-export function BoutonPrincipal({ libelle, onPress }: { libelle: string; onPress: () => void }) {
+/** Bouton principal : un seul par écran, plein indigo, 56 dp ; désactivé pendant une recherche (design system). */
+export function BoutonPrincipal({
+  libelle,
+  onPress,
+  desactive = false,
+}: {
+  libelle: string;
+  onPress: () => void;
+  desactive?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: desactive, busy: desactive }}
+      disabled={desactive}
+      onPress={onPress}
+      className={`min-h-14 items-center justify-center rounded-bouton px-4 ${
+        desactive ? "bg-desactive-fond" : "bg-primaire active:bg-primaire-presse"
+      }`}
+    >
+      <Text className={`font-inter-semibold text-titre-carte ${desactive ? "text-desactive-texte" : "text-fond"}`}>
+        {libelle}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** Bouton secondaire : contour 1,5 dp indigo, texte indigo (design system). */
+export function BoutonSecondaire({ libelle, onPress }: { libelle: string; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="min-h-14 items-center justify-center rounded-bouton bg-primaire px-4 active:bg-primaire-presse"
+      className="min-h-12 items-center justify-center rounded-bouton bg-fond px-4 active:bg-primaire-doux"
+      style={{ borderWidth: 1.5, borderColor: couleurs.primaire }}
     >
-      <Text className="font-inter-semibold text-titre-carte text-fond">{libelle}</Text>
+      <Text className="font-inter-semibold text-corps text-primaire">{libelle}</Text>
     </Pressable>
+  );
+}
+
+/** État d'erreur (design system) : icône, texte, et « Réessayer » si l'action peut être rejouée. */
+export function CarteErreur({ message, onReessayer }: { message: string; onReessayer?: () => void }) {
+  return (
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      className="gap-3 rounded-bouton border border-bordure-carte bg-fond p-4"
+    >
+      <View className="flex-row items-center gap-3">
+        <SymbolView name={{ android: "error", web: "error" }} size={24} tintColor={couleurs.erreur} />
+        <Text className="flex-1 font-inter-medium text-corps text-texte">{message}</Text>
+      </View>
+      {onReessayer ? <BoutonSecondaire libelle="Réessayer" onPress={onReessayer} /> : null}
+    </View>
   );
 }
 
@@ -106,6 +151,10 @@ export function ChampTexte({
   longueurMax,
   onFocus,
   onBlur,
+  masque,
+  autoFocus,
+  onValider,
+  brut,
 }: {
   libelle: string;
   valeur: string;
@@ -116,6 +165,13 @@ export function ChampTexte({
   longueurMax?: number;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Saisie masquée (clé d'appareil). */
+  masque?: boolean;
+  autoFocus?: boolean;
+  /** Touche « Entrée » du clavier. */
+  onValider?: () => void;
+  /** Ni majuscule automatique ni correction (clé, adresse). */
+  brut?: boolean;
 }) {
   const id = useId();
   const [actif, setActif] = useState(false);
@@ -136,6 +192,12 @@ export function ChampTexte({
           }}
           keyboardType={numerique ? "number-pad" : "default"}
           maxLength={longueurMax}
+          secureTextEntry={masque}
+          autoFocus={autoFocus}
+          onSubmitEditing={onValider}
+          returnKeyType={onValider ? "search" : undefined}
+          autoCapitalize={brut ? "none" : undefined}
+          autoCorrect={brut ? false : undefined}
           className="flex-1 py-3 font-inter text-corps text-texte"
           cursorColor={couleurs.primaire}
           selectionColor={couleurs["primaire-doux"]}

@@ -1,6 +1,6 @@
 # Spec 10 — L'app branchée : clé, domicile, position, Confirmation et Résultat réels
 
-> Rédigée le 2026-11-04. État : **à approuver par Brainditech.**
+> Rédigée le 2026-11-04. État : **approuvée par Brainditech le 2026-11-04 (« implémente tout ce qui a à faire »), appliquée ; critères 1 à 3 et 10 constatés par Claude, critères 4 à 9 à constater sur le téléphone.** Écarts à l'application : §11.
 > Branche : `app/branchee`. Une seule PR (D34 : ce qui se vérifie ensemble).
 > Maquettes : `design/confirmation-lieu/03-confirmation-lieu.png`, `design/resultat/04-resultat.png`, `design/reglages/07-reglages.png`.
 > Choix de Brainditech du 2026-11-04 : départ depuis le **domicile et la position** ; clé demandée **au premier lancement**.
@@ -143,5 +143,34 @@ Les critères 4 à 9 sont constatés par Brainditech sur son téléphone (captur
 
 1. **Brainditech** relit et approuve cette spec (ou demande des changements).
 2. **Claude** applique la spec sur `app/branchee`, lance lint, types et tests, puis ouvre la PR.
-3. **Brainditech** : ajoute `EXPO_PUBLIC_API_URL=http://localhost:3000` à son `.env`, branche le téléphone, lance `adb reverse tcp:3000 tcp:3000`, puis `npx expo run:android` (nouveau development build, trois modules natifs ajoutés).
+3. **Brainditech** : ajoute `EXPO_PUBLIC_API_URL=http://localhost:3000` à son `.env`, branche le téléphone, lance `adb reverse tcp:3000 tcp:3000`, puis `npx expo prebuild --platform android --clean` (le dossier `android/` est régénéré avec les trois modules natifs et leurs plugins) et `npx expo run:android` (nouveau development build).
 4. **Brainditech** saisit la clé gardée à la spec 09, choisit son domicile, puis rejoue les critères 4 à 9 et compare avec Google Maps.
+
+## 11. Application (2026-11-04)
+
+### 11.1 Écarts à la spec, voulus
+
+- Le formulaire refuse un lieu d'un seul caractère (« Indiquez au moins 2 caractères. ») : `GET /v1/lieux` en demande 2.
+- Le formulaire ne propose jamais une date passée : la date de la maquette (12/11) est remplacée par aujourd'hui une fois passée.
+- Les écrans neufs (Clé, Confirmation, Résultat, Domicile, Réglages) sont sur `surface`, sans fond de carte : la carte interactive sous une liste défilante prendrait les gestes.
+- Le Résultat ajoute la durée et « Direct » ou « N correspondances » sur chaque carte, et le nom du lieu dans la carte du verdict ; « Voir le trajet » est remplacé par « Voir les étapes » (la carte se déplie) et « Modifier la recherche ».
+- « Saisir l'adresse moi-même » revient au formulaire, sans activer le champ Lieu.
+- Réglages : « Remplacer » la clé demande une confirmation avant de l'effacer.
+- Couleurs d'état recopiées du design system dans `src/theme/jetons.js` (`possible`, `avertissement`, `prevu-texte`, `prevu-teinte`, `prix-texte`), valeurs inchangées.
+
+### 11.2 Vérifications faites par Claude
+
+- Versions installées (`npx expo install`) : expo-secure-store 58.0.2, expo-location 58.0.20, expo-sqlite 58.0.15.
+- `npx expo lint`, `npx tsc --noEmit` (routes typées régénérées par le même module que `expo start`) : verts ; `npm test` : 84 tests verts (environnement, clé, client de l'API, textes du Résultat, domicile, formulaire).
+- `npx expo export --platform android` avec `EXPO_PUBLIC_API_URL=http://localhost:3000` : bundle de 5 Mo produit, sans erreur (tous les écrans et modules résolus).
+- `npm run test:national` : le client de l'app, ses schémas et ses textes contre une copie de l'API (clé jetable, port 3100) reliée au MOTIS national, 5 tests verts :
+  - France Travail Joigny depuis Brienon, jeudi 12/11, arriver avant 10:00 : « Possible, départ 06:26 », toutes les arrivées avant 09:50 ;
+  - le même trajet le dimanche 15/11 : « Impossible », aucune heure ;
+  - Châtelet → Pont de Rungis, vendredi 13/11, partir à 07:00 : « Marche 4 min · Métro 14 · Marche 7 min », direct (issue 0008) ;
+  - clé inconnue ⇒ écran de la clé ; API arrêtée ⇒ « Le serveur ne répond pas. »
+- Non vérifiable par Claude (il ne lance pas l'app) : le rendu des écrans, la permission de position, SecureStore et SQLite sur le téléphone (critères 4 à 9).
+
+### 11.3 Constats sur le moteur, à suivre
+
+- Le car K941 de Brienon s'affiche « Bus K941 » : son exploitant n'est pas reconnu comme la SNCF par le serveur (règle « car TER » de la spec 09 §11.1). À vérifier dans le GTFS.
+- Châtelet → Pont de Rungis : 8 des 10 possibilités sont le même trajet aux métros suivants. Regrouper les départs successifs d'un même trajet reste à décider (phase 3, tris).

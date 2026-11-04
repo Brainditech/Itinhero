@@ -40,6 +40,9 @@
 | @expo/ui | ~58.0.26 | `package.json` |
 | react-native-reanimated | 4.7.1 | `package.json` |
 | typescript | ~6.0.3 | `package.json` |
+| expo-secure-store | ~58.0.2 | `npx expo install`, 2026-11-04 (spec 10) |
+| expo-location | ~58.0.20 | `npx expo install`, 2026-11-04 (spec 10) |
+| expo-sqlite | ~58.0.15 | `npx expo install`, 2026-11-04 (spec 10) |
 | MOTIS | v2.11.4 (2026-10-21) | https://api.github.com/repos/motis-project/motis/releases/latest, lu le 2026-11-02 |
 | GTFS SNCF | feed_version 2026-10-18, sha256 `6892f10eb62e48e2a6dc6fd0ea6e27cbadcc1163d44b34e64661dae6be701dce` | `fixtures/_rapatrie-2026-10-19/sncf.zip` |
 | GTFS Mobigo 89 | fichiers du 2026-09-21, sha256 `201780dac66a1663607d4c12f138d60c7e2b78ee7ae896eae06abbdc85d09db6` | `fixtures/_rapatrie-2026-10-19/mobigo89.zip` |
@@ -52,7 +55,7 @@
 - Inngest (SDK et serveur auto-hébergé) ;
 - Zod ;
 - @maplibre/maplibre-react-native ;
-- expo-sqlite, expo-secure-store, expo-notifications, expo-location ;
+- expo-notifications (expo-sqlite, expo-secure-store et expo-location : constatées, spec 10) ;
 - GTFS d'Île-de-France Mobilités, GTFS régionaux et urbains (transport.data.gouv.fr), OSM France entière (D46) ;
 - accès au covoiturage (D50, R14).
 
@@ -183,9 +186,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] NativeWind installé et configuré avec les jetons du design system (compatibilité SDK 58 vérifiée, R12).
   Preuve : composant de démonstration stylé, plus capture.
   Fait : NativeWind 4.2.7 (Tailwind 3.4.19), jetons dans `src/theme/jetons.js`, écran d'Accueil stylé sur le téléphone de Brainditech (Expo Go) : `docs/preuves/2026-11-02-phase1-accueil-en-dur.jpg`, 2026-11-02. R12 levé pour NativeWind.
-- [ ] Vérification des variables d'environnement au démarrage, côté app et côté serveur.
+- [x] Vérification des variables d'environnement au démarrage, côté app et côté serveur.
   Preuve : test vitest (variable absente ou mal formée ⇒ échec explicite).
-  Fait à moitié (spec 04, spec 09) : côté serveur, `serveur/src/env.test.ts` (7 tests : absente, mal formée sans recopier la valeur, protocole, port, `CLES_APPAREILS`, limites), 2026-11-04. Manque : côté app, avec la première variable `EXPO_PUBLIC_API_URL` lue par l'app (spec 10).
+  Fait (spec 04, spec 09, spec 10) : côté serveur, `serveur/src/env.test.ts` (7 tests : absente, mal formée sans recopier la valeur, protocole, port, `CLES_APPAREILS`, limites), 2026-11-04 ; côté app, `src/domaine/environnement.test.ts` (`EXPO_PUBLIC_API_URL` absente, vide, sans protocole, avec un chemin, un / final, des paramètres ou un identifiant ⇒ message qui la nomme sans recopier sa valeur ; l'app affiche « Configuration incomplète » à la place), 2026-11-04.
 - [x] AGENTS.md complété :
   - pile et conventions ;
   - ordre de lecture `docs/ETAT.md` → `PLAN.md` → `docs/architecture.md` ;
@@ -244,7 +247,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (avancé par D34) : `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg`, 2026-11-02. Écarts connus : fond de carte voilé absent (image à produire), puces sur deux lignes (16 sp ne tient pas sur une ligne sur ce téléphone, retour à la ligne voulu par le design system). Corrigés par D35 (fond inventé, puces 14 sp, branche `phase-1/formulaire-repli`) ; nouvelle capture côte à côte, clavier ouvert, à fournir.
 - [ ] Clé d'appareil (secure-store, saisie unique) et limites de débit côté serveur.
   Preuve : tests (sans clé ⇒ 401, au-delà des limites ⇒ 429).
-  Fait à moitié (spec 09, D55, D56) : côté serveur, `serveur/src/acces/acces.test.ts` (sans clé, clé vide, mal formée, inconnue ⇒ 401 ; minute et jour de Paris dépassés ⇒ 429 avec `Retry-After`), 2026-11-04. Manque : la saisie sur le téléphone et `expo-secure-store` (spec 10).
+  Fait à moitié (spec 09, D55, D56) : côté serveur, `serveur/src/acces/acces.test.ts` (sans clé, clé vide, mal formée, inconnue ⇒ 401 ; minute et jour de Paris dépassés ⇒ 429 avec `Retry-After`), 2026-11-04. Côté app (spec 10, D64) : écran de la clé au premier lancement, vérifiée par le serveur puis gardée dans `expo-secure-store`, 401 ⇒ écran de la clé (`src/domaine/api.test.ts`, `src/domaine/cle.test.ts`, `npm run test:national`), 2026-11-04. Manque : la saisie constatée sur le téléphone de Brainditech (spec 10, critère 4).
 - [ ] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.
   Preuve : jeu d'au moins 30 phrases réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
 - [ ] Plafond mensuel et compteur de coût.
@@ -264,6 +267,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (spec 09, D60, D61) : `npm run test:national`, « route de Chamvres Joigny » ⇒ un candidat à Joigny à moins de 500 m du lieu de rendez-vous, 2026-11-04 ; avec l'IGN, « 19 route de Chamvres Joigny » donne le numéro 19 aux coordonnées mêmes du lieu de rendez-vous (R4 levé pour cette adresse). Tests sans réseau : `serveur/src/routes/lieux.test.ts`, `serveur/src/lieux/*.test.ts`. 15 recherches sur 17 justes au premier rang face à Google Maps (`docs/specs/09-cle-lieux-itineraires.md` §11.3).
 - [ ] Confirmation demandée quand il y a plusieurs candidats.
   Preuve : test, plus capture.
+  Fait en partie (spec 10) : écran `confirmation.tsx` (jusqu'à 5 candidats, le premier choisi ; un seul ⇒ Résultat direct ; aucun ⇒ message), textes testés dans `src/domaine/resultat.test.ts`, 2026-11-04. Manque : la capture sur le téléphone.
 
 ### Phase 2 bis — Données nationales (D46, avancée par D54)
 

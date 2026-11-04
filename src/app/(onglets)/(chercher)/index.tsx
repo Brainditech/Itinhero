@@ -12,7 +12,8 @@ import { couleurs } from "@/theme/jetons";
 type Depart = "domicile" | "position";
 
 // Phase 1, étape 1 : écran en valeurs en dur, comparé à design/accueil/01-accueil.png.
-// « Chercher » ne fait encore rien ; le lien ouvre le formulaire de repli (spec 02). Derrière : la carte (D36).
+// « Chercher » ouvre le formulaire de repli avec le bandeau « indisponible » (D15 : /v1/comprendre n'existe pas
+// encore, spec 10) et le départ choisi ; la phrase n'est pas transmise. Derrière : la carte (D36).
 export default function Accueil() {
   const insets = useSafeAreaInsets();
   const clavier = useAnimatedKeyboard();
@@ -61,7 +62,7 @@ export default function Accueil() {
             </View>
             {/* Dans la carte, et non sur le fond : posé sur la carte MapLibre, il se perdait parmi les noms de villages. */}
             <View className="mt-2 items-center">
-              <Lien libelle="Remplir un formulaire à la place" onPress={() => router.push("/formulaire")} />
+              <Lien libelle="Remplir un formulaire à la place" onPress={() => router.push({ pathname: "/formulaire", params: { depart } })} />
             </View>
           </CarteFlottante>
         </View>
@@ -69,7 +70,10 @@ export default function Accueil() {
         <View className="flex-1" style={{ pointerEvents: "box-none" }} />
 
         <View className="px-4 pt-2" style={{ pointerEvents: "box-none" }}>
-          <BoutonPrincipal libelle="Chercher" onPress={() => {}} />
+          <BoutonPrincipal
+            libelle="Chercher"
+            onPress={() => router.push({ pathname: "/formulaire", params: { raison: "indisponible", depart } })}
+          />
         </View>
       </Animated.View>
     </View>
