@@ -30,17 +30,29 @@ const schemaSource = z.discriminatedUnion("type", [
     version: z.string().min(1),
     trip_id: z.string().min(1),
     date_service: z.string().min(1),
+    // Dernier jour couvert par le jeu (issue 0010, H) ; null si le serveur ne le sait pas.
+    fin_validite: z.iso.date().nullable(),
   }),
   z.object({ type: z.literal("osm"), jeu: z.string().min(1), version: z.string().min(1) }),
 ]);
 
-const schemaLieuEtape = schemaPoint.extend({ nom: z.string(), arret: z.string().nullable() });
+const schemaLieuEtape = schemaPoint.extend({
+  nom: z.string(),
+  // Nature du lieu (issue 0010, F) : « arrêt Mairie », « gare de Saint-Florentin - Vergigny ».
+  type: z.enum(["arret", "gare", "station", "depart", "arrivee"]),
+  arret: z.string().nullable(),
+});
+export type LieuEtape = z.infer<typeof schemaLieuEtape>;
 
 export const schemaEtape = z.object({
   mode: z.string().min(1),
   mode_motis: z.string(),
   ligne: z.string().nullable(),
   direction: z.string().nullable(),
+  // Numéro de la course quand le GTFS le donne à la place de la direction (« 17769 »).
+  numero: z.string().nullable(),
+  // « appel » : passage sur réservation d'après le GTFS (D69) ; null : rien de tel dans le GTFS.
+  reservation: z.literal("appel").nullable(),
   exploitant: z.string().nullable(),
   de: schemaLieuEtape,
   a: schemaLieuEtape,
@@ -61,6 +73,8 @@ export const schemaPossibilite = z.object({
   arrivee_utc: z.string(),
   duree_minutes: z.number().int().nonnegative(),
   correspondances: z.number().int().nonnegative(),
+  // Arrivée à l'arrêt avant la première montée (D68) ; null pour un trajet à pied.
+  montee: z.object({ arriver_a: HEURE, vehicule: HEURE, marge_minutes: z.number().int().nonnegative() }).nullable(),
   etapes: z.array(schemaEtape).min(1),
 });
 export type Possibilite = z.infer<typeof schemaPossibilite>;
@@ -75,6 +89,8 @@ export const schemaReponseItineraires = z
       marge: z.number().int().nullable(),
       limite: HEURE.nullable(),
     }),
+    // Lieu d'arrivée : le nom envoyé par l'app et l'adresse postale trouvée par l'IGN (issue 0010, C).
+    arrivee: z.object({ nom: z.string().nullable(), adresse: z.string().nullable() }),
     possibilites: z.array(schemaPossibilite),
   })
   // « Possible » sans aucune possibilité montrée serait un verdict appuyé sur rien (spec 09 §4.5).
@@ -88,6 +104,8 @@ export type RequeteItineraires = {
   heure: string;
   sens: "arriver" | "partir";
   marge: number;
+  /** Noms du départ et de l'arrivée, affichés à la place de « Départ » et « Arrivée » (issue 0010, C). */
+  noms?: { depart?: string; arrivee?: string };
 };
 
 // ——— Résultat d'un appel ———

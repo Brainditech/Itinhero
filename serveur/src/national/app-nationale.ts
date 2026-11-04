@@ -6,7 +6,8 @@ import { Limites } from "../acces/limites.js";
 import { construireApp } from "../app.js";
 import { lireManifest } from "../manifest.js";
 import { moteurMotis, sondeMotis } from "../motis.js";
-import { geocodeurIgn } from "../lieux/ign-geocode.js";
+import { adresseIgn, geocodeurIgn } from "../lieux/ign-geocode.js";
+import { chargerHoraires } from "../itineraires/horaires-gtfs.js";
 import { chargerLieux } from "../lieux/charger.js";
 
 /**
@@ -29,13 +30,18 @@ export async function appNationale() {
   }
   const cheminLieux = path.join(RACINE, "donnees/poi/lieux.json");
   const lieux = existsSync(cheminLieux) ? await chargerLieux(cheminLieux) : undefined;
+  const cheminHoraires = path.join(RACINE, "donnees/horaires.json");
+  if (!existsSync(cheminHoraires)) throw new Error("donnees/horaires.json absent : lancer `npm run donnees:horaires` (D69).");
+  const horaires = await chargerHoraires(cheminHoraires);
   const cle = nouvelleCle();
   const app = construireApp({
     manifest,
     sonde: sondeMotis(MOTIS_URL),
     moteur: moteurMotis(MOTIS_URL),
     geocodeurIgn: geocodeurIgn(),
+    adresseIgn: adresseIgn(),
     lieux,
+    horaires,
     acces: { empreintes: [empreinte(cle)], limites: new Limites(100_000, 1_000_000) },
     fluxJournal: { write: () => {} },
   });

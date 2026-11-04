@@ -5,7 +5,8 @@ import type { Moteur, SondeMotis } from "./motis.js";
 import { routeHealth } from "./routes/health.js";
 import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
-import type { GeocodeurIgn } from "./lieux/ign-geocode.js";
+import type { AdresseInverse, GeocodeurIgn } from "./lieux/ign-geocode.js";
+import type { IndexHoraires } from "./itineraires/horaires-gtfs.js";
 import type { IndexLieux } from "./lieux/categories.js";
 
 export type Dependances = {
@@ -17,6 +18,10 @@ export type Dependances = {
   geocodeurIgn?: GeocodeurIgn;
   /** Lieux d'OSM pour la recherche par catégorie (D61) ; absent ⇒ pas de recherche par catégorie. */
   lieux?: IndexLieux;
+  /** Réservations et fins de validité des GTFS (D69) ; absent ⇒ inconnues. */
+  horaires?: IndexHoraires;
+  /** Adresse du point d'arrivée par l'IGN (issue 0010, C) ; absent ⇒ pas d'adresse. */
+  adresseIgn?: AdresseInverse;
   /** Flux du journal (les tests y capturent les lignes pour la chaîne canari). */
   fluxJournal?: { write(ligne: string): void };
 };
@@ -28,7 +33,17 @@ export type Dependances = {
  *   jamais par son URL (`?q=` porte un lieu), ses en-têtes (la clé) ni son corps (des coordonnées) ;
  * - une erreur n'est journalisée que par son nom et son code.
  */
-export function construireApp({ manifest, sonde, moteur, acces, geocodeurIgn, lieux, fluxJournal }: Dependances): FastifyInstance {
+export function construireApp({
+  manifest,
+  sonde,
+  moteur,
+  acces,
+  geocodeurIgn,
+  lieux,
+  horaires,
+  adresseIgn,
+  fluxJournal,
+}: Dependances): FastifyInstance {
   const app = Fastify({
     logger: {
       level: "info",
@@ -59,7 +74,7 @@ export function construireApp({ manifest, sonde, moteur, acces, geocodeurIgn, li
     async (v1) => {
       controlerAcces(v1, acces);
       routeLieux(v1, moteur, geocodeurIgn, lieux);
-      routeItineraires(v1, moteur, manifest);
+      routeItineraires(v1, moteur, manifest, { horaires, adresse: adresseIgn });
     },
     { prefix: "/v1" },
   );

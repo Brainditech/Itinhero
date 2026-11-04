@@ -83,6 +83,7 @@ Chaque variable est vérifiée au démarrage (présence et format). Le serveur r
 | `CLAUDE_PLAFOND_MENSUEL_EUR` | plafond mensuel de coût | .env du PC, .env du VPS |
 | `CLES_APPAREILS` | empreintes sha256 (hexadécimal) des clés d'appareil autorisées, séparées par des virgules (D55, `npm run cle:nouvelle`) | .env du PC, .env du VPS |
 | `LIEUX_OSM` | facultative : chemin de `lieux.json`, recherche par catégorie (D61) | `docker-compose.national.yml` (non secrète) |
+| `HORAIRES_GTFS` | facultative : chemin de `horaires.json`, passages sur réservation et fin de validité des GTFS (D69, `npm run donnees:horaires`) | `docker-compose.national.yml` (non secrète) |
 | `LIMITE_REQ_MINUTE`, `LIMITE_REQ_JOUR` | limites de débit par clé | .env du PC, .env du VPS |
 | `MOTIS_URL` | adresse interne de MOTIS dans le compose (non secrète) | `docker-compose.yml` (spec 04 : elle découle du compose) |
 | `GTFS_SNCF_URL`, `GTFS_MOBIGO_URL`, `GTFS_RT_SNCF_URL` | sources officielles des horaires | .env du PC, .env du VPS |

@@ -4,6 +4,7 @@ import { z } from "zod";
  * Variables d'environnement du serveur (PLAN §3, invariant 11).
  * Règle 6 : une variable n'entre ici que dans la phase qui l'utilise.
  * Spec 04 : MOTIS_URL. Spec 09 : CLES_APPAREILS, LIMITE_REQ_MINUTE, LIMITE_REQ_JOUR (D55, D56).
+ * Issue 0010 : HORAIRES_GTFS (D69).
  */
 const empreinte = z.string().regex(/^[0-9a-f]{64}$/);
 
@@ -21,6 +22,8 @@ const schemaEnv = z
     LIMITE_REQ_JOUR: z.coerce.number().int().min(1),
     // Facultative (D61) : chemin de `lieux.json` (recherche par catégorie). Absente ⇒ pas de catégorie.
     LIEUX_OSM: z.string().min(1).optional(),
+    // Facultative (D69) : chemin de `horaires.json` (`npm run donnees:horaires`). Absente ⇒ réservations non signalées.
+    HORAIRES_GTFS: z.string().min(1).optional(),
   })
   .refine((e) => e.LIMITE_REQ_JOUR >= e.LIMITE_REQ_MINUTE, {
     path: ["LIMITE_REQ_JOUR"],

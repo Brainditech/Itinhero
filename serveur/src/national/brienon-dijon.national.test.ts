@@ -44,10 +44,11 @@ describe("issue 0007 : Brienon → Dijon, jeudi 12/11", () => {
     expect(r.possibilites.some((p) => p.arrivee <= "09:50"), decrire(r.possibilites)).toBe(true);
   });
 
-  it("partir dès 08:00 ⇒ départ 08:24 par le car 803, arrivée au plus tard à 10:45", async () => {
+  it("partir dès 08:00 ⇒ le car 803 de 08:25, arrivée au plus tard à 10:45", async () => {
     const r = await partir("08:00");
+    // D68 : la sortie avance pour être à l'arrêt avant le car ; le car, lui, part toujours à 08:25.
     const ok = r.possibilites.some(
-      (p) => p.depart === "08:24" && p.arrivee <= "10:45" && p.etapes.some((e) => e.ligne === "803"),
+      (p) => p.montee?.vehicule === "08:25" && p.arrivee <= "10:45" && p.etapes.some((e) => e.ligne === "803" && e.depart === "08:25"),
     );
     expect(ok, decrire(r.possibilites)).toBe(true);
   });
@@ -68,5 +69,38 @@ describe("géocodeur national", () => {
   it("« tribunal judiciaire Dijon » ⇒ un candidat à moins de 500 m de la Cité judiciaire", async () => {
     const c = await candidats("tribunal judiciaire Dijon");
     expect(c.some((x) => distanceMetres(x, CITE_JUDICIAIRE_DIJON) < 500)).toBe(true);
+  });
+});
+
+describe("issue 0010 : Brienon → tribunal administratif de Dijon, samedi 14/11, avant 15:35", () => {
+  const TRIBUNAL_ADMINISTRATIF = { lat: 47.324505, lon: 5.043521 }; // IGN, BD TOPO
+  it("TER vers Lyon Part Dieu, 803 sur réservation, 10 min à l'arrêt, lieu et adresse de l'arrivée", async () => {
+    const r = await ctx.app.inject({
+      method: "POST",
+      url: "/v1/itineraires",
+      headers: ctx.entete,
+      payload: {
+        depart: BRIENON_MAIRIE,
+        arrivee: TRIBUNAL_ADMINISTRATIF,
+        date: "2026-11-14",
+        heure: "15:35",
+        sens: "arriver",
+        marge: 10,
+        noms: { depart: "Domicile", arrivee: "Tribunal administratif de Dijon" },
+      },
+    });
+    expect(r.statusCode, r.body).toBe(200);
+    const corps = r.json();
+    const p = (corps.possibilites as PossibiliteAffichee[]).find((x) => x.etapes.some((e) => e.ligne === "803"));
+    expect(p, decrire(corps.possibilites)).toBeDefined();
+    const car = p!.etapes.find((e) => e.ligne === "803")!;
+    expect(car).toMatchObject({ depart: "08:25", reservation: "appel" });
+    expect(p!.montee).toEqual({ arriver_a: "08:15", vehicule: "08:25", marge_minutes: 10 });
+    const train = p!.etapes.find((e) => e.mode === "train")!;
+    expect(train).toMatchObject({ direction: "Lyon Part Dieu", numero: "17769" });
+    expect(train.de).toMatchObject({ nom: "Saint-Florentin - Vergigny", type: "gare" });
+    expect(p!.etapes.at(-1)!.a.nom).toBe("Tribunal administratif de Dijon");
+    expect(train.source.type === "gtfs" && train.source.fin_validite).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(corps.arrivee.adresse).toMatch(/Rue d'Assas, 21000 Dijon$/);
   });
 });

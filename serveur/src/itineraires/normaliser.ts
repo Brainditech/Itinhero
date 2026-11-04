@@ -1,5 +1,8 @@
 import type { Manifest } from "../manifest.js";
+import { heureParis } from "../temps.js";
+import type { IndexHoraires, ReservationEtape } from "./horaires-gtfs.js";
 import type { Etape, Possibilite } from "./motis-plan.js";
+import { nomAffichable, typeLieuDuMode, type TypeLieu } from "./noms.js";
 
 /**
  * Normalisation de la réponse de MOTIS en possibilités affichables (spec 09, §4.5).
@@ -58,16 +61,29 @@ export function modePrecise(modeMotis: string, ligne: string | null, exploitant:
 }
 
 export type SourceEtape =
-  | { type: "gtfs"; jeu: string; version: string; trip_id: string; date_service: string }
+  | {
+      type: "gtfs";
+      jeu: string;
+      version: string;
+      trip_id: string;
+      date_service: string;
+      /** Dernier jour couvert par le jeu (issue 0010, H) ; null si inconnu. */
+      fin_validite: string | null;
+    }
   | { type: "osm"; jeu: string; version: string };
 
-export type LieuEtape = { nom: string; arret: string | null; lat: number; lon: number };
+export type LieuEtape = { nom: string; type: TypeLieu; arret: string | null; lat: number; lon: number };
 
 export type EtapeAffichee = {
   mode: Mode;
   mode_motis: string;
   ligne: string | null;
+  /** Terminus de la course (issue 0010, A). */
   direction: string | null;
+  /** Numéro de la course quand le GTFS le donne à la place de la direction (« 17769 »). */
+  numero: string | null;
+  /** « appel » : passage sur réservation d'après le GTFS (D69). null : rien de tel dans le GTFS. */
+  reservation: ReservationEtape;
   exploitant: string | null;
   de: LieuEtape;
   a: LieuEtape;
@@ -79,13 +95,21 @@ export type EtapeAffichee = {
   source: SourceEtape;
 };
 
+/**
+ * Arrivée à l'arrêt de la première montée, avant le véhicule (D68) : « Arrivez à l'arrêt à 08:20,
+ * le bus passe à 08:25 ». `marge_minutes` est l'écart réel (plus court que D68 s'il n'y a pas la place).
+ */
+export type Montee = { arriver_a: string; vehicule: string; marge_minutes: number };
+
 export type PossibiliteAffichee = {
+  /** Heure de sortie, marge avant la première montée comprise (D68). */
   depart: string;
   arrivee: string;
   depart_utc: string;
   arrivee_utc: string;
   duree_minutes: number;
   correspondances: number;
+  montee: Montee | null;
   etapes: EtapeAffichee[];
 };
 
@@ -109,12 +133,13 @@ export function indexer(manifest: Manifest): IndexManifest {
   return { gtfs, osm };
 }
 
-function sourceEtape(e: Etape, idx: IndexManifest): SourceEtape | null {
+function sourceEtape(e: Etape, idx: IndexManifest, horaires?: IndexHoraires): SourceEtape | null {
   if (e.tripId) {
     const t = lireTripId(e.tripId);
     const version = t ? idx.gtfs.get(t.jeu) : undefined;
     if (!t || !version) return null;
-    return { type: "gtfs", jeu: t.jeu, version, trip_id: t.trip_id, date_service: t.date_service };
+    const fin_validite = horaires?.finValidite(t.jeu) ?? null;
+    return { type: "gtfs", jeu: t.jeu, version, trip_id: t.trip_id, date_service: t.date_service, fin_validite };
   }
   if (e.mode === "WALK" && idx.osm) return { type: "osm", jeu: idx.osm.jeu, version: idx.osm.version };
   return null;
@@ -129,10 +154,36 @@ function arretGtfs(id: string | undefined, idx: IndexManifest): string | null {
 
 const minutes = (secondes: number) => Math.round(secondes / 60);
 
-/** MOTIS nomme le point de départ « START » et l'arrivée « END » (constaté le 2026-11-04). */
-export function nomLieu(nom: string): string {
-  return nom === "START" ? "Départ" : nom === "END" ? "Arrivée" : nom;
+/** Noms du départ et de l'arrivée choisis dans l'app (issue 0010, C) ; jamais gardés ni journalisés. */
+export type NomsDemande = { depart?: string; arrivee?: string };
+
+/**
+ * MOTIS nomme le point de départ « START » et l'arrivée « END » (constaté le 2026-11-04) :
+ * ils prennent le nom donné par l'app, sinon « Départ » et « Arrivée ». Les autres noms sont remis en forme.
+ */
+export function nomLieu(nom: string, noms: NomsDemande = {}): { nom: string; type: TypeLieu | null } {
+  if (nom === "START") return { nom: noms.depart ?? "Départ", type: "depart" };
+  if (nom === "END") return { nom: noms.arrivee ?? "Arrivée", type: "arrivee" };
+  return { nom: nomAffichable(nom), type: null };
 }
+
+/**
+ * Direction affichée (issue 0010, A) : le GTFS SNCF met le numéro du train dans `trip_headsign`
+ * (« 17769 ») ; le vrai terminus est alors `tripTo` (« Lyon Part Dieu »).
+ */
+export function directionEtNumero(
+  direction: string | undefined,
+  terminus: string | undefined,
+): { direction: string | null; numero: string | null } {
+  const d = direction?.trim();
+  const t = terminus?.trim();
+  if (d && /^\d+$/.test(d)) return { direction: t ? nomAffichable(t) : null, numero: d };
+  return { direction: d ? nomAffichable(d) : t ? nomAffichable(t) : null, numero: null };
+}
+
+/** Marge avant la première montée (D68), en minutes : 5, et 10 pour un passage sur réservation. */
+export const MARGE_MONTEE_MINUTES = 5;
+export const MARGE_MONTEE_RESERVATION_MINUTES = 10;
 
 /**
  * Nom court de ligne affichable, ou null : certains GTFS mettent « INCONNU », une chaîne vide
@@ -146,18 +197,33 @@ export function nomLigne(brut: string | undefined): string | null {
   return n;
 }
 
-function etapeAffichee(e: Etape, source: SourceEtape, idx: IndexManifest): EtapeAffichee {
+type Contexte = { idx: IndexManifest; horaires?: IndexHoraires; noms: NomsDemande };
+
+function lieu(l: { nom: string; arret?: string }, coord: { lat: number; lon: number }, mode: Mode, ctx: Contexte): LieuEtape {
+  const n = nomLieu(l.nom, ctx.noms);
+  // Le type d'un lieu de marche est repris de l'étape voisine (`typerMarches`).
+  const type = n.type ?? (mode === "marche" ? "arret" : typeLieuDuMode(mode));
+  return { nom: n.nom, type, arret: arretGtfs(l.arret, ctx.idx), lat: coord.lat, lon: coord.lon };
+}
+
+function etapeAffichee(e: Etape, source: SourceEtape, ctx: Contexte, avanceMs: number): EtapeAffichee {
   const ligne = nomLigne(e.ligne);
+  const mode = modePrecise(e.mode, ligne, e.exploitant ?? null);
+  const de = lieu(e.de, e.coordDe, mode, ctx);
+  const a = lieu(e.a, e.coordA, mode, ctx);
+  const reservation =
+    source.type === "gtfs" && ctx.horaires ? ctx.horaires.reservation(source.jeu, source.trip_id, de.arret, a.arret) : null;
   return {
-    mode: modePrecise(e.mode, ligne, e.exploitant ?? null),
+    mode,
     mode_motis: e.mode,
     ligne,
-    direction: e.direction ?? null,
+    ...directionEtNumero(e.direction, e.terminus),
+    reservation,
     exploitant: e.exploitant ?? null,
-    de: { nom: nomLieu(e.de.nom), arret: arretGtfs(e.de.arret, idx), lat: e.coordDe.lat, lon: e.coordDe.lon },
-    a: { nom: nomLieu(e.a.nom), arret: arretGtfs(e.a.arret, idx), lat: e.coordA.lat, lon: e.coordA.lon },
-    depart: e.departParis.hhmm,
-    arrivee: e.arriveeParis.hhmm,
+    de,
+    a,
+    depart: avanceMs > 0 ? heureParis(new Date(e.depart.getTime() - avanceMs)).hhmm : e.departParis.hhmm,
+    arrivee: avanceMs > 0 ? heureParis(new Date(e.arrivee.getTime() - avanceMs)).hhmm : e.arriveeParis.hhmm,
     duree_minutes: minutes(e.dureeSecondes),
     distance_metres: e.distanceMetres === undefined ? null : Math.round(e.distanceMetres),
     etat: "prevu", // aucun GTFS-RT branché (invariant 12)
@@ -165,33 +231,93 @@ function etapeAffichee(e: Etape, source: SourceEtape, idx: IndexManifest): Etape
   };
 }
 
+/** Une marche qui mène à un arrêt (ou en part) prend le type de lieu de l'étape en commun voisine. */
+function typerMarches(etapes: EtapeAffichee[]): void {
+  etapes.forEach((e, i) => {
+    if (e.mode !== "marche") return;
+    const avant = etapes[i - 1];
+    const apres = etapes[i + 1];
+    if (e.de.type === "arret" && avant && avant.mode !== "marche") e.de = { ...e.de, type: avant.a.type };
+    if (e.a.type === "arret" && apres && apres.mode !== "marche") e.a = { ...e.a, type: apres.de.type };
+  });
+}
+
+/**
+ * Avance des marches avant la première montée (D68) : on sort assez tôt pour être à l'arrêt
+ * 5 min (10 sur réservation) avant le véhicule. La marche ne change pas ; seule l'heure de sortie
+ * avance, sans passer avant `auPlusTot` (l'heure demandée en « partir », minuit du jour en « arriver »).
+ */
+export function avanceMontee(
+  p: Possibilite,
+  reservation: boolean,
+  auPlusTot: Date | undefined,
+): { avanceMs: number; indexMontee: number } {
+  const k = p.etapes.findIndex((e) => e.mode !== "WALK");
+  if (k < 0) return { avanceMs: 0, indexMontee: -1 };
+  const vehicule = p.etapes[k]!;
+  const arriveeArret = k > 0 ? p.etapes[k - 1]!.arrivee : vehicule.depart;
+  const ecart = vehicule.depart.getTime() - arriveeArret.getTime();
+  const voulu = (reservation ? MARGE_MONTEE_RESERVATION_MINUTES : MARGE_MONTEE_MINUTES) * 60_000;
+  let avance = Math.max(0, voulu - ecart);
+  if (auPlusTot) avance = Math.min(avance, Math.max(0, p.etapes[0]!.depart.getTime() - auPlusTot.getTime()));
+  return { avanceMs: avance, indexMontee: k };
+}
+
 export type Normalisation = { possibilites: PossibiliteAffichee[]; retirees: number };
 
-export function normaliser(possibilites: Possibilite[], manifest: Manifest): Normalisation {
-  const idx = indexer(manifest);
+export type OptionsNormalisation = {
+  /** Passages sur réservation et fins de validité (D69) ; absent ⇒ inconnus. */
+  horaires?: IndexHoraires;
+  noms?: NomsDemande;
+  /** Heure de sortie la plus tôt que permet la marge avant la première montée (D68). */
+  auPlusTot?: Date;
+};
+
+export function normaliser(possibilites: Possibilite[], manifest: Manifest, options: OptionsNormalisation = {}): Normalisation {
+  const ctx: Contexte = { idx: indexer(manifest), horaires: options.horaires, noms: options.noms ?? {} };
   const gardees: PossibiliteAffichee[] = [];
   let retirees = 0;
   for (const p of possibilites) {
-    const etapes: EtapeAffichee[] = [];
+    const sources: SourceEtape[] = [];
     for (const e of p.etapes) {
-      const s = sourceEtape(e, idx);
+      const s = sourceEtape(e, ctx.idx, ctx.horaires);
       if (!s) break;
-      etapes.push(etapeAffichee(e, s, idx));
+      sources.push(s);
     }
-    if (etapes.length !== p.etapes.length) {
+    if (sources.length !== p.etapes.length) {
       retirees++;
       continue;
     }
+    // Sans avance d'abord : il faut savoir si la première montée est sur réservation.
+    const brutes = p.etapes.map((e, i) => etapeAffichee(e, sources[i]!, ctx, 0));
+    const k = brutes.findIndex((e) => e.mode_motis !== "WALK");
+    const { avanceMs, indexMontee } = avanceMontee(p, k >= 0 && brutes[k]!.reservation !== null, options.auPlusTot);
+    const etapes = p.etapes.map((e, i) =>
+      i < indexMontee && avanceMs > 0 ? etapeAffichee(e, sources[i]!, ctx, avanceMs) : brutes[i]!,
+    );
+    typerMarches(etapes);
+
+    const depart = new Date(p.depart.getTime() - avanceMs);
+    let montee: Montee | null = null;
+    if (indexMontee >= 0) {
+      const v = p.etapes[indexMontee]!;
+      const aLArret = indexMontee > 0 ? new Date(p.etapes[indexMontee - 1]!.arrivee.getTime() - avanceMs) : v.depart;
+      montee = {
+        arriver_a: heureParis(aLArret).hhmm,
+        vehicule: v.departParis.hhmm,
+        marge_minutes: Math.round((v.depart.getTime() - aLArret.getTime()) / 60_000),
+      };
+    }
     const enCommun = etapes.filter((e) => e.source.type === "gtfs").length;
-    const premiere = p.etapes[0]!;
     const derniere = p.etapes[p.etapes.length - 1]!;
     gardees.push({
-      depart: premiere.departParis.hhmm,
+      depart: heureParis(depart).hhmm,
       arrivee: derniere.arriveeParis.hhmm,
-      depart_utc: p.depart.toISOString(),
+      depart_utc: depart.toISOString(),
       arrivee_utc: p.arrivee.toISOString(),
-      duree_minutes: Math.round((p.arrivee.getTime() - p.depart.getTime()) / 60_000),
+      duree_minutes: Math.round((p.arrivee.getTime() - depart.getTime()) / 60_000),
       correspondances: Math.max(0, enCommun - 1),
+      montee,
       etapes,
     });
   }

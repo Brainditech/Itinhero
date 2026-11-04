@@ -5,7 +5,13 @@ import { REPONSE_CHATELET } from "./reponse-chatelet";
 import { versRequeteItineraires } from "./demande";
 import {
   aMarcheLongue,
-  dateHoraires,
+  attenteApres,
+  directionEtape,
+  finHoraires,
+  minutesEntre,
+  nomLieuEtape,
+  phraseMontee,
+  phraseReservation,
   detailCandidat,
   formaterDistance,
   formaterDuree,
@@ -29,6 +35,7 @@ function etape(modif: Partial<Etape>): Etape {
 const ARRIVER: ReponseItineraires = {
   verdict: "possible",
   demande: { date: "2026-11-12", heure: "10:00", sens: "arriver", marge: 10, limite: "09:50" },
+  arrivee: { nom: null, adresse: null },
   possibilites: [{ ...chatelet, depart: "06:27", arrivee: "09:24" }],
 };
 
@@ -117,24 +124,88 @@ describe("étapes", () => {
   });
 });
 
-describe("date des horaires", () => {
-  it("la plus ancienne version GTFS, l'OSM ignoré", () => {
-    const autre: Possibilite = {
-      ...chatelet,
-      etapes: [etape({ source: { type: "gtfs", jeu: "r1", version: "2026-09-21", trip_id: "t", date_service: "2026-11-13" } })],
-    };
-    expect(dateHoraires([chatelet])).toBe("29/10");
-    expect(dateHoraires([chatelet, autre])).toBe("21/09");
+describe("fin de validité des horaires (issue 0010, H)", () => {
+  const gtfs = (fin: string | null) =>
+    etape({ source: { type: "gtfs", jeu: "r1", version: "2026-09-21", trip_id: "t", date_service: "2026-11-13", fin_validite: fin } });
+  it("la fin la plus proche parmi les jeux, l'OSM ignoré", () => {
+    expect(finHoraires([chatelet])).toBe("31/12/2026");
+    expect(finHoraires([chatelet, { ...chatelet, etapes: [gtfs("2026-11-30")] }])).toBe("30/11/2026");
+  });
+  it("aucune fin connue ⇒ rien", () => {
+    expect(finHoraires([{ ...chatelet, etapes: [gtfs(null)] }])).toBeNull();
+    expect(finHoraires([{ ...chatelet, etapes: [marche] }])).toBeNull();
+    expect(finHoraires([])).toBeNull();
+  });
+});
+
+describe("issue 0010 : Brienon → Dijon lisible", () => {
+  const bus = etape({
+    mode: "bus",
+    mode_motis: "BUS",
+    ligne: "803",
+    direction: "Auxerre",
+    exploitant: "MOBIGO 89",
+    reservation: "appel",
+    de: { nom: "Mairie", type: "arret", arret: "600326", lat: 47.99, lon: 3.61 },
+    a: { nom: "Saint-Florentin-Vergigny, 3 rue de la Gare", type: "arret", arret: "3103848", lat: 47.97, lon: 3.72 },
+    depart: "08:25",
+    arrivee: "08:50",
+  });
+  const train = etape({
+    mode: "train",
+    mode_motis: "REGIONAL_RAIL",
+    ligne: "K7",
+    direction: "Lyon Part Dieu",
+    numero: "17769",
+    exploitant: "SNCF VOYAGEURS",
+    de: { nom: "Saint-Florentin - Vergigny", type: "gare", arret: null, lat: 47.98, lon: 3.73 },
+    depart: "09:10",
+    arrivee: "10:24",
+  });
+  const aPied = (depart: string, arrivee: string): Etape => ({ ...marche, depart, arrivee });
+
+  it("A : « TER K7 n° 17769 vers Lyon Part Dieu »", () => {
+    expect(libelleEtape(train)).toBe("TER K7");
+    expect(directionEtape(train)).toBe("n° 17769 vers Lyon Part Dieu");
+    expect(directionEtape(bus)).toBe("vers Auxerre");
+    expect(directionEtape(marche)).toBeNull();
   });
 
-  it("version qui n'est pas une date : montrée telle quelle ; aucun GTFS : rien", () => {
-    const texte: Possibilite = {
+  it("B : réservation obligatoire, sans numéro de téléphone (invariant 16)", () => {
+    const p = phraseReservation(bus)!;
+    expect(p).toBe("Réservation obligatoire : appelez MOBIGO 89 avant de partir.");
+    expect(p).not.toMatch(/\d{2}[ .]?\d{2}/);
+    expect(phraseReservation(train)).toBeNull();
+  });
+
+  it("D : « Arrivez à l'arrêt à 08:15, le bus passe à 08:25. »", () => {
+    const p: Possibilite = {
       ...chatelet,
-      etapes: [etape({ source: { type: "gtfs", jeu: "r1", version: "v42", trip_id: "t", date_service: "2026-11-13" } })],
+      montee: { arriver_a: "08:15", vehicule: "08:25", marge_minutes: 10 },
+      etapes: [aPied("08:14", "08:15"), bus],
     };
-    expect(dateHoraires([texte])).toBe("v42");
-    expect(dateHoraires([{ ...chatelet, etapes: [marche] }])).toBeNull();
-    expect(dateHoraires([])).toBeNull();
+    expect(phraseMontee(p)).toBe("Arrivez à l'arrêt à 08:15, le bus passe à 08:25.");
+    const enGare: Possibilite = { ...p, montee: { arriver_a: "09:04", vehicule: "09:10", marge_minutes: 6 }, etapes: [aPied("09:00", "09:04"), train] };
+    expect(phraseMontee(enGare)).toBe("Arrivez à la gare à 09:04, le train part à 09:10.");
+    expect(phraseMontee({ ...p, montee: null })).toBeNull();
+  });
+
+  it("E : 6 min d'attente entre la marche (arrivée 09:04) et le train de 09:10 ; 2 min ne se disent pas", () => {
+    const etapes = [bus, aPied("08:50", "09:04"), train];
+    expect(attenteApres(etapes, 0)).toBeNull();
+    expect(attenteApres(etapes, 1)).toBe(6);
+    expect(attenteApres(etapes, 2)).toBeNull();
+    expect(attenteApres([aPied("09:00", "09:08"), train], 0)).toBeNull();
+    expect(minutesEntre("23:58", "00:03")).toBe(5);
+  });
+
+  it("F : « arrêt Mairie », « gare de Saint-Florentin - Vergigny », sans répéter ce que dit le nom", () => {
+    expect(nomLieuEtape(bus.de)).toBe("arrêt Mairie");
+    expect(nomLieuEtape(train.de)).toBe("gare de Saint-Florentin - Vergigny");
+    expect(nomLieuEtape({ ...train.de, nom: "Dijon Gare", type: "station" })).toBe("Dijon Gare");
+    expect(nomLieuEtape({ ...train.de, nom: "Godrans Les Halles", type: "station" })).toBe("station Godrans Les Halles");
+    expect(nomLieuEtape({ ...train.de, nom: "Gare de Lyon", type: "gare" })).toBe("Gare de Lyon");
+    expect(nomLieuEtape({ ...train.de, nom: "Tribunal administratif de Dijon", type: "arrivee" })).toBe("Tribunal administratif de Dijon");
   });
 });
 
@@ -182,5 +253,12 @@ describe("versRequeteItineraires", () => {
     const r = versRequeteItineraires({ lieu_texte: "chez le médecin", date: "2026-11-13", heure: "07:00", sens: "partir_a", marge: 0 }, depart, arrivee);
     expect(r.sens).toBe("partir");
     expect(JSON.stringify(r)).not.toContain("médecin");
+  });
+
+  it("noms du départ et du lieu choisi envoyés pour remplacer « Départ » et « Arrivée » (issue 0010, C)", () => {
+    const d = { lieu_texte: "x", date: "2026-11-14", heure: "15:35", sens: "arriver_avant" as const, marge: 10 };
+    const noms = { depart: "Domicile", arrivee: "Tribunal Administratif de Dijon" };
+    expect(versRequeteItineraires(d, depart, arrivee, noms).noms).toEqual(noms);
+    expect(versRequeteItineraires(d, depart, arrivee)).not.toHaveProperty("noms");
   });
 });

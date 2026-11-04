@@ -78,6 +78,8 @@ export function appTest(d: Partial<Dependances> & { maintenant?: () => Date; par
     },
     geocodeurIgn: d.geocodeurIgn,
     lieux: d.lieux,
+    horaires: d.horaires,
+    adresseIgn: d.adresseIgn,
     fluxJournal: d.fluxJournal ?? { write: () => {} },
   });
 }

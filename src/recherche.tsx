@@ -42,7 +42,8 @@ export function useChercherItineraires() {
   const { oublierCle } = useSession();
   const { setRecherche } = useRecherche();
   return async (base: Omit<Recherche, "arrivee" | "reponse">, arrivee: Candidat): Promise<string | null> => {
-    const r = await client.itineraires(versRequeteItineraires(base.demande, base.pointDepart, arrivee));
+    const noms = { depart: base.depart === "domicile" ? "Domicile" : "Ma position", arrivee: arrivee.nom.slice(0, 120) };
+    const r = await client.itineraires(versRequeteItineraires(base.demande, base.pointDepart, arrivee, noms));
     if (r.etat === "cle_refusee") {
       await oublierCle();
       return null;

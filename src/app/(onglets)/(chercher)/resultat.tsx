@@ -5,7 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { Ecran } from "@/composants/Ecran";
 import { Lien } from "@/composants/elements";
 import { CartePossibilite } from "@/composants/Trajet";
-import { dateHoraires, jourCourt, phraseVerdict } from "@/domaine/resultat";
+import { finHoraires, jourCourt, phraseVerdict } from "@/domaine/resultat";
 import { useRecherche } from "@/recherche";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
@@ -18,7 +18,7 @@ export default function Resultat() {
   if (!recherche?.reponse || !recherche.arrivee) return <Redirect href="/formulaire" />;
   const { reponse, arrivee } = recherche;
   const verdict = phraseVerdict(reponse);
-  const horaires = dateHoraires(reponse.possibilites);
+  const horaires = finHoraires(reponse.possibilites);
 
   return (
     <Ecran>
@@ -55,11 +55,16 @@ export default function Resultat() {
       </View>
 
       {reponse.possibilites.map((p, i) => (
-        <CartePossibilite key={`${p.depart_utc}-${p.arrivee_utc}-${i}`} possibilite={p} destination={arrivee.nom} />
+        <CartePossibilite
+          key={`${p.depart_utc}-${p.arrivee_utc}-${i}`}
+          possibilite={p}
+          destination={arrivee.nom}
+          adresse={reponse.arrivee.adresse}
+        />
       ))}
 
       {horaires ? (
-        <Text className="text-center font-inter-medium text-secondaire text-primaire">{`Horaires du ${horaires}`}</Text>
+        <Text className="text-center font-inter-medium text-secondaire text-primaire">{`Horaires valables jusqu'au ${horaires}`}</Text>
       ) : null}
       <View className="items-center">
         <Lien libelle="Modifier la recherche" onPress={() => router.dismissTo("/formulaire")} />
