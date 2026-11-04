@@ -22,6 +22,12 @@ import {
   phraseVerdict,
   resumePossibilite,
   sousTitreDemande,
+  nomBout,
+  NOM_MAX,
+  quandDemande,
+  adresseBout,
+  adresseArrivee,
+  phraseVotreTrajet,
 } from "./resultat";
 
 const chatelet = REPONSE_CHATELET.possibilites[0]!;
@@ -210,7 +216,7 @@ describe("issue 0010 : Brienon → Dijon lisible", () => {
 });
 
 describe("Confirmation", () => {
-  const demande = { lieu_texte: "France Travail Joigny", date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
+  const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "France Travail Joigny" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
 
   it("jour court sans fuseau (R11)", () => {
     expect(jourCourt("2026-11-12")).toBe("Jeudi 12/11");
@@ -218,11 +224,30 @@ describe("Confirmation", () => {
   });
 
   it("sous-titre de la maquette 03", () => {
-    expect(sousTitreDemande(demande, "domicile")).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Domicile");
-    expect(sousTitreDemande({ ...demande, sens: "partir_a", marge: 0 }, "position")).toBe(
+    expect(sousTitreDemande(demande)).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Domicile");
+    expect(sousTitreDemande({ ...demande, depart: { type: "position" }, sens: "partir_a", marge: 0 })).toBe(
       "Jeudi 12/11 · partir à 10:00 · depuis ma position",
     );
-    expect(sousTitreDemande({ ...demande, marge: 0 }, "domicile")).toContain("sans marge");
+    expect(sousTitreDemande({ ...demande, marge: 0 })).toContain("sans marge");
+  });
+
+  it("départ tapé : à confirmer, puis le nom du lieu choisi (spec 13, §4.3)", () => {
+    const tape = { ...demande, depart: { type: "texte" as const, texte: "gare d'Auxerre" } };
+    expect(sousTitreDemande(tape)).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis un lieu à confirmer");
+    expect(sousTitreDemande(tape, { nom: "Gare d'Auxerre" })).toBe(
+      "Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Gare d'Auxerre",
+    );
+    // Domicile et position ne dépendent pas d'un lieu choisi.
+    expect(sousTitreDemande(demande, { nom: "ignoré" })).toContain("depuis Domicile");
+  });
+
+  it("noms envoyés à l'API pour chaque forme de bout (spec 13, §4.4)", () => {
+    expect(nomBout({ type: "domicile" }, null)).toBe("Domicile");
+    expect(nomBout({ type: "position" }, null)).toBe("Ma position");
+    expect(nomBout({ type: "texte", texte: "tribunal dijon" }, { nom: "Tribunal Administratif de Dijon" })).toBe(
+      "Tribunal Administratif de Dijon",
+    );
+    expect(nomBout({ type: "texte", texte: "x" }, { nom: "a".repeat(200) })).toHaveLength(NOM_MAX);
   });
 
   it("détail d'un candidat", () => {
@@ -245,20 +270,72 @@ describe("versRequeteItineraires", () => {
 
   it("« arriver avant » ⇒ arriver, marge transmise", () => {
     expect(
-      versRequeteItineraires({ lieu_texte: "x", date: "2026-11-12", heure: "10:00", sens: "arriver_avant", marge: 10 }, depart, arrivee),
+      versRequeteItineraires({ depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant", marge: 10 }, depart, arrivee),
     ).toEqual({ depart, arrivee, date: "2026-11-12", heure: "10:00", sens: "arriver", marge: 10 });
   });
 
   it("« partir à » ⇒ partir ; le texte du lieu ne part jamais", () => {
-    const r = versRequeteItineraires({ lieu_texte: "chez le médecin", date: "2026-11-13", heure: "07:00", sens: "partir_a", marge: 0 }, depart, arrivee);
+    const r = versRequeteItineraires({ depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "chez le médecin" }, date: "2026-11-13", heure: "07:00", sens: "partir_a", marge: 0 }, depart, arrivee);
     expect(r.sens).toBe("partir");
     expect(JSON.stringify(r)).not.toContain("médecin");
   });
 
   it("noms du départ et du lieu choisi envoyés pour remplacer « Départ » et « Arrivée » (issue 0010, C)", () => {
-    const d = { lieu_texte: "x", date: "2026-11-14", heure: "15:35", sens: "arriver_avant" as const, marge: 10 };
+    const d = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-14", heure: "15:35", sens: "arriver_avant" as const, marge: 10 };
     const noms = { depart: "Domicile", arrivee: "Tribunal Administratif de Dijon" };
     expect(versRequeteItineraires(d, depart, arrivee, noms).noms).toEqual(noms);
     expect(versRequeteItineraires(d, depart, arrivee)).not.toHaveProperty("noms");
+  });
+});
+
+describe("Votre trajet (spec 14)", () => {
+  const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "France Travail Joigny" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
+  const domicile = { type: "domicile" as const };
+  const tape = { type: "texte" as const, texte: "France Travail Joigny" };
+
+  it("quandDemande : arriver avant avec et sans marge, partir à (critère 1)", () => {
+    expect(quandDemande(demande)).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min");
+    expect(quandDemande({ ...demande, marge: 0 })).toBe("Jeudi 12/11 · arriver avant 10:00 · sans marge");
+    expect(quandDemande({ ...demande, date: "2026-11-05", heure: "17:00", sens: "partir_a" })).toBe("Jeudi 05/11 · partir à 17:00");
+  });
+
+  it("adresse du domicile, avec et sans détail, code postal remis devant la commune (critère 2)", () => {
+    expect(adresseBout(domicile, { libelle: "12 rue de la Mairie", detail: "Brienon-sur-Armançon, 89210" })).toBe(
+      "12 rue de la Mairie, 89210 Brienon-sur-Armançon",
+    );
+    expect(adresseBout(domicile, { libelle: "12 rue de la Mairie", detail: null })).toBe("12 rue de la Mairie");
+    expect(adresseBout(domicile, { libelle: "Mairie", detail: "Brienon-sur-Armançon" })).toBe("Mairie, Brienon-sur-Armançon");
+  });
+
+  it("Ma position n'a pas d'adresse ; un lieu tapé donne commune et code postal, sans distance (critère 2)", () => {
+    expect(adresseBout({ type: "position" }, {})).toBeNull();
+    expect(adresseBout(tape, { type: "lieu", commune: "Joigny", code_postal: "89300" })).toBe("89300 Joigny");
+    expect(adresseBout(tape, { type: "arret", commune: "Joigny", code_postal: "89300" })).toBe("Arrêt, 89300 Joigny");
+    expect(adresseBout(tape, { type: "adresse", commune: "Joigny", code_postal: null })).toBe("Joigny");
+    expect(adresseBout(tape, { type: "lieu" })).toBeNull();
+  });
+
+  it("arrivée : l'adresse IGN d'abord, sauf pour le domicile enregistré (critère 2)", () => {
+    expect(adresseArrivee(tape, "89300 Joigny", "19 Route de Chamvres, 89300 Joigny")).toBe("19 Route de Chamvres, 89300 Joigny");
+    expect(adresseArrivee(tape, "89300 Joigny", null)).toBe("89300 Joigny");
+    expect(adresseArrivee(domicile, "12 rue de la Mairie, 89210 Brienon-sur-Armançon", "11 Rue de la Mairie, 89210 Brienon")).toBe(
+      "12 rue de la Mairie, 89210 Brienon-sur-Armançon",
+    );
+    expect(adresseArrivee({ type: "position" }, null, null)).toBeNull();
+  });
+
+  it("TalkBack lit tout le trajet d'un bloc (critère 5)", () => {
+    expect(
+      phraseVotreTrajet(
+        { nom: "Domicile", adresse: "12 rue de la Mairie, 89210 Brienon-sur-Armançon" },
+        { nom: "France Travail", adresse: "19 Route de Chamvres, 89300 Joigny" },
+        demande,
+      ),
+    ).toBe(
+      "Votre trajet : de Domicile, 12 rue de la Mairie, 89210 Brienon-sur-Armançon, à France Travail, 19 Route de Chamvres, 89300 Joigny. Jeudi 12/11, arriver avant 10:00, marge 10 min.",
+    );
+    expect(phraseVotreTrajet({ nom: "Ma position", adresse: null }, { nom: "Joigny", adresse: null }, demande)).toContain(
+      "de Ma position, à Joigny.",
+    );
   });
 });

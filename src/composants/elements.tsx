@@ -1,7 +1,8 @@
 import { useId, useState, type ReactNode } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { SymbolView } from "expo-symbols";
+import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
+import type { Bout } from "@/domaine/demande";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /** Mot « Itinhero » en haut à gauche de chaque écran. */
@@ -80,17 +81,30 @@ export function CarteErreur({ message, onReessayer }: { message: string; onReess
   );
 }
 
-/** Puce à choix : active pleine indigo, inactive blanche à contour. */
-export function Puce({ libelle, active, onPress }: { libelle: string; active: boolean; onPress: () => void }) {
+/** Puce à choix, avec une icône facultative : active pleine indigo, inactive blanche à contour. */
+export function Puce({
+  libelle,
+  active,
+  onPress,
+  icone,
+}: {
+  libelle: string;
+  active: boolean;
+  onPress: () => void;
+  icone?: AndroidSymbol;
+}) {
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ checked: active }}
       onPress={onPress}
-      className={`min-h-12 justify-center rounded-full border px-4 ${
+      className={`min-h-12 flex-row items-center gap-2 rounded-full border px-4 ${
         active ? "border-primaire bg-primaire" : "border-bordure-carte bg-fond"
       }`}
     >
+      {icone ? (
+        <SymbolView name={{ android: icone, web: icone }} size={20} tintColor={active ? couleurs.fond : couleurs.primaire} />
+      ) : null}
       <Text className={`font-inter-medium text-badge ${active ? "text-fond" : "text-texte"}`}>{libelle}</Text>
     </Pressable>
   );
@@ -108,9 +122,9 @@ export function Lien({ libelle, onPress }: { libelle: string; onPress: () => voi
 // ——— Formulaire (spec 02) ———
 
 /** Contour d'un champ : 1 dp gris ; actif 2 dp indigo ; erreur 2 dp rouge (design system). */
-function classeCadre(actif: boolean, erreur?: string) {
+function classeCadre(actif: boolean, erreur?: string, marges = "px-4") {
   const contour = erreur ? "border-2 border-erreur" : actif ? "border-2 border-primaire" : "border border-bordure-champ";
-  return `min-h-14 flex-row items-center rounded-champ bg-surface px-4 ${contour}`;
+  return `min-h-14 flex-row items-center rounded-champ bg-surface ${marges} ${contour}`;
 }
 
 /** Libellé au-dessus, cadre, message d'erreur dessous (lu par TalkBack quand il apparaît). */
@@ -205,6 +219,110 @@ export function ChampTexte({
         {suffixe ? <Text className="ml-2 font-inter text-corps text-texte-secondaire">{suffixe}</Text> : null}
       </View>
     </Champ>
+  );
+}
+
+const CHOIX_BOUT = [
+  { type: "domicile", icone: "home", libelle: "Domicile" },
+  { type: "position", icone: "my_location", libelle: "Ma position" },
+] as const satisfies readonly { type: Bout["type"]; icone: AndroidSymbol; libelle: string }[];
+
+/**
+ * Champ Départ ou Arrivée (spec 13, §4.1) : texte tapé au clavier, ou Domicile / Ma position choisis par les
+ * icônes de droite. Un choix s'affiche en étiquette ; la toucher l'efface et ouvre le clavier.
+ */
+export function ChampLieu({
+  libelle,
+  nomCourt,
+  bout,
+  onChange,
+  erreur,
+  longueurMax,
+}: {
+  libelle: string;
+  /** « départ », « arrivée » : lu par TalkBack (« Mettre Domicile en départ »). */
+  nomCourt: string;
+  bout: Bout;
+  onChange: (bout: Bout) => void;
+  erreur?: string;
+  longueurMax: number;
+}) {
+  const id = useId();
+  const [actif, setActif] = useState(false);
+  // Le clavier ne s'ouvre seul qu'après avoir touché une étiquette, jamais à l'ouverture de l'écran.
+  const [focaliser, setFocaliser] = useState(false);
+  const choix = CHOIX_BOUT.find((c) => c.type === bout.type);
+  return (
+    <Champ libelle={libelle} idLibelle={id} erreur={erreur}>
+      <View className={classeCadre(actif, erreur, "pl-4 pr-1")}>
+        {bout.type === "texte" ? (
+          <TextInput
+            accessibilityLabelledBy={id}
+            value={bout.texte}
+            onChangeText={(texte) => onChange({ type: "texte", texte })}
+            onFocus={() => {
+              setActif(true);
+              setFocaliser(false); // une seule fois : ⇅ ou un retour au texte n'ouvrent pas le clavier
+            }}
+            onBlur={() => setActif(false)}
+            autoFocus={focaliser}
+            maxLength={longueurMax}
+            className="flex-1 py-3 font-inter text-corps text-texte"
+            cursorColor={couleurs.primaire}
+            selectionColor={couleurs["primaire-doux"]}
+          />
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${libelle} : ${choix?.libelle ?? ""}`}
+            accessibilityHint="Efface et ouvre le clavier"
+            onPress={() => {
+              setFocaliser(true);
+              onChange({ type: "texte", texte: "" });
+            }}
+            className="min-h-12 flex-1 flex-row items-center"
+          >
+            <View className="flex-row items-center gap-2 rounded-full bg-primaire-doux px-3 py-1">
+              {choix ? <SymbolView name={{ android: choix.icone, web: choix.icone }} size={18} tintColor={couleurs.primaire} /> : null}
+              <Text className="font-inter-medium text-corps text-primaire">{choix?.libelle}</Text>
+            </View>
+          </Pressable>
+        )}
+        {CHOIX_BOUT.map((c) => {
+          const choisi = bout.type === c.type;
+          return (
+            <Pressable
+              key={c.type}
+              accessibilityRole="button"
+              accessibilityLabel={`Mettre ${c.libelle} en ${nomCourt}`}
+              accessibilityState={{ selected: choisi }}
+              onPress={() => onChange({ type: c.type })}
+              className="h-12 w-12 items-center justify-center rounded-full active:bg-primaire-doux"
+            >
+              <SymbolView
+                name={{ android: c.icone, web: c.icone }}
+                size={24}
+                tintColor={choisi ? couleurs.primaire : couleurs["texte-secondaire"]}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
+    </Champ>
+  );
+}
+
+/** ⇅ entre le Départ et l'Arrivée : échange les deux (spec 13, §4.1). */
+export function BoutonEchange({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Échanger le départ et l'arrivée"
+      onPress={onPress}
+      className="h-12 w-12 items-center justify-center rounded-full border border-bordure-carte bg-fond active:bg-primaire-doux"
+    >
+      <SymbolView name={{ android: "swap_vert", web: "swap_vert" }} size={24} tintColor={couleurs.primaire} />
+    </Pressable>
   );
 }
 

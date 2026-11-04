@@ -1,27 +1,42 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
 import { Redirect, router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
 import { Ecran } from "@/composants/Ecran";
 import { Lien } from "@/composants/elements";
+import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
-import { finHoraires, jourCourt, phraseVerdict } from "@/domaine/resultat";
+import { VotreTrajet } from "@/composants/VotreTrajet";
+import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
 import { useRecherche } from "@/recherche";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /**
- * Résultat (phase 3, maquette 04, spec 10 §4.2) : verdict, puis une carte par possibilité dans l'ordre du serveur.
+ * Résultat (phase 3, maquettes 04 et 04b, spec 10 §4.2, spec 14) : « Votre trajet », verdict, puis une carte
+ * par possibilité dans l'ordre du serveur.
  * Pas de tris, de taxi, de prix ni de « Voir le trajet » ici (spec 10, §9) ; toucher une carte déplie ses étapes.
+ * Chaque bloc a un chevron qui le replie (spec 14 §11).
  */
 export default function Resultat() {
   const { recherche } = useRecherche();
-  if (!recherche?.reponse || !recherche.arrivee) return <Redirect href="/formulaire" />;
-  const { reponse, arrivee } = recherche;
+  const [verdictOuvert, setVerdictOuvert] = useState(false);
+  const depart = recherche?.depart.lieu;
+  const arrivee = recherche?.arrivee.lieu;
+  if (!recherche?.reponse || !depart || !arrivee) return <Redirect href="/formulaire" />;
+  const { reponse, demande } = recherche;
   const verdict = phraseVerdict(reponse);
   const horaires = finHoraires(reponse.possibilites);
+  const modifier = () => router.dismissTo("/formulaire");
 
   return (
     <Ecran>
+      <VotreTrajet
+        demande={demande}
+        depart={{ nom: depart.nom, adresse: depart.adresse }}
+        arrivee={{ nom: arrivee.nom, adresse: adresseArrivee(demande.arrivee, arrivee.adresse, reponse.arrivee.adresse) }}
+        onModifier={modifier}
+      />
       <View
         accessibilityRole="summary"
         className="overflow-hidden rounded-carte border border-bordure-carte bg-fond"
@@ -29,8 +44,7 @@ export default function Resultat() {
       >
         <View className="flex-row">
           <View style={{ width: 6, backgroundColor: verdict.possible ? couleurs.possible : couleurs.erreur }} />
-          <View className="flex-1 gap-2 p-5">
-            <Text className="font-inter text-secondaire text-texte-secondaire">{`${jourCourt(reponse.demande.date)} · ${arrivee.nom}`}</Text>
+          <View className={`flex-1 gap-2 py-5 pl-5 pr-1 ${verdictOuvert ? "" : "pb-3 pt-3"}`}>
             <View className="flex-row items-center gap-2">
               <SymbolView
                 name={verdict.possible ? { android: "check_circle", web: "check_circle" } : { android: "cancel", web: "cancel" }}
@@ -38,18 +52,26 @@ export default function Resultat() {
                 tintColor={verdict.possible ? couleurs.possible : couleurs.erreur}
               />
               <Text
-                className="font-inter-bold text-verdict"
+                className="flex-1 font-inter-bold text-verdict"
                 style={{ color: verdict.possible ? couleurs.possible : couleurs.erreur }}
               >
                 {verdict.titre}
+                {!verdictOuvert && verdict.heureDepart ? (
+                  <Text className="font-inter-semibold text-corps text-texte">{`  ·  Départ ${verdict.heureDepart}`}</Text>
+                ) : null}
               </Text>
+              <BoutonRepli ouvert={verdictOuvert} nom="Verdict" onPress={() => setVerdictOuvert((o) => !o)} />
             </View>
-            {verdict.heureDepart ? (
-              <Text className="font-inter-bold text-heure-depart text-texte" style={{ fontVariant: ["tabular-nums"] }}>
-                {`Départ ${verdict.heureDepart}`}
-              </Text>
+            {verdictOuvert ? (
+              <>
+                {verdict.heureDepart ? (
+                  <Text className="font-inter-bold text-heure-depart text-texte" style={{ fontVariant: ["tabular-nums"] }}>
+                    {`Départ ${verdict.heureDepart}`}
+                  </Text>
+                ) : null}
+                <Text className="pr-4 font-inter text-corps text-texte">{verdict.detail}</Text>
+              </>
             ) : null}
-            <Text className="font-inter text-corps text-texte">{verdict.detail}</Text>
           </View>
         </View>
       </View>
@@ -67,7 +89,7 @@ export default function Resultat() {
         <Text className="text-center font-inter-medium text-secondaire text-primaire">{`Horaires valables jusqu'au ${horaires}`}</Text>
       ) : null}
       <View className="items-center">
-        <Lien libelle="Modifier la recherche" onPress={() => router.dismissTo("/formulaire")} />
+        <Lien libelle="Modifier la recherche" onPress={modifier} />
       </View>
     </Ecran>
   );

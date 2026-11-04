@@ -43,3 +43,18 @@ export async function lirePosition(): Promise<LecturePosition> {
     return { etat: "introuvable" };
   }
 }
+
+/**
+ * Position seulement si l'accès est déjà accordé, sans rien demander (D78) : sert à classer les lieux
+ * d'un texte quand aucun autre bout n'est connu. Rend null sinon.
+ */
+export async function lirePositionSiAccordee(): Promise<Point | null> {
+  try {
+    const { granted } = await Location.getForegroundPermissionsAsync();
+    if (!granted) return null;
+    const lue = await lirePosition();
+    return lue.etat === "ok" ? lue.point : null;
+  } catch {
+    return null;
+  }
+}

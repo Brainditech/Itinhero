@@ -18,6 +18,7 @@ import {
   phraseReservation,
   resumePossibilite,
 } from "@/domaine/resultat";
+import { Chevron } from "@/composants/Repli";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 // Carte d'itinéraire et frise (design system, « Carte d'itinéraire » ; maquette 04 ; D67).
@@ -161,7 +162,7 @@ function LigneAttente({ texte }: { texte: string }) {
   );
 }
 
-/** Carte d'une possibilité ; la toucher déplie ses étapes. */
+/** Carte d'une possibilité ; la toucher (ou son chevron, en haut à droite) déplie ou replie ses étapes. */
 export function CartePossibilite({
   possibilite,
   destination,
@@ -186,11 +187,12 @@ export function CartePossibilite({
       className="gap-3 rounded-carte border border-bordure-carte bg-fond p-5"
       style={{ boxShadow: ombreFlottante }}
     >
-      <View className="flex-row items-baseline justify-between gap-2">
-        <Text className="font-inter-bold text-titre-carte text-texte" style={{ fontVariant: ["tabular-nums"] }}>
+      <View className="flex-row items-center gap-2">
+        <Text className="flex-1 font-inter-bold text-titre-carte text-texte" style={{ fontVariant: ["tabular-nums"] }}>
           {`${p.depart} → ${p.arrivee}`}
         </Text>
         <Text className="font-inter text-secondaire text-texte-secondaire">{formaterDuree(p.duree_minutes)}</Text>
+        <Chevron ouvert={ouverte} />
       </View>
       <Frise etapes={p.etapes} />
       <Text className="font-inter text-secondaire text-texte-secondaire">{resumePossibilite(p)}</Text>
@@ -229,6 +231,10 @@ export function CartePossibilite({
               <Text className="font-inter-semibold text-secondaire text-texte">{destination}</Text>
               {adresse ? <Text className="font-inter text-badge text-texte-secondaire">{adresse}</Text> : null}
             </View>
+          </View>
+          <View className="mt-4 flex-row items-center justify-center gap-2">
+            <Text className="font-inter-medium text-badge text-primaire">Replier les étapes</Text>
+            <Chevron ouvert />
           </View>
         </View>
       ) : (

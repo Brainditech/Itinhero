@@ -1,5 +1,5 @@
 import type { Candidat, Etape, LieuEtape, Possibilite, ReponseItineraires } from "./api";
-import type { Demande } from "./demande";
+import type { Bout, Demande } from "./demande";
 
 // Ce qu'affichent la Confirmation et le Résultat (spec 10, §4.1). Tout vient de la réponse de l'API :
 // l'app ne calcule aucune heure (invariant 3 par extension : rien d'inventé côté client).
@@ -14,18 +14,88 @@ export function jourCourt(date: string): string {
   return `${jour} ${m[3]}/${m[2]}`;
 }
 
-export type Depart = "domicile" | "position";
+/** Longueur maximale d'un nom envoyé à l'API (`noms.depart`, `noms.arrivee`, issue 0010 C). */
+export const NOM_MAX = 120;
 
-/** Sous-titre de la Confirmation : « Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Domicile ». */
-export function sousTitreDemande(demande: Demande, depart: Depart): string {
+/** Nom d'un bout pour l'API et l'écran : « Domicile », « Ma position », ou le nom du lieu choisi (spec 13, §4.4). */
+export function nomBout(bout: Bout, choisi: { nom: string } | null): string {
+  if (bout.type === "domicile") return "Domicile";
+  if (bout.type === "position") return "Ma position";
+  return (choisi?.nom ?? bout.texte).slice(0, NOM_MAX);
+}
+
+/**
+ * Sous-titre de la Confirmation : « Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Domicile ».
+ * Départ tapé : le nom du lieu choisi, ou « un lieu à confirmer » tant qu'il ne l'est pas (spec 13, §4.3).
+ */
+export function sousTitreDemande(demande: Demande, departChoisi: { nom: string } | null = null): string {
+  const morceaux = [quandDemande(demande)];
+  const depart = demande.depart;
+  if (depart.type === "domicile") morceaux.push("depuis Domicile");
+  else if (depart.type === "position") morceaux.push("depuis ma position");
+  else morceaux.push(departChoisi ? `depuis ${departChoisi.nom}` : "depuis un lieu à confirmer");
+  return morceaux.join(" · ");
+}
+
+/** « Jeudi 12/11 · arriver avant 10:00 · marge 10 min » ou « Jeudi 05/11 · partir à 17:00 » (spec 14, §4.3). */
+export function quandDemande(demande: Demande): string {
   const morceaux = [jourCourt(demande.date)];
   if (demande.sens === "arriver_avant") {
     morceaux.push(`arriver avant ${demande.heure}`, demande.marge > 0 ? `marge ${demande.marge} min` : "sans marge");
   } else {
     morceaux.push(`partir à ${demande.heure}`);
   }
-  morceaux.push(depart === "domicile" ? "depuis Domicile" : "depuis ma position");
   return morceaux.join(" · ");
+}
+
+// ——— Récapitulatif « Votre trajet » (spec 14) ———
+
+/** Ce que l'app sait d'un lieu retenu : le domicile enregistré (`libelle`, `detail`) ou le candidat choisi. */
+export type SourceAdresse = {
+  libelle?: string;
+  detail?: string | null;
+  type?: Candidat["type"];
+  commune?: string | null;
+  code_postal?: string | null;
+};
+
+/** « 89300 Joigny » ; le `detail` d'un domicile (« Joigny, 89300 ») est remis dans cet ordre. */
+function codeEtCommune(commune: string | null | undefined, code: string | null | undefined): string {
+  return [code, commune].filter((v): v is string => !!v).join(" ");
+}
+
+function detailDomicile(detail: string): string {
+  const m = /^(.+), (\d{5})$/.exec(detail);
+  return m ? codeEtCommune(m[1], m[2]) : detail;
+}
+
+/**
+ * Adresse d'un bout connue sur le téléphone (spec 14, §4.1) : celle du domicile enregistré,
+ * « Arrêt, 89300 Joigny » pour un arrêt choisi, « 89300 Joigny » pour un autre lieu ; rien pour Ma position.
+ */
+export function adresseBout(bout: Bout, s: SourceAdresse): string | null {
+  if (bout.type === "position") return null;
+  if (bout.type === "domicile") {
+    const morceaux = [s.libelle, s.detail ? detailDomicile(s.detail) : null].filter((v): v is string => !!v);
+    return morceaux.length > 0 ? morceaux.join(", ") : null;
+  }
+  const lieu = codeEtCommune(s.commune, s.code_postal);
+  if (s.type === "arret") return lieu ? `Arrêt, ${lieu}` : "Arrêt";
+  return lieu || null;
+}
+
+/** Adresse de l'arrivée : celle du domicile d'abord, puis l'adresse postale de l'IGN, puis celle du candidat. */
+export function adresseArrivee(bout: Bout, connue: string | null, ign: string | null): string | null {
+  if (bout.type === "domicile") return connue ?? ign;
+  return ign ?? connue;
+}
+
+export type BoutRecap = { nom: string; adresse: string | null };
+
+/** Phrase lue par TalkBack pour toute la carte « Votre trajet ». */
+export function phraseVotreTrajet(depart: BoutRecap, arrivee: BoutRecap, demande: Demande): string {
+  const lieu = (b: BoutRecap) => (b.adresse ? `${b.nom}, ${b.adresse}` : b.nom);
+  return `Votre trajet : de ${lieu(depart)}, à ${lieu(arrivee)}. ${quandDemande(demande).replaceAll(" · ", ", ")}.`;
 }
 
 /** Deuxième ligne d'un candidat : commune et code postal, puis la distance si le serveur la donne. */

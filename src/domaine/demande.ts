@@ -19,8 +19,22 @@ export const LIEU_MAX = 200;
 /** `GET /v1/lieux` demande au moins 2 caractères (spec 09 §4.4). */
 export const LIEU_MIN_RECHERCHE = 2;
 
+/**
+ * Un bout du trajet, départ ou arrivée (D77) : Domicile, Ma position, ou un texte à chercher
+ * par `GET /v1/lieux`. `/v1/comprendre` produira la même forme.
+ */
+export const schemaBout = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("domicile") }),
+  z.object({ type: z.literal("position") }),
+  z.object({ type: z.literal("texte"), texte: z.string().trim().min(LIEU_MIN_RECHERCHE).max(LIEU_MAX) }),
+]);
+
+export type Bout = z.infer<typeof schemaBout>;
+export type CoteBout = "depart" | "arrivee";
+
 export const schemaDemande = z.object({
-  lieu_texte: z.string().trim().min(1).max(LIEU_MAX),
+  depart: schemaBout,
+  arrivee: schemaBout,
   date: z.string().refine(dateExiste),
   heure: z.string().regex(HEURE),
   sens: z.enum(["arriver_avant", "partir_a"]),
@@ -32,19 +46,22 @@ export type Sens = Demande["sens"];
 
 /** Ce que contient l'écran : texte brut des champs (la marge est tapée au clavier). */
 export type ChampsFormulaire = {
-  lieu: string;
+  depart: Bout;
+  arrivee: Bout;
   date: string; // AAAA-MM-JJ, choisie au sélecteur
   heure: string; // HH:MM, choisie au sélecteur
   sens: Sens;
   marge: string;
 };
 
-export type ErreursFormulaire = Partial<Record<"lieu" | "date" | "heure" | "marge", string>>;
+export type ErreursFormulaire = Partial<Record<CoteBout | "date" | "heure" | "marge", string>>;
 
 export type ResultatFormulaire = { ok: true; demande: Demande } | { ok: false; erreurs: ErreursFormulaire };
 
 export const MESSAGES = {
-  lieuVide: "Indiquez le lieu du rendez-vous.",
+  departVide: "Indiquez le départ.",
+  arriveeVide: "Indiquez l'arrivée.",
+  memeLieu: "Le départ et l'arrivée sont le même lieu.",
   lieuTropLong: `Le lieu tient en ${LIEU_MAX} caractères au plus.`,
   lieuTropCourt: "Indiquez au moins 2 caractères.",
   datePassee: "Cette date est passée.",
@@ -77,10 +94,14 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   const erreurs: ErreursFormulaire = {};
   const ici = maintenantAParis(maintenant);
 
-  const lieu = champs.lieu.trim();
-  if (lieu === "") erreurs.lieu = MESSAGES.lieuVide;
-  else if (lieu.length > LIEU_MAX) erreurs.lieu = MESSAGES.lieuTropLong;
-  else if (lieu.length < LIEU_MIN_RECHERCHE) erreurs.lieu = MESSAGES.lieuTropCourt; // minimum de GET /v1/lieux (spec 10)
+  const depart = nettoyerBout(champs.depart);
+  const arrivee = nettoyerBout(champs.arrivee);
+  const erreurDepart = erreurBout(depart, MESSAGES.departVide);
+  const erreurArrivee = erreurBout(arrivee, MESSAGES.arriveeVide);
+  if (erreurDepart) erreurs.depart = erreurDepart;
+  if (erreurArrivee) erreurs.arrivee = erreurArrivee;
+  // Domicile → Domicile, position → position : rien à chercher (spec 13, §4.1).
+  else if (depart.type !== "texte" && depart.type === arrivee.type) erreurs.arrivee = MESSAGES.memeLieu;
 
   // Les deux chaînes sont au format AAAA-MM-JJ / HH:MM : l'ordre alphabétique est l'ordre du temps.
   const dateValide = dateExiste(champs.date);
@@ -100,8 +121,26 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   }
 
   if (Object.keys(erreurs).length > 0) return { ok: false, erreurs };
-  const demande = schemaDemande.parse({ lieu_texte: lieu, date: champs.date, heure: champs.heure, sens: champs.sens, marge });
+  const demande = schemaDemande.parse({ depart, arrivee, date: champs.date, heure: champs.heure, sens: champs.sens, marge });
   return { ok: true, demande };
+}
+
+function nettoyerBout(b: Bout): Bout {
+  return b.type === "texte" ? { type: "texte", texte: b.texte.trim() } : b;
+}
+
+/** Message d'erreur d'un bout, ou `undefined` s'il est bon. */
+function erreurBout(b: Bout, vide: string): string | undefined {
+  if (b.type !== "texte") return undefined;
+  if (b.texte === "") return vide;
+  if (b.texte.length > LIEU_MAX) return MESSAGES.lieuTropLong;
+  if (b.texte.length < LIEU_MIN_RECHERCHE) return MESSAGES.lieuTropCourt; // minimum de GET /v1/lieux (spec 10)
+  return undefined;
+}
+
+/** ⇅ : le départ devient l'arrivée et inversement, texte ou choix (spec 13, §4.1). */
+export function echangerBouts<T extends { depart: Bout; arrivee: Bout }>(champs: T): T {
+  return { ...champs, depart: champs.arrivee, arrivee: champs.depart };
 }
 
 /** Demande du formulaire ⇒ corps de `POST /v1/itineraires` (spec 09 §4.5) ; rien d'autre ne change. */

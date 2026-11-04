@@ -9,12 +9,19 @@ import {
   schemaDemande,
   validerFormulaire,
   versDateLocale,
+  echangerBouts,
+  type Bout,
   type ChampsFormulaire,
 } from "./demande";
 
+const DOMICILE: Bout = { type: "domicile" };
+const POSITION: Bout = { type: "position" };
+const texte = (t: string): Bout => ({ type: "texte", texte: t });
+
 // Valeurs de la maquette design/accueil/02-formulaire-repli.png.
 const MAQUETTE: ChampsFormulaire = {
-  lieu: "Rendez-vous Joigny",
+  depart: { type: "domicile" },
+  arrivee: { type: "texte", texte: "Rendez-vous Joigny" },
   date: "2026-11-12",
   heure: "10:00",
   sens: "arriver_avant",
@@ -33,7 +40,12 @@ describe("validerFormulaire", () => {
   it("valeurs de la maquette ⇒ demande valide", () => {
     expect(validerFormulaire(MAQUETTE, MAINTENANT)).toEqual({
       ok: true,
-      demande: { lieu_texte: "Rendez-vous Joigny", date: "2026-11-12", heure: "10:00", sens: "arriver_avant", marge: 10 },
+      demande: {
+        depart: { type: "domicile" },
+        arrivee: { type: "texte", texte: "Rendez-vous Joigny" },
+        date: "2026-11-12", heure: "10:00", sens: "arriver_avant",
+        marge: 10,
+      },
     });
   });
 
@@ -43,24 +55,46 @@ describe("validerFormulaire", () => {
     expect(schemaDemande.safeParse(r.demande).success).toBe(true);
   });
 
-  it("retire les espaces aux bouts du lieu", () => {
-    const r = validerFormulaire({ ...MAQUETTE, lieu: "  Joigny  " }, MAINTENANT);
-    expect(r.ok && r.demande.lieu_texte).toBe("Joigny");
+  it("retire les espaces aux bouts d'un lieu tapé", () => {
+    const r = validerFormulaire({ ...MAQUETTE, arrivee: texte("  Joigny  ") }, MAINTENANT);
+    expect(r.ok && r.demande.arrivee).toEqual(texte("Joigny"));
   });
 
-  it("lieu vide ou fait d'espaces ⇒ erreur", () => {
-    expect(erreurs({ lieu: "" }).lieu).toBe(MESSAGES.lieuVide);
-    expect(erreurs({ lieu: "   " }).lieu).toBe(MESSAGES.lieuVide);
+  it("bout vide ou fait d'espaces ⇒ erreur sous son champ", () => {
+    expect(erreurs({ arrivee: texte("") }).arrivee).toBe(MESSAGES.arriveeVide);
+    expect(erreurs({ arrivee: texte("   ") }).arrivee).toBe(MESSAGES.arriveeVide);
+    expect(erreurs({ depart: texte(" ") }).depart).toBe(MESSAGES.departVide);
   });
 
-  it("lieu d'un seul caractère ⇒ erreur (minimum de /v1/lieux, spec 10)", () => {
-    expect(erreurs({ lieu: " a " }).lieu).toBe(MESSAGES.lieuTropCourt);
-    expect(erreurs({ lieu: "Ay" }).lieu).toBeUndefined();
+  it("texte d'un seul caractère ⇒ erreur (minimum de /v1/lieux, spec 10)", () => {
+    expect(erreurs({ arrivee: texte(" a ") }).arrivee).toBe(MESSAGES.lieuTropCourt);
+    expect(erreurs({ depart: texte("a") }).depart).toBe(MESSAGES.lieuTropCourt);
+    expect(erreurs({ arrivee: texte("Ay") }).arrivee).toBeUndefined();
   });
 
-  it("lieu de plus de 200 caractères ⇒ erreur", () => {
-    expect(erreurs({ lieu: "a".repeat(200) }).lieu).toBeUndefined();
-    expect(erreurs({ lieu: "a".repeat(201) }).lieu).toBe(MESSAGES.lieuTropLong);
+  it("texte de plus de 200 caractères ⇒ erreur", () => {
+    expect(erreurs({ arrivee: texte("a".repeat(200)) }).arrivee).toBeUndefined();
+    expect(erreurs({ arrivee: texte("a".repeat(201)) }).arrivee).toBe(MESSAGES.lieuTropLong);
+  });
+
+  it("Domicile → Domicile, position → position ⇒ même lieu (spec 13, critère 1)", () => {
+    expect(erreurs({ depart: DOMICILE, arrivee: DOMICILE })).toEqual({ arrivee: MESSAGES.memeLieu });
+    expect(erreurs({ depart: POSITION, arrivee: POSITION })).toEqual({ arrivee: MESSAGES.memeLieu });
+  });
+
+  it("accepte texte → Domicile, Domicile → texte, position → texte, texte → texte, position → Domicile", () => {
+    const cas: [Bout, Bout][] = [
+      [texte("Tribunal administratif Dijon"), DOMICILE],
+      [DOMICILE, texte("Tribunal administratif Dijon")],
+      [POSITION, texte("Joigny")],
+      [texte("gare d'Auxerre"), texte("Joigny")],
+      [POSITION, DOMICILE],
+    ];
+    for (const [depart, arrivee] of cas) {
+      const r = validerFormulaire({ ...MAQUETTE, depart, arrivee }, MAINTENANT);
+      expect(r).toMatchObject({ ok: true, demande: { depart, arrivee } });
+      if (r.ok) expect(schemaDemande.safeParse(r.demande).success).toBe(true);
+    }
   });
 
   it("date d'hier ⇒ erreur ; aujourd'hui ⇒ valide", () => {
@@ -101,7 +135,7 @@ describe("validerFormulaire", () => {
   });
 
   it("donne toutes les erreurs à la fois", () => {
-    expect(Object.keys(erreurs({ lieu: "", date: "2026-11-01", marge: "" })).sort()).toEqual(["date", "lieu", "marge"]);
+    expect(Object.keys(erreurs({ arrivee: texte(""), date: "2026-11-01", marge: "" })).sort()).toEqual(["arrivee", "date", "marge"]);
   });
 
   it("minuit à Paris en heure d'été : le 14/07 est passé à 00:30 le 15/07", () => {
@@ -151,5 +185,22 @@ describe("sélecteurs d'Android", () => {
     const d = new Date(2027, 2, 5, 7, 5);
     expect(dateChoisie(d)).toBe("2027-03-05");
     expect(heureChoisie(d)).toBe("07:05");
+  });
+});
+
+describe("echangerBouts (⇅)", () => {
+  it("échange un texte et un choix : l'aller devient le retour", () => {
+    const aller = { ...MAQUETTE, arrivee: texte("Tribunal administratif Dijon") };
+    expect(echangerBouts(aller)).toEqual({ ...aller, depart: texte("Tribunal administratif Dijon"), arrivee: DOMICILE });
+  });
+
+  it("échange deux choix, et deux textes", () => {
+    expect(echangerBouts({ depart: POSITION, arrivee: DOMICILE })).toEqual({ depart: DOMICILE, arrivee: POSITION });
+    expect(echangerBouts({ depart: texte("A1"), arrivee: texte("B2") })).toEqual({ depart: texte("B2"), arrivee: texte("A1") });
+  });
+
+  it("deux échanges rendent l'état de départ, le reste du formulaire intact", () => {
+    expect(echangerBouts(echangerBouts(MAQUETTE))).toEqual(MAQUETTE);
+    expect(echangerBouts(MAQUETTE).date).toBe(MAQUETTE.date);
   });
 });

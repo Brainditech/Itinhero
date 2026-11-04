@@ -31,7 +31,7 @@ describe("app ⇄ API nationale", () => {
     const candidats = await lieu("France Travail Joigny", BRIENON_MAIRIE);
     expect(candidats[0]!.commune).toBe("Joigny");
 
-    const demande = { lieu_texte: "France Travail Joigny", date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
+    const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "France Travail Joigny" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
     const r = await client().itineraires(versRequeteItineraires(demande, BRIENON_MAIRIE, candidats[0]!));
     expect(r.etat).toBe("ok");
     if (r.etat !== "ok") return;
@@ -44,7 +44,7 @@ describe("app ⇄ API nationale", () => {
 
   it("le même trajet le dimanche 15/11 : impossible, sans aucune heure", async () => {
     const [arrivee] = await lieu("France Travail Joigny", BRIENON_MAIRIE);
-    const demande = { lieu_texte: "x", date: "2026-11-15", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
+    const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-15", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
     const r = await client().itineraires(versRequeteItineraires(demande, BRIENON_MAIRIE, arrivee!));
     expect(r.etat).toBe("ok");
     if (r.etat !== "ok") return;
@@ -55,7 +55,7 @@ describe("app ⇄ API nationale", () => {
     const candidats = await lieu("Pont de Rungis", PLACE_DU_CHATELET);
     const rungis = candidats.find((c) => /rungis/i.test(c.nom));
     expect(rungis, candidats.map((c) => c.nom).join(", ")).toBeDefined();
-    const demande = { lieu_texte: "x", date: "2026-11-13", heure: "07:00", sens: "partir_a" as const, marge: 0 };
+    const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-13", heure: "07:00", sens: "partir_a" as const, marge: 0 };
     const r = await client().itineraires(versRequeteItineraires(demande, PLACE_DU_CHATELET, rungis!));
     expect(r.etat).toBe("ok");
     if (r.etat !== "ok") return;
