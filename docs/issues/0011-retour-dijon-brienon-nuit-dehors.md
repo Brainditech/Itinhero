@@ -1,7 +1,7 @@
 # Issue 0011 — Retour tribunal de Dijon → Brienon : une nuit dehors affichée « Possible », alors qu'un retour le soir existe
 
 - **Date** : 2026-11-04
-- **État** : constat et comparaison faits ; **à approuver par Brainditech**. Les deux causes relèvent de cases de `PLAN.md` encore ouvertes : ce sont deux fonctionnalités à spécifier (specs 15 et 16), pas une régression.
+- **État** : **résolue** par la spec 15 (A, B ; D79) et la spec 16 (C ; D80), approuvées par délégation de Brainditech. Constat final en §6. D (exploitant du K941) reste mineur et ouvert.
 
 ## 1. Reproduction
 
@@ -55,3 +55,8 @@ SNCF Connect signale aussi un mouvement social national le 5 novembre (sans effe
 
 - Domaine (vitest) : une possibilité avec une attente de 471 min entre 22:23 et 06:14 ⇒ verdict qui n'est pas « Possible », texte « Nuit sur place » ; une attente de 471 min s'écrit « 7 h 51 ».
 - Serveur : la demande Dijon → Brienon du jeudi 05/11 à 17:00 ⇒ au moins une possibilité qui arrive le soir même avec un taxi en dernière étape (test national, MOTIS du PC).
+
+## 6. Constaté après les specs 15 et 16 (2026-11-05, téléphone, par Claude via `adb`)
+
+- Tribunal administratif de Dijon → Domicile, jeudi 12/11, partir à 17:00 : **« Possible, Départ 17:10 »**, 17:10 → 19:01 (marche 20 min, TER K7 jusqu'à Laroche-Migennes, **taxi 12 min**), puis 17:15 → 19:01 (tram T1, TER K7, taxi), puis 20:11 → vendredi 06:32 marqué **« Nuit dehors à Laroche - Migennes »** en orange. Comparable à SNCF Connect (17:03 → 19:05, fin en voiture).
+- Gifi Joigny 2 → Domicile, jeudi 12/11, partir à 17:00 : 17:22 → 18:07 (TER P25 puis taxi), alors que Google Maps et SNCF Connect n'offrent rien le soir même.
