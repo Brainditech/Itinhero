@@ -373,6 +373,7 @@ const minutesDe = (ps: EtapeAffichee[], garder: (e: EtapeAffichee) => boolean) =
 /**
  * Possibilités avec taxi qui valent d'être montrées (D80) :
  * - au moins une étape en taxi et une en transport en commun (15 min de route au plus, demandé à MOTIS) ;
+ * - sans nuit dehors (D79) : un taxi qui laisse quand même dormir dehors n'aide pas (constaté le 2026-11-05, Flers) ;
  * - « partir » : elle arrive au moins 30 min avant la première arrivée sans taxi (ou il n'y en a aucune) ;
  * - « arriver » : elle part au moins 30 min après le dernier départ sans taxi (ou il n'y en a aucun) ;
  * - deux au plus : les arrivées les plus tôt (« partir »), les départs les plus tard (« arriver »).
@@ -387,7 +388,7 @@ export function taxisUtiles(
   const candidats = avecTaxi.filter((p) => {
     const taxi = minutesDe(p.etapes, (e) => e.mode === "taxi");
     const commun = minutesDe(p.etapes, (e) => e.source.type === "gtfs");
-    return taxi > 0 && commun > 0;
+    return taxi > 0 && commun > 0 && !avecNuitDehors(p);
   });
   if (sens === "partir") {
     const meilleure = Math.min(...sansTaxi.map((p) => t(p.arrivee_utc)));
@@ -401,4 +402,21 @@ export function taxisUtiles(
     .filter((p) => t(p.depart_utc) >= meilleur + gain)
     .sort((a, b) => t(b.depart_utc) - t(a.depart_utc))
     .slice(0, MAX_TAXIS);
+}
+
+/** Nuit dehors (D79, même règle que l'app) : une attente d'au moins 60 min entre deux étapes qui touche 22:00 – 05:00. */
+export function avecNuitDehors(p: PossibiliteAffichee): boolean {
+  const m = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+  return p.etapes.some((e, i) => {
+    const suivante = p.etapes[i + 1];
+    if (!suivante) return false;
+    const debut = m(e.arrivee);
+    const duree = (m(suivante.depart) - debut + 1440) % 1440;
+    if (duree < 60) return false;
+    for (let t = 0; t <= duree; t += 5) {
+      const h = (debut + t) % 1440;
+      if (h >= 22 * 60 || h < 5 * 60) return true;
+    }
+    return false;
+  });
 }

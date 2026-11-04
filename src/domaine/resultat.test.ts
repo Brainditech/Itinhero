@@ -101,6 +101,7 @@ describe("étapes", () => {
     expect(libelleEtape(etape({ mode: "bus", ligne: null }))).toBe("Bus");
     expect(libelleEtape(etape({ mode: "transport_a_la_demande", ligne: "856" }))).toBe("Transport à la demande");
     expect(libelleEtape(etape({ mode: "autre", ligne: "X" }))).toBe("Transport X");
+    expect(libelleEtape(etape({ mode: "train", mode_motis: "REGIONAL_RAIL", ligne: "TER", exploitant: "Nomad Train (SNCF, Région Normandie)" }))).toBe("TER");
   });
 
   it("résumé d'une possibilité", () => {
