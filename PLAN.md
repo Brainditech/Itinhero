@@ -199,8 +199,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] vitest.
   Preuve : `npm test` vert avec un premier test.
   Fait : vitest 5.1.0, `npm test` vert le 2026-11-02 (5 tests de `src/domaine/verdict.test.ts`), spec 00.
-- [ ] CI GitHub Actions (lint, types, tests, build), avec la fusion bloquée si rouge (protection de `main` à vérifier, R8).
-  Preuve : une PR bloquée par une CI rouge volontaire.
+- [ ] CI GitHub Actions (lint, types, tests, build) sur chaque PR et sur `main`. Pas de blocage technique de la fusion (D33) : on ne fusionne jamais en rouge.
+  Preuve : une PR d'essai avec un test rouge volontaire, échec visible sur la PR (lien), jamais fusionnée ; puis la PR de la spec 06, verte.
+  En cours (spec 06) : `.github/workflows/ci.yml`, job `verifications` ; vert en local le 2026-11-04. Manque : les deux exécutions sur GitHub.
 - [ ] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.
   Preuve : configuration, plus test du nettoyage `beforeSend`.
 - [x] `docker compose` : MOTIS v2.11.4 épinglé, avec sa configuration et un serveur API squelette. Configuration MOTIS :
@@ -232,6 +233,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (spec 05, D44) : `cd serveur && npm run test:joigny`, 4 tests verts contre MOTIS v2.11.4 en `docker compose`, 2026-11-04. 12/11 : car K941 06:27 → marche 48 min → train K7 08:50 → Joigny 09:09 → agence 09:24, verdict « possible » ; 11/11 et 15/11 : « impossible » ; correspondance 803 → train de 0 min jamais proposée. Le test échoue si la marche est limitée à 45 min ou si MOTIS est injoignable (essayé). Manque : le même test vert en CI (case suivante, spec 06).
 - [ ] Job CI qui lance MOTIS et le test Joigny.
   Preuve : exécution GitHub Actions verte, avec son lien.
+  En cours (spec 06) : job `joigny` de `.github/workflows/ci.yml` ; scénario répété en local le 2026-11-04 (import 3 s, `healthy` en 12 s, 4 tests verts). Manque : l'exécution sur GitHub.
 
 ### Phase 1 — Accueil
 

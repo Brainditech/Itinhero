@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/joigny` (spec 05, appliquée).
+- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/ci` (spec 06, appliquée, en attente des exécutions GitHub).
 - **Dernière case cochée** : Phase 0 · « Oracle GTFS » et « Test Joigny » (2026-11-04, spec 05).
-- **Prochaine action** : Brainditech relit et fusionne la PR `phase-0/joigny`. Puis, dans l'ordre : spec 06 (CI, qui lance MOTIS et le test Joigny), phase 1. Les nouvelles phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite. Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs.
+- **Prochaine action** : Brainditech ouvre les PR `phase-0/ci` et `essai/ci-rouge` ; on constate le rouge de l'essai (fermée sans fusion) et le vert de `phase-0/ci` ; Claude coche les cases CI avec les liens et les durées, puis Brainditech fusionne. Ensuite : phase 1. Les nouvelles phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite. Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs.
 
 ## État par phase
 
@@ -68,6 +68,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-03 | Comparaisons MOTIS demandées par Brainditech. Brienon → agence de Joigny : 12/11 deux trajets (arrivée 08:26 et 09:24), 11/11 et 15/11 aucun ; MOTIS mêle d'autres jours à sa réponse (D44 les écarte). Laroche-Migennes → Flers : détour de plus de 10 h au lieu d'environ 5 h, faute de métro et de carte des rues de Paris (issue 0006) | `docs/issues/0006-trajet-par-paris-detour.md` (non commité) |
 | 2026-11-04 | Objectif élargi par Brainditech (« il faut mille applications pour se déplacer ») : une seule app, toute la France, de porte à porte, aller et retour, tout dans la v1. D45 à D51 acceptées (données nationales, retour planifié, taxi comme étape, numéros « non vérifié », covoiturage, replanification) ; invariant 16 révisé ; phases 2 bis et 6 ter ajoutées ; issue 0006 : correction A + B choisie | `docs/decisions/0001-cadrage-v1.md`, `PLAN.md`, `docs/architecture.md`, branche `plan/objectif-porte-a-porte` |
 | 2026-11-04 | PR #8 (objectif élargi) fusionnée par Brainditech. Spec 05 approuvée par Brainditech (« oui vas y ») et appliquée : D43 (`fflate` 0.8.3, `csv-parse` 7.0.3) et D44 acceptées ; oracle GTFS (`serveur/src/oracle/`), heure de Paris (`serveur/src/temps.ts`), recherche et verdict (`serveur/src/itineraires/`), test Joigny. 12/11 : car 06:27 → marche 48 min → train 08:50 → agence 09:24, « possible » ; 11/11 et 15/11 « impossible » ; correspondance 803 de 0 min jamais proposée. Hypothèse « arriver avant » vérifiée (MOTIS remonte au 10/11). Cases « Oracle GTFS » et « Test Joigny » cochées. Serveur : 39 tests et `test:joigny` (4) verts ; racine : lint, types, 25 tests verts | commit `d32f27a`, `serveur/src/joigny/joigny.integration.test.ts`, `docs/specs/05-oracle-joigny.md` §11, branche `phase-0/joigny` |
+| 2026-11-04 | PR #9 (spec 05) fusionnée par Brainditech. Spec 06 — CI (remplace la spec 01) rédigée et appliquée sur la demande de Brainditech : `.github/workflows/ci.yml`, jobs `verifications` (app : lint, types, tests, bundle Android ; serveur : types, tests, build) et `joigny` (import MOTIS, `up --wait`, `/health`, `test:joigny`). Node 22.23.4, actions épinglées par SHA. Répété en local : export Android 15 s, import MOTIS 3 s, `healthy` en 12 s, test Joigny 4 verts en 41 s. Cases CI pas encore cochées (exécutions GitHub attendues) | commit `7c211d6`, `docs/specs/06-ci.md`, branche `phase-0/ci` |
 
 ## Trous ouverts
 
@@ -80,7 +81,7 @@ Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 - R5 : tarifs publiés (Mobigo, TER).
 - R6 : numéros de taxi publics.
 - R7 : notifications (FCM, `projectId` EAS, Android 13+).
-- R8 : quotas et conditions (Actions, protection de branche d'un dépôt privé gratuit, Sentry, OpenFreeMap, Inngest, Expo Push).
+- R8 : quotas et conditions (Actions, Sentry, OpenFreeMap, Inngest, Expo Push). Protection de branche tranchée par D33 (aucune, on ne fusionne pas en rouge) ; durée des jobs CI à relever (spec 06).
 - R9 : juridique, à vérifier (ODbL, OSM, FCM).
 - R10 : nom de domaine et HTTPS du VPS.
 - R11 : dates relatives et fuseau.
