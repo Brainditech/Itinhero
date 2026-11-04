@@ -34,6 +34,9 @@ jobs:
         run: npm ci
       - name: Lint (app)
         run: npx expo lint
+      # expo-env.d.ts est écrit par `expo start` et ignoré par git ; sans lui, tsc ne connaît pas les imports .css.
+      - name: Types Expo (expo-env.d.ts)
+        run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
       - name: Types (app)
         run: npx tsc --noEmit
       - name: Tests (app)
