@@ -12,7 +12,16 @@ import { heureParis, instantParis, type HeureParis } from "../temps.js";
  */
 export type Point = { lat: number; lon: number };
 
-type Commun = { depart: Point; arrivee: Point; jour: string /* « 2026-11-12 » */ };
+type Commun = {
+  depart: Point;
+  arrivee: Point;
+  jour: string /* « 2026-11-12 » */;
+  /**
+   * Limite de COÛT de la marche au départ et à l'arrivée, en secondes osr (issue 0008, D62) ;
+   * absente ⇒ MARCHE_AUX_BOUTS_SECONDES. Ce n'est pas une durée : voir `marche-couteuse.ts`.
+   */
+  coutMarche?: { depart: number; arrivee: number };
+};
 
 export type DemandeRecherche =
   | (Commun & { sens?: "arriver"; limiteMinutes: number /* H − M, minutes depuis minuit, Paris */ })
@@ -43,8 +52,8 @@ export function construireUrlPlan(motisUrl: string, d: DemandeRecherche): URL {
   url.searchParams.set("searchWindow", String(FENETRE_SECONDES));
   url.searchParams.set("numItineraries", String(NB_MINIMUM));
   url.searchParams.set("detailedLegs", "false"); // ni tracé ni consignes de marche (phase 4)
-  url.searchParams.set("maxPreTransitTime", String(MARCHE_AUX_BOUTS_SECONDES));
-  url.searchParams.set("maxPostTransitTime", String(MARCHE_AUX_BOUTS_SECONDES));
+  url.searchParams.set("maxPreTransitTime", String(d.coutMarche?.depart ?? MARCHE_AUX_BOUTS_SECONDES));
+  url.searchParams.set("maxPostTransitTime", String(d.coutMarche?.arrivee ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("useRoutedTransfers", "true"); // obligatoire, spec 04 §11
   return url;
 }

@@ -1,4 +1,5 @@
 import { construireUrlPlan, lireMotis, type DemandeRecherche, type Point } from "./itineraires/motis-plan.js";
+import { planComplet, type AppelsMotis, type Cote } from "./itineraires/marche-couteuse.js";
 import { construireUrlGeocode } from "./lieux/motis-geocode.js";
 /** Accès à MOTIS (seul l'API Itinhero l'appelle, invariant 2). */
 export type SondeMotis = () => Promise<boolean>;
@@ -29,8 +30,30 @@ export type Moteur = {
 };
 
 export function moteurMotis(motisUrl: string): Moteur {
+  const appels = appelsMotis(motisUrl);
   return {
-    plan: (d) => lireMotis(construireUrlPlan(motisUrl, d), 30_000),
+    // Recherche ordinaire, complétée si une marche courte est masquée par son coût (issue 0008, D62).
+    plan: (d) => planComplet(appels, d),
     geocoder: (t, p) => lireMotis(construireUrlGeocode(motisUrl, t, p), 5_000),
   };
+}
+
+/** Appels de la règle des marches coûteuses ; paramètres de l'openapi.yaml du tag v2.11.4. */
+export function appelsMotis(motisUrl: string): AppelsMotis {
+  return {
+    plan: (d) => lireMotis(construireUrlPlan(motisUrl, d), 30_000),
+    aPied: (p, cote, instant, cout) => lireMotis(construireUrlAPied(motisUrl, p, cote, instant, cout), 5_000),
+  };
+}
+
+/** `/api/v6/one-to-all` sans aucun transport : les arrêts atteints à pied, en minutes réelles. */
+export function construireUrlAPied(motisUrl: string, p: Point, cote: Cote, instant: Date, cout: number): URL {
+  const url = new URL("/api/v6/one-to-all", motisUrl);
+  url.searchParams.set("one", `${p.lat},${p.lon}`);
+  url.searchParams.set("time", instant.toISOString());
+  url.searchParams.set("arriveBy", cote === "arrivee" ? "true" : "false");
+  url.searchParams.set("transitModes", ""); // vide : aucun transport
+  url.searchParams.set("maxTravelTime", String(Math.ceil(cout / 60))); // minutes
+  url.searchParams.set(cote === "arrivee" ? "maxPostTransitTime" : "maxPreTransitTime", String(cout));
+  return url;
 }
