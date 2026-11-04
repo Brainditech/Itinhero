@@ -199,8 +199,8 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] vitest.
   Preuve : `npm test` vert avec un premier test.
   Fait : vitest 5.1.0, `npm test` vert le 2026-11-02 (5 tests de `src/domaine/verdict.test.ts`), spec 00.
-- [ ] CI GitHub Actions (lint, types, tests, build) sur chaque PR et sur `main`. Pas de blocage technique de la fusion (D33) : on ne fusionne jamais en rouge.
-  Preuve : une PR d'essai avec un test rouge volontaire, échec visible sur la PR (lien), jamais fusionnée ; puis la PR de la spec 06, verte.
+- [ ] CI GitHub Actions (lint, types, tests, build) sur chaque PR et sur `main`, fusion bloquée si rouge (protection de `main`, possible depuis que le dépôt est public, D52).
+  Preuve : une PR d'essai avec un test rouge volontaire, fusion refusée par GitHub (lien), jamais fusionnée ; puis la PR de la spec 06, verte.
   En cours (spec 06) : `.github/workflows/ci.yml`, job `verifications` ; vert en local le 2026-11-04. Manque : les deux exécutions sur GitHub.
 - [ ] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.
   Preuve : configuration, plus test du nettoyage `beforeSend`.
@@ -464,7 +464,7 @@ Révisé le 2026-11-04 par D45 : « France entière », « trajet dans Paris apr
 | R5 | Tarifs TER/SNCF non ouverts, tarif Mobigo à vérifier : beaucoup de « prix non publié », donc un tri « moins cher » peu utile | Phase 3 |
 | R6 | Peu ou pas de numéros de taxi publics, donc un annuaire possiblement vide | Phase 4 |
 | R7 | Notifications : FCM, permission Android 13+, mise en veille. Expo Push exige un `projectId` EAS (compte Expo) même avec un build local | Phases 5 et 7 |
-| R8 | Quotas et conditions à vérifier sur la doc officielle : minutes GitHub Actions (dépôt privé), **protection de branche sur un dépôt privé gratuit**, Sentry (dont le replay), OpenFreeMap, Inngest auto-hébergé, Expo Push | Phase concernée |
+| R8 | Quotas et conditions à vérifier sur la doc officielle : minutes GitHub Actions (tranché par D52 : dépôt public, gratuit), protection de branche (tranchée par D52), Sentry (dont le replay), OpenFreeMap, Inngest auto-hébergé, Expo Push | Phase concernée |
 | R9 | Juridique, à vérifier : ODbL (attribution, base dérivée), attribution OSM, conditions de FCM | Phases 4 et 10 |
 | R10 | HTTPS obligatoire sur Android : il faut un nom de domaine pour le VPS | Phase 10 |
 | R11 | Dates relatives (« jeudi », heure d'été) : le serveur fournit à Claude la date et le fuseau Europe/Paris | Phase 1 |
