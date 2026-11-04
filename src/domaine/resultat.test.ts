@@ -28,6 +28,10 @@ import {
   adresseBout,
   adresseArrivee,
   phraseVotreTrajet,
+  formaterAttente,
+  joursEnPlus,
+  jourApres,
+  nuitDehors,
 } from "./resultat";
 
 const chatelet = REPONSE_CHATELET.possibilites[0]!;
@@ -49,6 +53,7 @@ describe("phraseVerdict (spec 10, critère 3)", () => {
   it("« arriver avant » : départ, limite, rendez-vous, marge et arrivée", () => {
     expect(phraseVerdict(ARRIVER)).toEqual({
       possible: true,
+      etat: "possible",
       titre: "Possible",
       heureDepart: "06:27",
       detail: "À faire : être sur place avant 09:50 (rendez-vous 10:00, marge 10 min). Arrivée prévue à 09:24.",
@@ -63,6 +68,7 @@ describe("phraseVerdict (spec 10, critère 3)", () => {
   it("« partir à » : départ et arrivée", () => {
     expect(phraseVerdict(REPONSE_CHATELET)).toEqual({
       possible: true,
+      etat: "possible",
       titre: "Possible",
       heureDepart: "07:01",
       detail: "Arrivée prévue à 07:30.",
@@ -73,6 +79,7 @@ describe("phraseVerdict (spec 10, critère 3)", () => {
     const r = phraseVerdict({ ...ARRIVER, verdict: "impossible", possibilites: [] });
     expect(r).toEqual({
       possible: false,
+      etat: "impossible",
       titre: "Impossible",
       heureDepart: null,
       detail: "Aucun trajet ce jour-là pour arriver avant 09:50.",
@@ -337,5 +344,85 @@ describe("Votre trajet (spec 14)", () => {
     expect(phraseVotreTrajet({ nom: "Ma position", adresse: null }, { nom: "Joigny", adresse: null }, demande)).toContain(
       "de Ma position, à Joigny.",
     );
+  });
+});
+
+// ——— Spec 15 : nuit dehors et changement de jour (D79) ———
+
+function lieu(nom: string): Etape["a"] {
+  return { ...metro.a, nom };
+}
+
+/** Dijon → Brienon, jeudi 05/11, partir à 17:00 (issue 0011) : 20:11 → 06:32, nuit à Laroche-Migennes. */
+const NUIT: Possibilite = {
+  ...chatelet,
+  depart: "20:11",
+  arrivee: "06:32",
+  duree_minutes: 621,
+  etapes: [
+    etape({ mode: "marche", depart: "20:11", arrivee: "20:31", duree_minutes: 20, a: lieu("Dijon Gare") }),
+    etape({ mode: "train", ligne: "P5", depart: "20:36", arrivee: "22:22", duree_minutes: 106, a: lieu("Laroche-Migennes") }),
+    etape({ mode: "marche", depart: "22:22", arrivee: "22:23", duree_minutes: 1, a: lieu("Laroche-Migennes") }),
+    etape({ mode: "car", ligne: "K941", depart: "06:14", arrivee: "06:27", duree_minutes: 13, a: lieu("Brienon-sur-Armançon Mairie") }),
+    etape({ mode: "marche", depart: "06:27", arrivee: "06:32", duree_minutes: 5, a: lieu("Domicile") }),
+  ],
+};
+
+function avecAttente(de: string, a: string): Possibilite {
+  return {
+    ...chatelet,
+    etapes: [
+      etape({ depart: "00:00", arrivee: de, a: lieu("Gare") }),
+      etape({ depart: a, arrivee: a, a: lieu("Fin") }),
+    ],
+  };
+}
+
+const RETOUR_DIJON: ReponseItineraires = {
+  verdict: "possible",
+  demande: { date: "2026-11-05", heure: "17:00", sens: "partir", marge: null, limite: null },
+  arrivee: { nom: "Domicile", adresse: null },
+  possibilites: [NUIT],
+};
+
+describe("nuit dehors et changement de jour (spec 15)", () => {
+  it("nuitDehors : 22:23 → 06:14 oui ; l'après-midi, ou 20 min autour de minuit, non ; 04:00 → 05:30 oui", () => {
+    expect(nuitDehors(NUIT)).toEqual({ lieu: "Laroche-Migennes", minutes: 471 });
+    expect(nuitDehors(avecAttente("14:00", "17:30"))).toBeNull();
+    expect(nuitDehors(avecAttente("23:50", "00:10"))).toBeNull();
+    expect(nuitDehors(avecAttente("04:00", "05:30"))).toEqual({ lieu: "Gare", minutes: 90 });
+  });
+
+  it("joursEnPlus, jourApres, formaterAttente", () => {
+    expect(joursEnPlus(NUIT)).toBe(1);
+    expect(joursEnPlus({ ...chatelet, depart: "06:17", duree_minutes: 135 })).toBe(0);
+    expect(jourApres("2026-11-05", 1)).toBe("vendredi");
+    expect(jourApres("2026-11-14", 1)).toBe("dimanche");
+    expect(formaterAttente(471)).toBe("7 h 51");
+    expect(formaterAttente(12)).toBe("12 min");
+  });
+
+  it("une nuit dehors n'est jamais « Possible » en vert", () => {
+    expect(phraseVerdict(RETOUR_DIJON)).toEqual({
+      possible: false,
+      etat: "nuit",
+      titre: "Nuit dehors",
+      heureDepart: "20:11",
+      detail:
+        "Arrivée vendredi 06:32 après 7 h 51 d'attente de nuit à Laroche-Migennes. Aucun trajet sans nuit dehors trouvé.",
+    });
+  });
+
+  it("le verdict s'appuie sur la première possibilité sans nuit, même placée après", () => {
+    const soir = { ...chatelet, depart: "17:03", arrivee: "19:05", duree_minutes: 122 };
+    const r = phraseVerdict({ ...RETOUR_DIJON, possibilites: [NUIT, soir] });
+    expect(r.etat).toBe("possible");
+    expect(r.heureDepart).toBe("17:03");
+    expect(r.detail).toBe("Arrivée prévue à 19:05.");
+  });
+
+  it("une arrivée le lendemain sans nuit dehors est dite", () => {
+    const tard = { ...chatelet, depart: "23:30", arrivee: "00:20", duree_minutes: 50 };
+    expect(phraseVerdict({ ...RETOUR_DIJON, possibilites: [tard] }).detail).toBe("Arrivée prévue vendredi 00:20.");
   });
 });

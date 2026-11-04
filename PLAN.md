@@ -291,8 +291,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] `POST /v1/itineraires` : normalisation de la réponse MOTIS en segments sourcés.
   Preuve : test (chaque segment a un `source`).
   Fait (spec 09, D58) : `serveur/src/routes/itineraires.test.ts` (chaque étape a sa `source` : jeu, `trip_id`, date de service et version pour un transport, OSM pour une marche ; une possibilité sans source est retirée ; aucun chemin du PC ne sort), 2026-11-04 ; régression Brienon → Dijon (issue 0007) verte par la route sur le MOTIS national. 16 trajets comparés à Google Maps (§11.2 de la spec 09).
-- [ ] Verdict et marge, sans changement de jour silencieux.
+- [x] Verdict et marge, sans changement de jour silencieux.
   Preuve : tests (Joigny « possible, départ 06:27 », 11/11, marge dite dans la phrase).
+  Fait (spec 15, D79) : `src/domaine/resultat.test.ts` (« Possible » avec rendez-vous et marge dans la phrase ; nuit dehors jamais en vert ; arrivée le lendemain dite « vendredi 06:32 » ; attente « 7 h 51 »), 2026-11-04 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : « Nuit dehors », orange).
 - [ ] Tris : arrivée la plus tôt, moins cher, moins de marche, sans réservation.
   Preuve : tests.
 - [ ] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
