@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `plan/objectif-porte-a-porte` (PR de documentation), puis `phase-0/joigny` (spec 05).
-- **Dernière case cochée** : Phase 0 · « `docker compose` » et « Mesure de la mémoire de MOTIS » (2026-11-03, spec 04).
-- **Prochaine action** : Brainditech relit et fusionne la PR `plan/objectif-porte-a-porte` (objectif élargi, D45 à D51). Puis, dans l'ordre : spec 05 (oracle et test Joigny, `docs/specs/05-oracle-joigny.md`, à approuver ; Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs), spec 06 (CI), phase 1. Les nouvelles phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite.
+- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/joigny` (spec 05, appliquée).
+- **Dernière case cochée** : Phase 0 · « Oracle GTFS » et « Test Joigny » (2026-11-04, spec 05).
+- **Prochaine action** : Brainditech relit et fusionne la PR `phase-0/joigny`. Puis, dans l'ordre : spec 06 (CI, qui lance MOTIS et le test Joigny), phase 1. Les nouvelles phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite. Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs.
 
 ## État par phase
 
@@ -67,6 +67,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-03 | PR #7 (spec 04) fusionnée par Brainditech. Spec 05 — oracle GTFS et test Joigny proposée (D43 `fflate` + `csv-parse`, D44 recherche au départ sur le jour demandé, filtrée par l'API), branche `phase-0/joigny`. Constats tirés des fixtures : car 06:27 (service `000015`) absent le 11/11 et le 15/11, 803 de 08:25 en correspondance nulle avec le train de 08:50 | commit `41d99ff`, `docs/specs/05-oracle-joigny.md` (non commité) |
 | 2026-11-03 | Comparaisons MOTIS demandées par Brainditech. Brienon → agence de Joigny : 12/11 deux trajets (arrivée 08:26 et 09:24), 11/11 et 15/11 aucun ; MOTIS mêle d'autres jours à sa réponse (D44 les écarte). Laroche-Migennes → Flers : détour de plus de 10 h au lieu d'environ 5 h, faute de métro et de carte des rues de Paris (issue 0006) | `docs/issues/0006-trajet-par-paris-detour.md` (non commité) |
 | 2026-11-04 | Objectif élargi par Brainditech (« il faut mille applications pour se déplacer ») : une seule app, toute la France, de porte à porte, aller et retour, tout dans la v1. D45 à D51 acceptées (données nationales, retour planifié, taxi comme étape, numéros « non vérifié », covoiturage, replanification) ; invariant 16 révisé ; phases 2 bis et 6 ter ajoutées ; issue 0006 : correction A + B choisie | `docs/decisions/0001-cadrage-v1.md`, `PLAN.md`, `docs/architecture.md`, branche `plan/objectif-porte-a-porte` |
+| 2026-11-04 | PR #8 (objectif élargi) fusionnée par Brainditech. Spec 05 approuvée par Brainditech (« oui vas y ») et appliquée : D43 (`fflate` 0.8.3, `csv-parse` 7.0.3) et D44 acceptées ; oracle GTFS (`serveur/src/oracle/`), heure de Paris (`serveur/src/temps.ts`), recherche et verdict (`serveur/src/itineraires/`), test Joigny. 12/11 : car 06:27 → marche 48 min → train 08:50 → agence 09:24, « possible » ; 11/11 et 15/11 « impossible » ; correspondance 803 de 0 min jamais proposée. Hypothèse « arriver avant » vérifiée (MOTIS remonte au 10/11). Cases « Oracle GTFS » et « Test Joigny » cochées. Serveur : 39 tests et `test:joigny` (4) verts ; racine : lint, types, 25 tests verts | commit `d32f27a`, `serveur/src/joigny/joigny.integration.test.ts`, `docs/specs/05-oracle-joigny.md` §11, branche `phase-0/joigny` |
 
 ## Trous ouverts
 

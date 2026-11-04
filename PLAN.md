@@ -219,15 +219,17 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait : `docs/decisions/0002-memoire-motis.md`, 2026-11-03 : 64 à 75 Mio au repos, 117 Mio au plus haut pendant les recherches, 60,8 Mo de données. À refaire avec l'OSM de production avant le choix du VPS.
 - [ ] Mesure de la mémoire de MOTIS chargé avec les données de toute la France (D46, R1 rouvert).
   Preuve : valeur (au repos, pendant les recherches, pendant l'import), méthode et date dans `docs/decisions/0002-memoire-motis.md`.
-- [ ] Oracle GTFS : lecteur indépendant de MOTIS qui tire les valeurs attendues des fixtures.
+- [x] Oracle GTFS : lecteur indépendant de MOTIS qui tire les valeurs attendues des fixtures.
   Preuve : tests unitaires sur stop_times et calendar_dates.
-- [ ] Test Joigny : voie car → marche → train → marche retrouvée le 12/11/2026, arrivée avant 10:00 moins la marge. Cas limites :
+  Fait (spec 05, D43) : `serveur/src/oracle/`, 11 tests verts dans `serveur/src/oracle/oracle.test.ts` (calendar_dates seul, calendar + calendar_dates, ordre des arrêts, heure au-delà de 24:00, BOM et guillemets, sha256 faux refusé, lectures des vraies fixtures), 2026-11-04.
+- [x] Test Joigny : voie car → marche → train → marche retrouvée le 12/11/2026, arrivée avant 10:00 moins la marge. Cas limites :
   - 11/11 férié (pas de car de 06:27) ;
   - dimanche 15/11 ;
   - correspondance 803 de 0 min exclue ;
   - rien ce jour-là ⇒ verdict « impossible ».
   
   Preuve : test vert, valeurs attendues tirées par l'oracle depuis `fixtures/`.
+  Fait (spec 05, D44) : `cd serveur && npm run test:joigny`, 4 tests verts contre MOTIS v2.11.4 en `docker compose`, 2026-11-04. 12/11 : car K941 06:27 → marche 48 min → train K7 08:50 → Joigny 09:09 → agence 09:24, verdict « possible » ; 11/11 et 15/11 : « impossible » ; correspondance 803 → train de 0 min jamais proposée. Le test échoue si la marche est limitée à 45 min ou si MOTIS est injoignable (essayé). Manque : le même test vert en CI (case suivante, spec 06).
 - [ ] Job CI qui lance MOTIS et le test Joigny.
   Preuve : exécution GitHub Actions verte, avec son lien.
 

@@ -70,4 +70,5 @@ docker compose down -v           # arrête et efface les données : le prochain 
 - MOTIS (interface de débogage) : http://localhost:8080, joignable depuis le PC seulement.
 - Configuration : `motis/config.yml` ; fixtures et sha256 : `fixtures/manifest.json`.
 - Tests du serveur : `cd serveur && npm test`.
+- Test Joigny (vrai MOTIS, spec 05) : `docker compose up -d`, puis `cd serveur && npm run test:joigny`. Il échoue si MOTIS est injoignable.
 - Extrait OSM du couloir : `scripts/extraire-osm.sh`, lancé une seule fois (D41). Ne pas le relancer pour « réparer » un sha256.
