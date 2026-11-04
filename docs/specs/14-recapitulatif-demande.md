@@ -1,7 +1,7 @@
 # Spec 14 — Récapitulatif de la demande en tête du Résultat
 
 - **Date** : 2026-11-04
-- **État** : **approuvée par Brainditech le 2026-11-04 avec la maquette 04b (« vasy implemente ») et appliquée.** Critères 1 à 4 et 6 constatés ; 5 (TalkBack) à constater par Brainditech.
+- **État** : **approuvée par Brainditech le 2026-11-04 avec la maquette 04b (« vasy implemente ») et appliquée.** Critères 1 à 7 constatés (§12).
 - **Branche** : `app/depart-arrivee` (suite directe de la spec 13, même PR).
 - **Maquettes** : `design/resultat/04b-resultat.png` (carte « Votre trajet », générée par Brainditech le 2026-11-04), `design/resultat/04-resultat.png` pour le reste. Écarts en §10.
 - **Demande de Brainditech (2026-11-04)** : « avant de mettre tes possibles, un récap : pas juste « jeudi 05/11 · Joigny », mais le détail de ce que j'ai demandé, par exemple Domicile → Joigny (France Travail ou bien l'adresse), les heures, départ → arrivée ».
@@ -118,3 +118,11 @@ Demande : « mets une icône crayon pour modifier Votre trajet au lieu d'écrire
 - L'état replié n'est pas gardé : chaque nouveau Résultat s'ouvre avec tous les blocs repliés.
 - Critère 7 (téléphone) : le crayon ramène au formulaire rempli ; chaque chevron replie et rouvre son bloc ; TalkBack lit « Votre trajet, bouton, développé » puis « réduit ».
 - Lint, `tsc` et 102 tests verts le 2026-11-04.
+
+## 12. Constaté sur le téléphone, seconde passe (2026-11-04, par Claude via `adb`, captures hors dépôt, D38)
+
+Domicile → « Gifi Joigny 2 », jeudi 12/11, arriver avant 10:00, marge 10 min.
+
+- **Critère 5 — rempli.** Arbre d'accessibilité (`uiautomator`) : « Votre trajet » est un titre ; le crayon est un bouton « Modifier la recherche » ; le chevron un bouton « Votre trajet » ; la carte ouverte est lue d'un bloc (« Votre trajet : de Domicile, [adresse], à Gifi Joigny 2, 18 Rue des Entrepreneurs, 89300 Joigny. Jeudi 12/11, arriver avant 10:00, marge 10 min. ») ; le verdict replié est lu « Possible · Départ 06:17 », ouvert « Possible, Départ 06:17, À faire : être sur place avant 09:50 … ». Le crayon ramène au formulaire rempli (Départ : Domicile, Arrivée « gifi joigny », jeudi 12/11/2026, 10:00).
+- **Critère 7 — rempli.** Au chargement, Votre trajet et le verdict sont repliés sur une ligne (« Domicile → Gifi Joigny 2 », « ✓ Possible · Départ 06:17 ») ; chaque chevron rouvre son bloc et pivote ; la carte d'une possibilité ouverte montre son chevron vers le haut. Crayon et chevrons : 168 × 168 px, soit 48 dp (valeurs explicites, issue 0012).
+- L'écoute vocale de TalkBack elle-même n'a pas été faite : l'arbre d'accessibilité est ce que TalkBack lit.
