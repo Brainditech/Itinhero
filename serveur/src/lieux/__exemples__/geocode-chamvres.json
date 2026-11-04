@@ -1,0 +1,119 @@
+[
+ {
+  "type": "ADDRESS",
+  "name": "Route de Chamvres",
+  "lat": 47.9726632,
+  "lon": 3.384304,
+  "zip": "89300",
+  "areas": [
+   {
+    "name": "France métropolitaine",
+    "default": false
+   },
+   {
+    "name": "Bourgogne-Franche-Comté",
+    "default": false
+   },
+   {
+    "name": "Yonne",
+    "default": false
+   },
+   {
+    "name": "Sens",
+    "default": false
+   },
+   {
+    "name": "Joigny",
+    "default": true
+   }
+  ]
+ },
+ {
+  "type": "ADDRESS",
+  "name": "Les Malets Route de Joigny",
+  "lat": 48.0378312,
+  "lon": 3.0799231,
+  "zip": "45320",
+  "areas": [
+   {
+    "name": "France métropolitaine",
+    "default": false
+   },
+   {
+    "name": "Centre-Val de Loire",
+    "default": false
+   },
+   {
+    "name": "Loiret",
+    "default": false
+   },
+   {
+    "name": "Montargis",
+    "default": false
+   },
+   {
+    "name": "Courtenay",
+    "default": true
+   }
+  ]
+ },
+ {
+  "type": "PLACE",
+  "name": "Chaumes de la Route",
+  "lat": 45.1952202,
+  "lon": -0.058853,
+  "zip": "17360",
+  "category": "hamlet",
+  "areas": [
+   {
+    "name": "France métropolitaine",
+    "default": false
+   },
+   {
+    "name": "Nouvelle-Aquitaine",
+    "default": false
+   },
+   {
+    "name": "Charente-Maritime",
+    "default": false
+   },
+   {
+    "name": "Jonzac",
+    "default": false
+   },
+   {
+    "name": "Boscamnant",
+    "default": true
+   }
+  ]
+ },
+ {
+  "type": "STOP",
+  "name": "Route de Chameyrat",
+  "lat": 45.258736000000006,
+  "lon": 1.7406590000000002,
+  "zip": "19000",
+  "areas": [
+   {
+    "name": "France métropolitaine",
+    "default": false
+   },
+   {
+    "name": "Nouvelle-Aquitaine",
+    "default": false
+   },
+   {
+    "name": "Corrèze",
+    "default": false
+   },
+   {
+    "name": "Tulle",
+    "default": false
+   },
+   {
+    "name": "Tulle",
+    "default": true
+   }
+  ]
+ }
+]

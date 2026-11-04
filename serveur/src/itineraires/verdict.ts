@@ -15,6 +15,15 @@ export function retenir(possibilites: Possibilite[], jour: string, limiteMinutes
 
 export type Verdict = "possible" | "impossible";
 
-export function verdict(retenues: Possibilite[]): Verdict {
+export function verdict(retenues: readonly unknown[]): Verdict {
   return retenues.length > 0 ? "possible" : "impossible";
+}
+
+/**
+ * « Partir à H le jour J » (D57) : une possibilité ne compte que si elle PART le jour J,
+ * à H ou après (heure de Paris). Aucune marge dans ce sens.
+ */
+export function retenirPartir(possibilites: Possibilite[], jour: string, depuisMinutes: number): Possibilite[] {
+  const depuis = instantParis(jour, depuisMinutes).getTime();
+  return possibilites.filter((p) => heureParis(p.depart).jour === jour && p.depart.getTime() >= depuis);
 }

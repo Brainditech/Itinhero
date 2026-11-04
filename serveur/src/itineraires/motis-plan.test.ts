@@ -7,8 +7,8 @@ import { construireUrlPlan, lireReponsePlan } from "./motis-plan.js";
 const EXEMPLE = path.join(path.dirname(fileURLToPath(import.meta.url)), "__exemples__/plan-2026-11-12.json");
 const lireExemple = async (): Promise<unknown> => JSON.parse(await readFile(EXEMPLE, "utf8"));
 
-describe("construireUrlPlan (D44)", () => {
-  it("cherche au départ, de 00:00 à H − M heure de Paris", () => {
+describe("construireUrlPlan (D58, arriver avant)", () => {
+  it("arriveBy=true à H − M heure de Paris, fenêtre d'une heure, au moins 5 possibilités", () => {
     const url = construireUrlPlan("http://127.0.0.1:8080", {
       depart: { lat: 47.99, lon: 3.61 },
       arrivee: { lat: 47.97, lon: 3.38 },
@@ -16,21 +16,22 @@ describe("construireUrlPlan (D44)", () => {
       limiteMinutes: 590,
     });
     expect(url.pathname).toBe("/api/v6/plan");
-    expect(url.searchParams.get("time")).toBe("2026-11-11T23:00:00.000Z");
-    expect(url.searchParams.get("searchWindow")).toBe(String(590 * 60));
-    expect(url.searchParams.get("arriveBy")).toBe("false");
+    expect(url.searchParams.get("time")).toBe("2026-11-12T08:50:00.000Z");
+    expect(url.searchParams.get("arriveBy")).toBe("true");
+    expect(url.searchParams.get("searchWindow")).toBe("3600");
+    expect(url.searchParams.get("numItineraries")).toBe("5");
     expect(url.searchParams.get("useRoutedTransfers")).toBe("true");
     expect(url.searchParams.get("fromPlace")).toBe("47.99,3.61");
   });
 
-  it("jour de changement d'heure : la fenêtre suit l'horloge de Paris", () => {
+  it("jour de changement d'heure : l'heure suit l'horloge de Paris", () => {
     const url = construireUrlPlan("http://127.0.0.1:8080", {
       depart: { lat: 0, lon: 0 },
       arrivee: { lat: 0, lon: 0 },
       jour: "2027-03-28",
       limiteMinutes: 590,
     });
-    expect(url.searchParams.get("searchWindow")).toBe(String(530 * 60)); // une heure de moins
+    expect(url.searchParams.get("time")).toBe("2027-03-28T07:50:00.000Z"); // heure d'été
   });
 });
 
@@ -54,5 +55,30 @@ describe("schéma de la réponse MOTIS", () => {
     const brut = (await lireExemple()) as { itineraries: { legs: { startTime: string }[] }[] };
     brut.itineraries[0]!.legs[0]!.startTime = "12/11/2026 06:27";
     expect(() => lireReponsePlan(brut)).toThrow();
+  });
+});
+
+describe("construireUrlPlan (D58, partir à)", () => {
+  it("arriveBy=false à H heure de Paris, fenêtre d'une heure, au moins 5 possibilités", () => {
+    const url = construireUrlPlan("http://127.0.0.1:8080", {
+      depart: { lat: 47.99, lon: 3.61 },
+      arrivee: { lat: 47.33, lon: 5.04 },
+      jour: "2026-11-12",
+      sens: "partir",
+      depuisMinutes: 8 * 60,
+    });
+    expect(url.searchParams.get("time")).toBe("2026-11-12T07:00:00.000Z");
+    expect(url.searchParams.get("arriveBy")).toBe("false");
+    expect(url.searchParams.get("searchWindow")).toBe("3600");
+    expect(url.searchParams.get("numItineraries")).toBe("5");
+  });
+});
+
+describe("trajets directs (à pied)", () => {
+  it("`direct` est lu avec les possibilités en transport", async () => {
+    const brut = (await lireExemple()) as { itineraries: unknown[]; direct?: unknown[] };
+    const n = lireReponsePlan(brut).length;
+    brut.direct = [brut.itineraries[0]];
+    expect(lireReponsePlan(brut).length).toBe(n + 1);
   });
 });

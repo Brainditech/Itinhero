@@ -78,7 +78,8 @@ Chaque variable est vérifiée au démarrage (présence et format). Le serveur r
 | `ANTHROPIC_API_KEY` | clé de l'API Claude | .env du PC, .env du VPS |
 | `CLAUDE_MODEL` | modèle retenu par mesure (D15) | .env du PC, .env du VPS |
 | `CLAUDE_PLAFOND_MENSUEL_EUR` | plafond mensuel de coût | .env du PC, .env du VPS |
-| `CLES_APPAREILS` | empreintes des clés d'appareil autorisées | .env du PC, .env du VPS |
+| `CLES_APPAREILS` | empreintes sha256 (hexadécimal) des clés d'appareil autorisées, séparées par des virgules (D55, `npm run cle:nouvelle`) | .env du PC, .env du VPS |
+| `LIEUX_OSM` | facultative : chemin de `lieux.json`, recherche par catégorie (D61) | `docker-compose.national.yml` (non secrète) |
 | `LIMITE_REQ_MINUTE`, `LIMITE_REQ_JOUR` | limites de débit par clé | .env du PC, .env du VPS |
 | `MOTIS_URL` | adresse interne de MOTIS dans le compose (non secrète) | `docker-compose.yml` (spec 04 : elle découle du compose) |
 | `GTFS_SNCF_URL`, `GTFS_MOBIGO_URL`, `GTFS_RT_SNCF_URL` | sources officielles des horaires | .env du PC, .env du VPS |
@@ -127,7 +128,7 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 | `GET /health` | état de l'API, de MOTIS et date du jeu GTFS actif | 0 (squelette), 9 |
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond | 1 |
 | `POST /v1/assistant` | demande + réglages en cours (sans historique ni coordonnées) → `{action, parametres}` ou `{conseil_id, valeurs}` par Claude, sous limite et plafond (D31) | 6 bis |
-| `GET /v1/lieux?q=` | candidats du géocodeur MOTIS | 2 |
+| `GET /v1/lieux?q=&proche=` | candidats de l'IGN (adresses, lieux) et de MOTIS (arrêts, lieux d'OSM), classés ensemble (D60) ; catégories autour de `proche` (D61) | 2 |
 | `POST /v1/itineraires` | origine, destination, date, heure, sens, marge → verdict + possibilités (segments sourcés, tous les tarifs applicables) | 3 |
 | `POST /v1/itineraires` (suite) | heure de fin du rendez-vous facultative → retour lié (D47) ; taxi comme étape (D48) | 3 |
 | `POST /v1/itineraires` (suite) | covoiturage quand aucun transport public n'arrive à l'heure (D50) | 6 ter |
@@ -184,7 +185,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait : NativeWind 4.2.7 (Tailwind 3.4.19), jetons dans `src/theme/jetons.js`, écran d'Accueil stylé sur le téléphone de Brainditech (Expo Go) : `docs/preuves/2026-11-02-phase1-accueil-en-dur.jpg`, 2026-11-02. R12 levé pour NativeWind.
 - [ ] Vérification des variables d'environnement au démarrage, côté app et côté serveur.
   Preuve : test vitest (variable absente ou mal formée ⇒ échec explicite).
-  Fait à moitié (spec 04) : côté serveur, `serveur/src/env.test.ts` (5 tests : absente, mal formée sans recopier la valeur, protocole, port), 2026-11-03. Manque : côté app, avec la première variable `EXPO_PUBLIC_API_URL` lue par l'app (phase 1, branchement réel).
+  Fait à moitié (spec 04, spec 09) : côté serveur, `serveur/src/env.test.ts` (7 tests : absente, mal formée sans recopier la valeur, protocole, port, `CLES_APPAREILS`, limites), 2026-11-04. Manque : côté app, avec la première variable `EXPO_PUBLIC_API_URL` lue par l'app (spec 10).
 - [x] AGENTS.md complété :
   - pile et conventions ;
   - ordre de lecture `docs/ETAT.md` → `PLAN.md` → `docs/architecture.md` ;
@@ -243,6 +244,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (avancé par D34) : `docs/preuves/2026-11-02-phase1-accueil-cote-a-cote.jpg`, 2026-11-02. Écarts connus : fond de carte voilé absent (image à produire), puces sur deux lignes (16 sp ne tient pas sur une ligne sur ce téléphone, retour à la ligne voulu par le design system). Corrigés par D35 (fond inventé, puces 14 sp, branche `phase-1/formulaire-repli`) ; nouvelle capture côte à côte, clavier ouvert, à fournir.
 - [ ] Clé d'appareil (secure-store, saisie unique) et limites de débit côté serveur.
   Preuve : tests (sans clé ⇒ 401, au-delà des limites ⇒ 429).
+  Fait à moitié (spec 09, D55, D56) : côté serveur, `serveur/src/acces/acces.test.ts` (sans clé, clé vide, mal formée, inconnue ⇒ 401 ; minute et jour de Paris dépassés ⇒ 429 avec `Retry-After`), 2026-11-04. Manque : la saisie sur le téléphone et `expo-secure-store` (spec 10).
 - [ ] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.
   Preuve : jeu d'au moins 30 phrases réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
 - [ ] Plafond mensuel et compteur de coût.
@@ -257,8 +259,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [ ] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] `GET /v1/lieux` (géocodeur MOTIS).
+- [x] `GET /v1/lieux` (géocodeur MOTIS).
   Preuve : test « lieu de rendez-vous à Joigny », ou repli sur l'adresse saisie (R4).
+  Fait (spec 09, D60, D61) : `npm run test:national`, « route de Chamvres Joigny » ⇒ un candidat à Joigny à moins de 500 m du lieu de rendez-vous, 2026-11-04 ; avec l'IGN, « 19 route de Chamvres Joigny » donne le numéro 19 aux coordonnées mêmes du lieu de rendez-vous (R4 levé pour cette adresse). Tests sans réseau : `serveur/src/routes/lieux.test.ts`, `serveur/src/lieux/*.test.ts`. 15 recherches sur 17 justes au premier rang face à Google Maps (`docs/specs/09-cle-lieux-itineraires.md` §11.3).
 - [ ] Confirmation demandée quand il y a plusieurs candidats.
   Preuve : test, plus capture.
 
@@ -279,8 +282,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [ ] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] `POST /v1/itineraires` : normalisation de la réponse MOTIS en segments sourcés.
+- [x] `POST /v1/itineraires` : normalisation de la réponse MOTIS en segments sourcés.
   Preuve : test (chaque segment a un `source`).
+  Fait (spec 09, D58) : `serveur/src/routes/itineraires.test.ts` (chaque étape a sa `source` : jeu, `trip_id`, date de service et version pour un transport, OSM pour une marche ; une possibilité sans source est retirée ; aucun chemin du PC ne sort), 2026-11-04 ; régression Brienon → Dijon (issue 0007) verte par la route sur le MOTIS national. 16 trajets comparés à Google Maps (§11.2 de la spec 09).
 - [ ] Verdict et marge, sans changement de jour silencieux.
   Preuve : tests (Joigny « possible, départ 06:27 », 11/11, marge dite dans la phrase).
 - [ ] Tris : arrivée la plus tôt, moins cher, moins de marche, sans réservation.

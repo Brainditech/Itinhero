@@ -3,12 +3,29 @@ import { z } from "zod";
 /**
  * Variables d'environnement du serveur (PLAN §3, invariant 11).
  * Règle 6 : une variable n'entre ici que dans la phase qui l'utilise.
- * Phase 0 (spec 04) : MOTIS_URL seulement.
+ * Spec 04 : MOTIS_URL. Spec 09 : CLES_APPAREILS, LIMITE_REQ_MINUTE, LIMITE_REQ_JOUR (D55, D56).
  */
-const schemaEnv = z.object({
-  MOTIS_URL: z.url({ protocol: /^https?$/ }),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-});
+const empreinte = z.string().regex(/^[0-9a-f]{64}$/);
+
+const schemaEnv = z
+  .object({
+    MOTIS_URL: z.url({ protocol: /^https?$/ }),
+    PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+    // Empreintes sha256 (hexadécimal minuscule) des clés d'appareil, séparées par des virgules (D55).
+    CLES_APPAREILS: z
+      .string()
+      .transform((s) => s.split(",").map((x) => x.trim()))
+      .pipe(z.array(empreinte).min(1))
+      .refine((l) => new Set(l).size === l.length, "doublon"),
+    LIMITE_REQ_MINUTE: z.coerce.number().int().min(1),
+    LIMITE_REQ_JOUR: z.coerce.number().int().min(1),
+    // Facultative (D61) : chemin de `lieux.json` (recherche par catégorie). Absente ⇒ pas de catégorie.
+    LIEUX_OSM: z.string().min(1).optional(),
+  })
+  .refine((e) => e.LIMITE_REQ_JOUR >= e.LIMITE_REQ_MINUTE, {
+    path: ["LIMITE_REQ_JOUR"],
+    message: "inférieure à la limite par minute",
+  });
 
 export type Env = z.infer<typeof schemaEnv>;
 

@@ -1,19 +1,67 @@
-import Fastify, { LogController, type FastifyInstance } from "fastify";
+import Fastify, { LogController, type FastifyInstance, type FastifyRequest } from "fastify";
+import { controlerAcces, type Acces } from "./acces/acces.js";
 import type { Manifest } from "./manifest.js";
-import type { SondeMotis } from "./motis.js";
+import type { Moteur, SondeMotis } from "./motis.js";
 import { routeHealth } from "./routes/health.js";
+import { routeItineraires } from "./routes/itineraires.js";
+import { routeLieux } from "./routes/lieux.js";
+import type { GeocodeurIgn } from "./lieux/ign-geocode.js";
+import type { IndexLieux } from "./lieux/categories.js";
 
-export type Dependances = { manifest: Manifest; sonde: SondeMotis };
+export type Dependances = {
+  manifest: Manifest;
+  sonde: SondeMotis;
+  moteur: Moteur;
+  acces: Acces;
+  /** Géocodeur de l'IGN (D60) ; absent ⇒ MOTIS seul. */
+  geocodeurIgn?: GeocodeurIgn;
+  /** Lieux d'OSM pour la recherche par catégorie (D61) ; absent ⇒ pas de recherche par catégorie. */
+  lieux?: IndexLieux;
+  /** Flux du journal (les tests y capturent les lignes pour la chaîne canari). */
+  fluxJournal?: { write(ligne: string): void };
+};
 
 /**
- * Application Fastify (D39). Journal des requêtes coupé : une URL peut contenir
- * un lieu (`/v1/lieux?q=`), et rien de personnel ne va dans les journaux (invariant 10).
+ * Application Fastify (D39). Rien de personnel dans les journaux (invariant 10) :
+ * - journal des requêtes coupé ;
+ * - une requête n'est décrite que par sa méthode et le MOTIF de sa route (`/v1/lieux`),
+ *   jamais par son URL (`?q=` porte un lieu), ses en-têtes (la clé) ni son corps (des coordonnées) ;
+ * - une erreur n'est journalisée que par son nom et son code.
  */
-export function construireApp({ manifest, sonde }: Dependances): FastifyInstance {
+export function construireApp({ manifest, sonde, moteur, acces, geocodeurIgn, lieux, fluxJournal }: Dependances): FastifyInstance {
   const app = Fastify({
-    logger: { level: "info" },
+    logger: {
+      level: "info",
+      ...(fluxJournal ? { stream: fluxJournal } : {}),
+      // Le message d'une erreur n'est pas écrit : celui d'un JSON illisible cite le corps reçu.
+      serializers: {
+        req: (r: FastifyRequest) => ({ method: r.method, route: r.routeOptions?.url ?? null }),
+        err: (e: Error & { code?: string; statusCode?: number }) => ({
+          type: e.name,
+          code: e.code ?? null,
+          statusCode: e.statusCode ?? null,
+        }),
+      } as never,
+    },
     logController: new LogController({ disableRequestLogging: true }),
   });
+
+  app.setErrorHandler((erreur: Error & { statusCode?: number; code?: string }, requete, reponse) => {
+    const code = erreur.statusCode && erreur.statusCode >= 400 ? erreur.statusCode : 500;
+    requete.log.error({ err: erreur }, "erreur de requête");
+    if (code === 413) return reponse.code(413).send({ erreur: "corps_trop_grand" });
+    if (code < 500) return reponse.code(code).send({ erreur: "requete_invalide", champs: [] });
+    return reponse.code(500).send({ erreur: "erreur_interne" });
+  });
+
   routeHealth(app, manifest, sonde);
+  app.register(
+    async (v1) => {
+      controlerAcces(v1, acces);
+      routeLieux(v1, moteur, geocodeurIgn, lieux);
+      routeItineraires(v1, moteur, manifest);
+    },
+    { prefix: "/v1" },
+  );
   return app;
 }

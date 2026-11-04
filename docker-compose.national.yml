@@ -19,5 +19,7 @@ services:
   api:
     environment:
       FIXTURES_MANIFEST: /donnees/manifest.json
+      LIEUX_OSM: /donnees/poi/lieux.json # D61, produit par `npm run donnees:lieux`
     volumes:
       - ./donnees/manifest.json:/donnees/manifest.json:ro
+      - ./donnees/poi/lieux.json:/donnees/poi/lieux.json:ro

@@ -36,7 +36,7 @@ describe("choisirRessources", () => {
     ]);
   });
 
-  it("écarte other, update, api, indisponible et autre format", () => {
+  it("avec un GTFS principal disponible : écarte other, update, api, indisponible et autre format", () => {
     const r = choisirRessources([
       jeu("x", [
         ressource(1, { type: "other" }),
@@ -77,4 +77,39 @@ describe("etiquette", () => {
     expect(etiquette(83970)).toBe("r83970");
     expect(etiquette(83970)).not.toContain("_");
   });
+
+  describe("repli quand aucun GTFS principal n'est disponible (D59)", () => {
+    it("Lyon TCL : officiel indisponible ⇒ la version « modifiée » disponible", () => {
+      const r = choisirRessources([
+        jeu("tcl", [
+          ressource(1, { type: "other", is_available: false, title: "GTFS officiel" }),
+          ressource(2, { type: "other", title: "GTFS modifié" }),
+          ressource(3, { type: "other", format: "SIRI Lite" }),
+        ]),
+      ]);
+      expect(r.map((x) => x.etiquette)).toEqual(["r2"]);
+    });
+
+    it("préfère le format GTFS à un zip, main à other à api, et l'officiel au « modifié »", () => {
+      const lia = choisirRessources([
+        jeu("lia", [
+          ressource(1, { format: "zip", title: "2023-bus-hiver.zip", url: "https://x.fr/gtfs-1.zip" }),
+          ressource(2, { type: "other", title: "Offre LiA format GTFS" }),
+        ]),
+      ]);
+      expect(lia.map((x) => x.etiquette)).toEqual(["r2"]);
+      const bbc = choisirRessources([jeu("bbc", [ressource(4, { type: "api" }), ressource(5, { type: "other", title: "GTFS modifié" }), ressource(6, { type: "other" })])]);
+      expect(bbc.map((x) => x.etiquette)).toEqual(["r6"]);
+    });
+
+    it("un zip qui se dit GTFS est pris ; update, temps réel et zip quelconque jamais", () => {
+      expect(choisirRessources([jeu("z", [ressource(1, { format: "zip", title: "GTFS 2026" })])]).map((x) => x.etiquette)).toEqual(["r1"]);
+      expect(
+        choisirRessources([
+          jeu("n", [ressource(1, { type: "update" }), ressource(2, { format: "gtfs-rt" }), ressource(3, { format: "zip", title: "plan.zip", url: "https://x.fr/plan.zip" })]),
+        ]),
+      ).toEqual([]);
+    });
+  });
 });
+
