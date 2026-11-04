@@ -6,11 +6,16 @@ import type { AndroidSymbol } from "expo-symbols";
 import type { Etape, Possibilite } from "@/domaine/api";
 import {
   aMarcheLongue,
+  attenteApres,
+  directionEtape,
   formaterDistance,
   formaterDuree,
   jetonMode,
   libelleCorrespondances,
   libelleEtape,
+  nomLieuEtape,
+  phraseMontee,
+  phraseReservation,
   resumePossibilite,
 } from "@/domaine/resultat";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -96,6 +101,8 @@ function PrixNonPublie() {
 function LigneEtape({ etape }: { etape: Etape }) {
   const marche = etape.mode === "marche";
   const couleur = couleurs[jetonMode(etape.mode)];
+  const direction = directionEtape(etape);
+  const reservation = phraseReservation(etape);
   return (
     <View className="flex-row gap-3">
       <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
@@ -108,18 +115,26 @@ function LigneEtape({ etape }: { etape: Etape }) {
       <View className="flex-1 gap-1 pb-4">
         <Text className="font-inter-semibold text-secondaire text-texte">
           {marche ? "Marche" : libelleEtape(etape)}
-          {etape.direction ? <Text className="font-inter text-texte-secondaire">{` vers ${etape.direction}`}</Text> : null}
+          {direction ? <Text className="font-inter text-texte-secondaire">{` ${direction}`}</Text> : null}
         </Text>
         {marche ? (
           <Text className="font-inter text-badge text-texte-secondaire">
-            {`${etape.duree_minutes} min${etape.distance_metres != null ? `, ${formaterDistance(etape.distance_metres)}` : ""} jusqu'à ${etape.a.nom}`}
+            {`${etape.duree_minutes} min${etape.distance_metres != null ? `, ${formaterDistance(etape.distance_metres)}` : ""} jusqu'à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee}`}
           </Text>
         ) : (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
-              {`De ${etape.de.nom} à ${etape.a.nom}, arrivée ${etape.arrivee} (${formaterDuree(etape.duree_minutes)})`}
+              {`De ${nomLieuEtape(etape.de)} à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee} (${formaterDuree(etape.duree_minutes)})`}
             </Text>
             {etape.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{etape.exploitant}</Text> : null}
+            {reservation ? (
+              <View className="flex-row items-center gap-2">
+                <SymbolView name={{ android: "call", web: "call" }} size={16} tintColor={couleurs.avertissement} />
+                <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
+                  {reservation}
+                </Text>
+              </View>
+            ) : null}
             <View className="flex-row items-center gap-1 self-start rounded-full px-2 py-0.5" style={{ backgroundColor: couleurs["prevu-teinte"] }}>
               <SymbolView name={{ android: "schedule", web: "schedule" }} size={14} tintColor={couleurs["prevu-texte"]} />
               <Text className="font-inter text-badge" style={{ color: couleurs["prevu-texte"] }}>
@@ -133,10 +148,34 @@ function LigneEtape({ etape }: { etape: Etape }) {
   );
 }
 
+/** Ligne sans heure entre deux étapes : attente, ou arrivée à l'arrêt avant la première montée (D68). */
+function LigneAttente({ texte }: { texte: string }) {
+  return (
+    <View className="flex-row gap-3">
+      <View className="w-14" />
+      <View className="items-center pt-0.5">
+        <SymbolView name={{ android: "hourglass_empty", web: "hourglass_empty" }} size={18} tintColor={couleurs["texte-secondaire"]} />
+      </View>
+      <Text className="flex-1 pb-4 font-inter-medium text-badge text-texte-secondaire">{texte}</Text>
+    </View>
+  );
+}
+
 /** Carte d'une possibilité ; la toucher déplie ses étapes. */
-export function CartePossibilite({ possibilite, destination }: { possibilite: Possibilite; destination: string }) {
+export function CartePossibilite({
+  possibilite,
+  destination,
+  adresse,
+}: {
+  possibilite: Possibilite;
+  destination: string;
+  adresse: string | null;
+}) {
   const [ouverte, setOuverte] = useState(false);
   const p = possibilite;
+  const premiereMontee = p.etapes.findIndex((e) => e.mode !== "marche");
+  const montee = phraseMontee(p);
+  const aReserver = p.etapes.find((e) => e.reservation === "appel");
   return (
     <Pressable
       accessibilityRole="button"
@@ -156,21 +195,40 @@ export function CartePossibilite({ possibilite, destination }: { possibilite: Po
       <Frise etapes={p.etapes} />
       <Text className="font-inter text-secondaire text-texte-secondaire">{resumePossibilite(p)}</Text>
       <Text className="font-inter text-badge text-texte-secondaire">{libelleCorrespondances(p.correspondances)}</Text>
+      {aReserver ? (
+        <View className="flex-row items-center gap-2">
+          <SymbolView name={{ android: "call", web: "call" }} size={20} tintColor={couleurs.avertissement} />
+          <Text className="flex-1 font-inter-medium text-badge" style={{ color: couleurs.avertissement }}>
+            {`${libelleEtape(aReserver)} : réservation obligatoire`}
+          </Text>
+        </View>
+      ) : null}
       <View className="flex-row flex-wrap items-center justify-between gap-2">
         {aMarcheLongue(p) ? <AvertissementMarche /> : <View />}
         <PrixNonPublie />
       </View>
       {ouverte ? (
         <View className="mt-2 border-t border-bordure-carte pt-4">
-          {p.etapes.map((e, i) => (
-            <LigneEtape key={i} etape={e} />
-          ))}
+          {p.etapes.map((e, i) => {
+            const attente = attenteApres(p.etapes, i);
+            // Avant la première montée, la ligne dit l'heure d'arrivée à l'arrêt et le passage du véhicule.
+            const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${attente} min` : null;
+            return (
+              <View key={i}>
+                <LigneEtape etape={e} />
+                {texte ? <LigneAttente texte={texte} /> : null}
+              </View>
+            );
+          })}
           <View className="flex-row gap-3">
             <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
               {p.arrivee}
             </Text>
             <SymbolView name={{ android: "location_on", web: "location_on" }} size={20} tintColor={couleurs.primaire} />
-            <Text className="flex-1 font-inter-semibold text-secondaire text-texte">{destination}</Text>
+            <View className="flex-1 gap-0.5">
+              <Text className="font-inter-semibold text-secondaire text-texte">{destination}</Text>
+              {adresse ? <Text className="font-inter text-badge text-texte-secondaire">{adresse}</Text> : null}
+            </View>
           </View>
         </View>
       ) : (

@@ -1,7 +1,7 @@
 # Issue 0010 — Brienon → tribunal administratif de Dijon : le trajet est juste, mais un débutant ne peut pas le suivre
 
 - **Date** : 2026-11-04
-- **État** : analysé, **non corrigé**. Analyse à approuver par Brainditech avant toute correction.
+- **État** : analyse approuvée par Brainditech le 2026-11-04 (« règle tous les problèmes ») ; **A à F et H corrigés** sur `issue/0010-trajet-lisible-et-guidage`, à constater sur le téléphone. G est traité par les specs 11 et 12.
 
 ## 1. Reproduction
 
@@ -58,3 +58,21 @@ Il faut donc **calculer nous-mêmes** les virages (« à gauche », « à droite
 
 - Serveur : réponse MOTIS enregistrée de cette demande ⇒ direction « Lyon Part Dieu » et numéro « 17769 » (A) ; étape du 803 avec `reservation: "appel"` d'après `fixtures/_rapatrie-2026-10-19/mobigo89.zip` (B) ; dernière étape nommée d'après la demande (C) ; départ à 08:20 ⇒ heure de sortie avancée selon D68 (D) ; noms remis en forme (F).
 - App : texte de l'attente et de l'heure d'arrivée d'une marche (E) ; « horaires valables jusqu'au » (H).
+
+## 6. Correction (2026-11-04)
+
+| # | Fait | Où |
+|---|---|---|
+| A | `tripTo` lu ; un `headsign` fait de chiffres devient `numero`, la direction est le terminus. L'app écrit « TER K7 n° 17769 vers Lyon Part Dieu » (le nom du terminus est celui du GTFS, sans retouche). | `motis-plan.ts`, `normaliser.ts` (`directionEtNumero`), `src/domaine/resultat.ts` |
+| B | `npm run donnees:horaires` lit les 536 GTFS nationaux en 12 min : 138 358 courses ont au moins un arrêt sur réservation, dont 67 courses Mobigo sur 99. L'étape porte `reservation: "appel"`, la carte et l'étape disent « Réservation obligatoire : appelez MOBIGO 89 avant de partir », sans numéro (D69, invariant 16). | `horaires-gtfs.ts`, `donnees/horaires.ts`, `HORAIRES_GTFS` |
+| C | L'app envoie `noms` (« Domicile » ou « Ma position », et le lieu choisi). L'IGN (géocodage inverse) donne « 13 Rue d'Assas » à 15 m du tribunal : au-delà de 10 m, la réponse dit « Rue d'Assas, 21000 Dijon ». Une panne de l'IGN laisse l'adresse vide sans faire échouer la recherche. | `routes/itineraires.ts`, `lieux/ign-geocode.ts` (`lireAdresseInverse`) |
+| D | D68 : 5 min à l'arrêt, 10 sur réservation. Samedi : sortie 08:14, « Arrivez à l'arrêt à 08:15, le bus passe à 08:25 ». Le cas « dernier départ de la journée » n'est pas fait (D68). | `normaliser.ts` (`avanceMontee`) |
+| E | Chaque marche dit « arrivée 09:04 » ; une ligne « Attente 6 min » au-delà de 2 min. | `Trajet.tsx`, `resultat.ts` (`attenteApres`) |
+| F | Capitales remises en forme (« Saint-Florentin-Vergigny, 3 rue de la Gare », sigles gardés) ; type de lieu (arrêt, gare, station) : « arrêt Mairie », « gare de Saint-Florentin - Vergigny ». | `noms.ts`, `resultat.ts` (`nomLieuEtape`) |
+| H | « Horaires valables jusqu'au 31/12/2026 » : la fin de validité la plus proche des jeux utilisés (ici le tram de Dijon). | `horaires-gtfs.ts`, `resultat.ts` (`finHoraires`) |
+
+Constaté sur l'API locale reliée au MOTIS national (réponse de 7,3 Ko en 1,2 s) : 08:14 → 10:38, marche jusqu'à l'arrêt Mairie (arrivée 08:15), bus 803 vers Auxerre sur réservation, marche jusqu'à la gare de Saint-Florentin - Vergigny (arrivée 09:04), attente 6 min, TER K7 n° 17769 vers Lyon Part Dieu, tram T1 vers Quetigny Centre, marche jusqu'au Tribunal administratif de Dijon, Rue d'Assas, 21000 Dijon.
+
+Tests de régression : `serveur/src/itineraires/issue-0010.test.ts` (réponse MOTIS enregistrée `__exemples__/plan-brienon-dijon-2026-11-14-detaille.json`, GTFS Mobigo de `fixtures/`), `serveur/src/national/brienon-dijon.national.test.ts`, `src/domaine/resultat.test.ts`.
+
+À faire par Brainditech : régénérer `donnees/horaires.json` après chaque `npm run donnees:nationales`, reconstruire l'API nationale (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d --build api`), refaire la recherche sur le téléphone.

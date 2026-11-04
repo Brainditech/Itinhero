@@ -109,6 +109,7 @@ export function versRequeteItineraires(
   demande: Demande,
   depart: { lat: number; lon: number },
   arrivee: { lat: number; lon: number },
+  noms?: { depart?: string; arrivee?: string },
 ) {
   return {
     depart: { lat: depart.lat, lon: depart.lon },
@@ -117,6 +118,7 @@ export function versRequeteItineraires(
     heure: demande.heure,
     sens: demande.sens === "arriver_avant" ? ("arriver" as const) : ("partir" as const),
     marge: demande.marge,
+    ...(noms ? { noms } : {}),
   };
 }
 

@@ -1,4 +1,4 @@
-import type { Candidat, Etape, Possibilite, ReponseItineraires } from "./api";
+import type { Candidat, Etape, LieuEtape, Possibilite, ReponseItineraires } from "./api";
 import type { Demande } from "./demande";
 
 // Ce qu'affichent la Confirmation et le Résultat (spec 10, §4.1). Tout vient de la réponse de l'API :
@@ -109,15 +109,92 @@ const NOMS_MODES: Record<string, string> = {
   remontee: "Funiculaire ou téléphérique",
 };
 
-/** « Métro 14 », « RER B », « Car K941 », « Marche 4 min ». */
+/** Un train régional de la SNCF est un TER (issue 0010, A). */
+function estTer(e: Etape): boolean {
+  return e.mode === "train" && /^REGIONAL/.test(e.mode_motis) && !!e.exploitant && /\bSNCF\b/i.test(e.exploitant);
+}
+
+/** « Métro 14 », « RER B », « Car K941 », « TER K7 », « Marche 4 min ». */
 export function libelleEtape(e: Etape): string {
   if (e.mode === "marche") return `Marche ${e.duree_minutes} min`;
   if (e.mode === "train_banlieue") {
     if (e.ligne && /^[A-E]$/.test(e.ligne)) return `RER ${e.ligne}`;
     return e.ligne ? `Train ${e.ligne}` : "Train de banlieue";
   }
-  const nom = NOMS_MODES[e.mode] ?? "Transport";
+  const nom = estTer(e) ? "TER" : (NOMS_MODES[e.mode] ?? "Transport");
   return e.ligne && e.mode !== "transport_a_la_demande" ? `${nom} ${e.ligne}` : nom;
+}
+
+/** « n° 17769 vers Lyon Part Dieu », « vers Auxerre », ou null. */
+export function directionEtape(e: Etape): string | null {
+  const vers = e.direction ? `vers ${e.direction}` : null;
+  if (e.numero) return vers ? `n° ${e.numero} ${vers}` : `n° ${e.numero}`;
+  return vers;
+}
+
+/**
+ * « arrêt Mairie », « gare de Saint-Florentin - Vergigny », « station Godrans Les Halles » (issue 0010, F).
+ * Un nom qui dit déjà ce qu'il est (« Dijon Gare », « Gare de Lyon ») n'est pas répété.
+ */
+export function nomLieuEtape(l: LieuEtape): string {
+  const dit = (mot: RegExp) => mot.test(l.nom);
+  switch (l.type) {
+    case "arret":
+      return dit(/\barr[êe]t\b/i) ? l.nom : `arrêt ${l.nom}`;
+    case "gare":
+      return dit(/\bgare\b/i) ? l.nom : `gare de ${l.nom}`;
+    case "station":
+      return dit(/\b(station|gare)\b/i) ? l.nom : `station ${l.nom}`;
+    default:
+      return l.nom;
+  }
+}
+
+/** Minutes de `de` à `a` (« HH:MM »), passage de minuit compris. */
+export function minutesEntre(de: string, a: string): number {
+  const m = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+  return (m(a) - m(de) + 1440) % 1440;
+}
+
+/** Attente montrée seulement au-delà de 2 min (issue 0010, E). */
+export const ATTENTE_MONTREE_MIN = 2;
+
+/** Attente entre l'étape `i` et la suivante, ou null si elle est de 2 min ou moins. */
+export function attenteApres(etapes: Etape[], i: number): number | null {
+  const suivante = etapes[i + 1];
+  if (!suivante) return null;
+  const n = minutesEntre(etapes[i]!.arrivee, suivante.depart);
+  return n > ATTENTE_MONTREE_MIN ? n : null;
+}
+
+const VEHICULES: Record<string, string> = {
+  bus: "le bus",
+  car: "le car",
+  transport_a_la_demande: "le véhicule",
+  tram: "le tram",
+  metro: "le métro",
+  train: "le train",
+  train_banlieue: "le train",
+  bateau: "le bateau",
+};
+
+/** « Arrivez à l'arrêt à 08:15, le bus passe à 08:25. » (D68) ; null sans montée. */
+export function phraseMontee(p: Possibilite): string | null {
+  const v = p.etapes.find((e) => e.mode !== "marche");
+  if (!p.montee || !v) return null;
+  const ou = v.de.type === "gare" ? "à la gare" : v.de.type === "station" ? "à la station" : "à l'arrêt";
+  const quoi = VEHICULES[v.mode] ?? "le véhicule";
+  const verbe = v.mode === "train" || v.mode === "train_banlieue" ? "part" : "passe";
+  return `Arrivez ${ou} à ${p.montee.arriver_a}, ${quoi} ${verbe} à ${p.montee.vehicule}.`;
+}
+
+/**
+ * Passage sur réservation (D69). Aucun numéro tant que la fiche de l'exploitant n'est pas validée
+ * par Brainditech (invariant 16).
+ */
+export function phraseReservation(e: Etape): string | null {
+  if (e.reservation !== "appel") return null;
+  return `Réservation obligatoire : appelez ${e.exploitant ?? "le transporteur"} avant de partir.`;
 }
 
 /** Résumé d'une possibilité : « Marche 4 min · Métro 14 · Marche 3 min ». */
@@ -146,13 +223,15 @@ export function formaterDuree(minutes: number): string {
 }
 
 /**
- * « Horaires du 29/10 » : la plus ancienne version des jeux GTFS utilisés par les possibilités montrées.
- * Une version qui n'est pas une date ISO est montrée telle quelle. Aucun jeu ⇒ null (rien à dire).
+ * « Horaires valables jusqu'au 31/08/2027 » (issue 0010, H) : la fin de validité la plus proche parmi
+ * les jeux GTFS des possibilités montrées. Aucune fin connue ⇒ null (rien à dire, plutôt qu'une date
+ * de début de validité prise pour une date ancienne).
  */
-export function dateHoraires(possibilites: Possibilite[]): string | null {
-  const versions = possibilites.flatMap((p) => p.etapes.flatMap((e) => (e.source.type === "gtfs" ? [e.source.version] : [])));
-  if (versions.length === 0) return null;
-  const plusAncienne = [...versions].sort()[0]!;
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(plusAncienne);
-  return m ? `${m[3]}/${m[2]}` : plusAncienne;
+export function finHoraires(possibilites: Possibilite[]): string | null {
+  const fins = possibilites.flatMap((p) =>
+    p.etapes.flatMap((e) => (e.source.type === "gtfs" && e.source.fin_validite ? [e.source.fin_validite] : [])),
+  );
+  if (fins.length === 0) return null;
+  const [a, m, j] = [...fins].sort()[0]!.split("-");
+  return `${j}/${m}/${a}`;
 }

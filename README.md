@@ -79,4 +79,5 @@ docker compose down -v           # arrête et efface les données : le prochain 
   docker run --rm -v "$PWD/donnees:/d" itinhero-osmium:bookworm-20261020 export /d/poi/poi.osm.pbf -f geojsonseq --geometry-types=point,polygon -o /d/poi/poi.geojsonseq --overwrite
   cd serveur && npm run donnees:lieux
   ```
+- Passages sur réservation et fin de validité des GTFS (D69), après chaque `npm run donnees:nationales` : `cd serveur && npm run donnees:horaires` (12 min environ ; écrit `donnees/horaires.json`, lu par l'API via `HORAIRES_GTFS`).
 - Extrait OSM du couloir : `scripts/extraire-osm.sh`, lancé une seule fois (D41). Ne pas le relancer pour « réparer » un sha256.

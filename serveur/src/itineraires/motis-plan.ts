@@ -77,6 +77,8 @@ const schemaEtape = z.object({
   tripId: z.string().optional(),
   routeShortName: z.string().optional(),
   headsign: z.string().optional(),
+  // Vrai terminus de la course : le GTFS SNCF met le numéro du train dans `headsign` (issue 0010, A).
+  tripTo: z.object({ name: z.string() }).optional(),
   agencyName: z.string().optional(),
 });
 
@@ -101,6 +103,7 @@ export type Etape = {
   tripId?: string;
   ligne?: string;
   direction?: string;
+  terminus?: string;
   exploitant?: string;
   coordDe: Point;
   coordA: Point;
@@ -128,6 +131,7 @@ export function lireReponsePlan(brut: unknown): Possibilite[] {
         tripId: l.tripId,
         ligne: l.routeShortName,
         direction: l.headsign,
+        terminus: l.tripTo?.name,
         exploitant: l.agencyName,
         coordDe: { lat: l.from.lat, lon: l.from.lon },
         coordA: { lat: l.to.lat, lon: l.to.lon },

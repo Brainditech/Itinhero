@@ -3,7 +3,8 @@ import { ErreurEnv, lireEnv } from "./env.js";
 import { lireManifest } from "./manifest.js";
 import { moteurMotis, sondeMotis } from "./motis.js";
 import { Limites } from "./acces/limites.js";
-import { geocodeurIgn } from "./lieux/ign-geocode.js";
+import { adresseIgn, geocodeurIgn } from "./lieux/ign-geocode.js";
+import { chargerHoraires } from "./itineraires/horaires-gtfs.js";
 import { chargerLieux } from "./lieux/charger.js";
 
 const CHEMIN_MANIFEST = process.env.FIXTURES_MANIFEST ?? "/fixtures/manifest.json";
@@ -21,12 +22,16 @@ async function demarrer(): Promise<void> {
   }
   const manifest = await lireManifest(CHEMIN_MANIFEST);
   const lieux = env.LIEUX_OSM ? await chargerLieux(env.LIEUX_OSM) : undefined;
+  const horaires = env.HORAIRES_GTFS ? await chargerHoraires(env.HORAIRES_GTFS) : undefined;
+  if (!horaires) console.warn("HORAIRES_GTFS absente : les passages sur réservation ne seront pas signalés (D69).");
   const app = construireApp({
     manifest,
     sonde: sondeMotis(env.MOTIS_URL),
     moteur: moteurMotis(env.MOTIS_URL),
     geocodeurIgn: geocodeurIgn(),
+    adresseIgn: adresseIgn(),
     lieux,
+    horaires,
     acces: {
       empreintes: env.CLES_APPAREILS,
       limites: new Limites(env.LIMITE_REQ_MINUTE, env.LIMITE_REQ_JOUR),

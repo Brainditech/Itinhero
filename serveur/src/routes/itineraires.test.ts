@@ -84,12 +84,21 @@ describe("POST /v1/itineraires, normalisation (critère 6)", () => {
       }
     }
     const p = corps.possibilites[0];
-    expect(p).toMatchObject({ depart: "08:24", arrivee: "10:43", correspondances: 2 });
+    // D68 : à l'arrêt 5 min avant le bus de 08:25, la marche de 1 min part à 08:19.
+    expect(p).toMatchObject({ depart: "08:19", arrivee: "10:43", correspondances: 2 });
+    expect(p.montee).toEqual({ arriver_a: "08:20", vehicule: "08:25", marge_minutes: 5 });
     expect(p.etapes[0].de.nom).toBe("Départ");
     expect(p.etapes.at(-1).a.nom).toBe("Arrivée");
     const car = p.etapes[1];
     expect(car).toMatchObject({ mode: "bus", mode_motis: "BUS", ligne: "803", exploitant: "MOBIGO 89", depart: "08:25" });
-    expect(car.source).toEqual({ type: "gtfs", jeu: "r84072", version: "2026-09-21", trip_id: "1014608-1-1", date_service: "2026-11-12" });
+    expect(car.source).toEqual({
+      type: "gtfs",
+      jeu: "r84072",
+      version: "2026-09-21",
+      trip_id: "1014608-1-1",
+      date_service: "2026-11-12",
+      fin_validite: null, // aucun horaires.json dans ce test
+    });
     expect(car.de.arret).toBe("600326");
     const train = p.etapes[3];
     expect(train).toMatchObject({ mode: "train", ligne: "K7" });
@@ -149,9 +158,9 @@ describe("POST /v1/itineraires, sens et jour (critère 7)", () => {
     expect(departs).toEqual([...departs].sort());
   });
 
-  it("« partir » 09:00 ⇒ le départ de 08:24 est écarté", async () => {
+  it("« partir » 09:00 ⇒ le départ de 08:24 est écarté ; la marge D68 ne fait pas partir avant 09:00", async () => {
     const r = await poster(appTest({ moteur: moteurPlan(exemple) }), { ...CORPS, heure: "09:00" });
-    expect(r.json().possibilites.map((p: { depart: string }) => p.depart)).toEqual(["09:24"]);
+    expect(r.json().possibilites.map((p: { depart: string }) => p.depart)).toEqual(["09:19"]);
   });
 
   it("« arriver » 11:00, marge 10 ⇒ requête D44 et limite 10:50", async () => {

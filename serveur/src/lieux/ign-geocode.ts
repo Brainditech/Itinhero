@@ -175,3 +175,58 @@ export function geocodeurIgn(delaiMs = 2500): GeocodeurIgn {
     return { features: [...a.features, ...l.features] };
   };
 }
+
+// ——— Adresse du lieu d'arrivée (issue 0010, C) ———
+
+export const URL_IGN_INVERSE = "https://data.geopf.fr/geocodage/reverse";
+
+export function construireUrlIgnInverse(p: Point): URL {
+  const url = new URL(URL_IGN_INVERSE);
+  url.searchParams.set("lat", String(p.lat));
+  url.searchParams.set("lon", String(p.lon));
+  url.searchParams.set("index", "address");
+  url.searchParams.set("limit", "1");
+  return url;
+}
+
+const schemaReponseInverse = z.object({
+  features: z.array(
+    z.object({
+      properties: z.object({
+        _type: z.string().optional(),
+        type: z.string().optional(),
+        label: z.string().optional(),
+        street: z.string().optional(),
+        postcode: z.string().optional(),
+        city: z.string().optional(),
+        distance: z.number().nonnegative().optional(),
+      }),
+    }),
+  ),
+});
+
+/**
+ * Au-delà de cette distance, le numéro trouvé n'est pas celui du lieu : on donne la rue sans numéro.
+ * Constaté le 2026-11-04 : le tribunal administratif de Dijon (22 rue d'Assas) ⇒ « 13 Rue d'Assas » à 15 m.
+ */
+export const NUMERO_EXACT_METRES = 10;
+
+/** « 13 Rue d'Assas 21000 Dijon » à 15 m ⇒ « Rue d'Assas, 21000 Dijon » ; null si rien d'utilisable. */
+export function lireAdresseInverse(brut: unknown): string | null {
+  const f = schemaReponseInverse.parse(brut).features[0]?.properties;
+  if (!f) return null;
+  const ville = [f.postcode, f.city].filter(Boolean).join(" ");
+  if (f.type === "housenumber" && f.label && f.distance !== undefined && f.distance <= NUMERO_EXACT_METRES) {
+    const sansVille = ville && f.label.endsWith(ville) ? f.label.slice(0, -ville.length).trim() : f.label;
+    return ville ? `${sansVille}, ${ville}` : sansVille;
+  }
+  if (f.street) return ville ? `${f.street}, ${ville}` : f.street;
+  return null;
+}
+
+/** Adresse postale la plus proche d'un point ; rien n'est gardé ni journalisé (invariants 6 et 10). */
+export type AdresseInverse = (p: Point) => Promise<string | null>;
+
+export function adresseIgn(delaiMs = 2500): AdresseInverse {
+  return async (p) => lireAdresseInverse(await lireMotis(construireUrlIgnInverse(p), delaiMs));
+}

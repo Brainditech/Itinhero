@@ -16,6 +16,7 @@
     "test:national": "vitest run --config vitest.national.config.ts",
     "cle:nouvelle": "npm run build && node dist/acces/cle-nouvelle.js",
     "donnees:lieux": "npm run build && node dist/donnees/lieux.js",
+    "donnees:horaires": "npm run build && node dist/donnees/horaires.js",
     "audit:quais": "npm run build && node dist/audit/quais.js"
   },
   "dependencies": {

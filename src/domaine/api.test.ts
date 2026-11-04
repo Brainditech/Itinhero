@@ -70,7 +70,7 @@ describe("clientApi (spec 10, critère 2)", () => {
   });
 
   it("« impossible » sans possibilité ⇒ accepté", async () => {
-    const impossible = { verdict: "impossible", demande: { ...REPONSE_CHATELET.demande }, possibilites: [] };
+    const impossible = { verdict: "impossible", demande: { ...REPONSE_CHATELET.demande }, arrivee: { nom: null, adresse: null }, possibilites: [] };
     const r = await clientApi({ urlApi: URL_API, cle: CLE, fetch: repondre(200, impossible) }).itineraires(REQUETE);
     expect(r).toEqual({ etat: "ok", donnees: impossible });
   });
