@@ -12,7 +12,10 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:joigny": "vitest run --config vitest.joigny.config.ts",
-    "donnees:nationales": "npm run build && node dist/donnees/telecharger.js"
+    "donnees:nationales": "npm run build && node dist/donnees/telecharger.js",
+    "test:national": "vitest run --config vitest.national.config.ts",
+    "cle:nouvelle": "npm run build && node dist/acces/cle-nouvelle.js",
+    "donnees:lieux": "npm run build && node dist/donnees/lieux.js"
   },
   "dependencies": {
     "csv-parse": "7.0.3",

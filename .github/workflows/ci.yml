@@ -60,6 +60,13 @@ jobs:
     name: joigny
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      # Spec 09 : le compose exige ces variables. Empreinte JETABLE : sha256 de la clé de test
+      # « cle-de-test-ci-cle-de-test-ci-cle-de-test-c ». Pas un secret : l'API de la CI n'écoute que
+      # sur 127.0.0.1 de la machine GitHub et ne vit que le temps du job.
+      CLES_APPAREILS: 1b42b9c65da61c4855d7474b0f82b5cd7f0138165dc19721634f511965233409
+      LIMITE_REQ_MINUTE: "30"
+      LIMITE_REQ_JOUR: "500"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -75,6 +82,8 @@ jobs:
         run: docker compose up -d --build --wait --wait-timeout 300 --no-deps motis api
       - name: /health vert
         run: curl -fsS http://127.0.0.1:3000/health
+      - name: /v1/lieux sans clé ⇒ 401 (spec 09)
+        run: test "$(curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:3000/v1/lieux?q=Joigny')" = 401
       - name: Installation (serveur)
         working-directory: serveur
         run: npm ci

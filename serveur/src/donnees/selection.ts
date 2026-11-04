@@ -44,18 +44,47 @@ export function etiquette(idRessource: number): string {
   return `r${idRessource}`;
 }
 
+const estGtfsPrincipal = (r: JeuTdg["resources"][number]) =>
+  r.format === "GTFS" && r.is_available === true && r.type === "main";
+
+/** Un zip qui se présente comme un GTFS (titre ou adresse), publié sous un autre format (LiA : « zip »). */
+const ressembleGtfs = (r: JeuTdg["resources"][number]) =>
+  r.format === "GTFS" || (/^zip$/i.test(r.format ?? "") && /gtfs/i.test(`${r.title ?? ""} ${r.url}`));
+
+const RANG_TYPE: Record<string, number> = { main: 0, other: 1, api: 2 };
+
 /**
- * Garde, pour chaque jeu de transport public, ses ressources GTFS principales disponibles.
- * Écarte les ressources `other`, `update`, `api` (versions modifiées par des tiers,
- * mises à jour partielles, temps réel), indisponibles ou d'un autre format.
+ * Repli (D59) : pour un jeu sans GTFS principal disponible, le meilleur GTFS disponible
+ * (format GTFS d'abord, puis type main > other > api, puis une version non « modifiée » par un tiers).
+ * Constaté le 2026-11-04 : sans ce repli, 34 réseaux manquaient, dont Lyon TCL (GTFS officiel
+ * derrière un compte), BlaBlaCar Bus (type `api`), Le Havre LiA (format `zip`).
+ */
+export function choisirRepli(jeu: JeuTdg): JeuTdg["resources"][number] | null {
+  const candidats = jeu.resources
+    .filter((r) => r.is_available === true && ressembleGtfs(r) && (r.type ?? "") in RANG_TYPE)
+    .sort(
+      (a, b) =>
+        Number(b.format === "GTFS") - Number(a.format === "GTFS") ||
+        RANG_TYPE[a.type ?? ""]! - RANG_TYPE[b.type ?? ""]! ||
+        Number(/modifi/i.test(a.title ?? "")) - Number(/modifi/i.test(b.title ?? "")) ||
+        a.id - b.id,
+    );
+  return candidats[0] ?? null;
+}
+
+/**
+ * Garde, pour chaque jeu de transport public, ses ressources GTFS principales disponibles ;
+ * à défaut, une seule ressource de repli (D59). Les mises à jour partielles (`update`),
+ * le temps réel et les autres formats ne sont jamais pris.
  */
 export function choisirRessources(jeux: JeuTdg[]): Ressource[] {
   const choisies: Ressource[] = [];
   const vues = new Set<number>();
   for (const jeu of jeux) {
     if (jeu.type !== "public-transit") continue;
-    for (const r of jeu.resources) {
-      if (r.format !== "GTFS" || r.is_available !== true || r.type !== "main") continue;
+    const principales = jeu.resources.filter(estGtfsPrincipal);
+    const repli = principales.length === 0 ? choisirRepli(jeu) : null;
+    for (const r of repli ? [repli] : principales) {
       if (vues.has(r.id)) continue;
       vues.add(r.id);
       choisies.push({

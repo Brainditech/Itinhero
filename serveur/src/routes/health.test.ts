@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { construireApp } from "../app.js";
+import { appTest } from "../outils-test.js";
 import type { Manifest } from "../manifest.js";
 import { sondeMotis } from "../motis.js";
 import { createServer, type Server } from "node:http";
@@ -57,7 +57,7 @@ async function fauxMotis(statut: number, attenteMs = 0): Promise<string> {
 
 describe("GET /health", () => {
   it("200 quand MOTIS répond, avec les jeux GTFS du manifeste seulement", async () => {
-    app = construireApp({ manifest, sonde: sondeMotis(await fauxMotis(200)) });
+    app = appTest({ manifest, sonde: sondeMotis(await fauxMotis(200)) });
     const r = await app.inject({ method: "GET", url: "/health" });
     expect(r.statusCode).toBe(200);
     expect(r.json()).toEqual({
@@ -70,7 +70,7 @@ describe("GET /health", () => {
   });
 
   it("503 quand MOTIS ne répond pas, corps conforme", async () => {
-    app = construireApp({ manifest, sonde: sondeMotis("http://127.0.0.1:1") });
+    app = appTest({ manifest, sonde: sondeMotis("http://127.0.0.1:1") });
     const r = await app.inject({ method: "GET", url: "/health" });
     expect(r.statusCode).toBe(503);
     expect(r.json()).toMatchObject({ api: "ok", motis: "injoignable" });
@@ -78,15 +78,21 @@ describe("GET /health", () => {
   });
 
   it("503 quand MOTIS dépasse le délai", async () => {
-    app = construireApp({ manifest, sonde: sondeMotis(await fauxMotis(200, 500), 100) });
+    app = appTest({ manifest, sonde: sondeMotis(await fauxMotis(200, 500), 100) });
     const r = await app.inject({ method: "GET", url: "/health" });
     expect(r.statusCode).toBe(503);
     expect(r.json().motis).toBe("injoignable");
   });
 
   it("503 quand MOTIS répond autre chose que 200", async () => {
-    app = construireApp({ manifest, sonde: sondeMotis(await fauxMotis(400)) });
+    app = appTest({ manifest, sonde: sondeMotis(await fauxMotis(400)) });
     const r = await app.inject({ method: "GET", url: "/health" });
     expect(r.statusCode).toBe(503);
+  });
+
+  it("sans clé d'appareil (invariant 8 : /health reste ouverte)", async () => {
+    app = appTest({ manifest, sonde: async () => true });
+    const r = await app.inject({ method: "GET", url: "/health" });
+    expect(r.statusCode).toBe(200);
   });
 });

@@ -1,0 +1,436 @@
+{
+ "itineraries": [
+  {
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 47.9918,
+      "lon": 3.617
+     },
+     "to": {
+      "name": "MAIRIE",
+      "stopId": "r84072_600326",
+      "lat": 47.991799,
+      "lon": 3.616984
+     },
+     "startTime": "2026-11-12T07:24:00Z",
+     "endTime": "2026-11-12T07:25:00Z",
+     "duration": 60,
+     "distance": 1.0
+    },
+    {
+     "mode": "BUS",
+     "from": {
+      "name": "MAIRIE",
+      "stopId": "r84072_600326",
+      "lat": 47.991799,
+      "lon": 3.616984
+     },
+     "to": {
+      "name": "SAINT FLORENTIN-VERGIGNY 3 RUE DE LA GARE",
+      "stopId": "r84072_3103848",
+      "lat": 47.978725700000005,
+      "lon": 3.7271374000000006
+     },
+     "startTime": "2026-11-12T07:25:00Z",
+     "endTime": "2026-11-12T07:50:00Z",
+     "duration": 1500,
+     "tripId": "20261112_08:25_r84072_1014608-1-1",
+     "routeShortName": "803",
+     "headsign": "Auxerre",
+     "agencyName": "MOBIGO 89"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "SAINT FLORENTIN-VERGIGNY 3 RUE DE LA GARE",
+      "stopId": "r84072_3103848",
+      "lat": 47.978725700000005,
+      "lon": 3.7271374000000006
+     },
+     "to": {
+      "name": "Saint-Florentin - Vergigny",
+      "stopId": "r83582_StopPoint:OCETrain TER-87683318",
+      "lat": 47.981058,
+      "lon": 3.731036
+     },
+     "startTime": "2026-11-12T07:50:00Z",
+     "endTime": "2026-11-12T08:04:00Z",
+     "duration": 840,
+     "distance": 943.0
+    },
+    {
+     "mode": "REGIONAL_RAIL",
+     "from": {
+      "name": "Saint-Florentin - Vergigny",
+      "stopId": "r83582_StopPoint:OCETrain TER-87683318",
+      "lat": 47.981058,
+      "lon": 3.731036
+     },
+     "to": {
+      "name": "Dijon",
+      "stopId": "r83582_StopPoint:OCETrain TER-87713040",
+      "lat": 47.323411,
+      "lon": 5.0272559999999995
+     },
+     "startTime": "2026-11-12T08:11:00Z",
+     "endTime": "2026-11-12T09:25:00Z",
+     "duration": 4440,
+     "tripId": "20261112_07:34_r83582_OCESN17769F1187_F:TER:FR:Line::B10C45A0-C32C-4232-85F2-4BB81B810084::87686006:87723197:19:1244:20261204",
+     "routeShortName": "K7",
+     "headsign": "17769",
+     "agencyName": "SNCF VOYAGEURS"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Dijon",
+      "stopId": "r83582_StopPoint:OCETrain TER-87713040",
+      "lat": 47.323411,
+      "lon": 5.0272559999999995
+     },
+     "to": {
+      "name": "Foch Gare",
+      "stopId": "r80742_4-1467",
+      "lat": 47.323498,
+      "lon": 5.03077
+     },
+     "startTime": "2026-11-12T09:25:00Z",
+     "endTime": "2026-11-12T09:31:00Z",
+     "duration": 360,
+     "distance": 372.0
+    },
+    {
+     "mode": "TRAM",
+     "from": {
+      "name": "Foch Gare",
+      "stopId": "r80742_4-1467",
+      "lat": 47.323498,
+      "lon": 5.03077
+     },
+     "to": {
+      "name": "République",
+      "stopId": "r80742_4-1477",
+      "lat": 47.326865999999995,
+      "lon": 5.044204
+     },
+     "startTime": "2026-11-12T09:31:00Z",
+     "endTime": "2026-11-12T09:36:00Z",
+     "duration": 300,
+     "tripId": "20261112_10:16_r80742_19-T2-1-1-101624",
+     "routeShortName": "T2",
+     "headsign": "DIJON Valmy",
+     "agencyName": "KEOLIS DIJON"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "République",
+      "stopId": "r80742_4-1477",
+      "lat": 47.326865999999995,
+      "lon": 5.044204
+     },
+     "to": {
+      "name": "END",
+      "lat": 47.3297,
+      "lon": 5.045
+     },
+     "startTime": "2026-11-12T09:36:00Z",
+     "endTime": "2026-11-12T09:43:00Z",
+     "duration": 420,
+     "distance": 472.0
+    }
+   ]
+  },
+  {
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 47.9918,
+      "lon": 3.617
+     },
+     "to": {
+      "name": "MAIRIE",
+      "stopId": "r84072_600326",
+      "lat": 47.991799,
+      "lon": 3.616984
+     },
+     "startTime": "2026-11-12T08:24:00Z",
+     "endTime": "2026-11-12T08:25:00Z",
+     "duration": 60,
+     "distance": 1.0
+    },
+    {
+     "mode": "ODM",
+     "from": {
+      "name": "MAIRIE",
+      "stopId": "r84072_600326",
+      "lat": 47.991799,
+      "lon": 3.616984
+     },
+     "to": {
+      "name": "MARCHE COUVERT",
+      "stopId": "r84072_600401",
+      "lat": 47.962491,
+      "lon": 3.51452
+     },
+     "startTime": "2026-11-12T08:25:00Z",
+     "endTime": "2026-11-12T08:45:00Z",
+     "duration": 1200,
+     "tripId": "20261112_09:00_r84072_1026321-1-1",
+     "routeShortName": "856",
+     "headsign": "Migennes",
+     "agencyName": "MOBIGO 89"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "MARCHE COUVERT",
+      "stopId": "r84072_600401",
+      "lat": 47.962491,
+      "lon": 3.51452
+     },
+     "to": {
+      "name": "Laroche - Migennes",
+      "stopId": "r83582_StopPoint:OCECar TER-87683268",
+      "lat": 47.960998000000004,
+      "lon": 3.5131910000000004
+     },
+     "startTime": "2026-11-12T08:45:00Z",
+     "endTime": "2026-11-12T08:50:00Z",
+     "duration": 300,
+     "distance": 291.0
+    },
+    {
+     "mode": "REGIONAL_RAIL",
+     "from": {
+      "name": "Laroche - Migennes",
+      "stopId": "r83582_StopPoint:OCECar TER-87683268",
+      "lat": 47.960998000000004,
+      "lon": 3.5131910000000004
+     },
+     "to": {
+      "name": "Dijon",
+      "stopId": "r83582_StopPoint:OCECar TER-87713040",
+      "lat": 47.323411,
+      "lon": 5.0272559999999995
+     },
+     "startTime": "2026-11-12T10:12:00Z",
+     "endTime": "2026-11-12T13:48:00Z",
+     "duration": 12960,
+     "tripId": "20261112_11:12_r83582_OCESN416505R1187_R:CTE:FR:Line::B10C45A0-C32C-4232-85F2-4BB81B810084::87683268:87713040:7:1448:20261211",
+     "routeShortName": "K7",
+     "headsign": "416505",
+     "agencyName": "SNCF VOYAGEURS"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Dijon",
+      "stopId": "r83582_StopPoint:OCECar TER-87713040",
+      "lat": 47.323411,
+      "lon": 5.0272559999999995
+     },
+     "to": {
+      "name": "SNCF Brifaut",
+      "stopId": "r80742_4-178",
+      "lat": 47.32439,
+      "lon": 5.027584999999998
+     },
+     "startTime": "2026-11-12T13:48:00Z",
+     "endTime": "2026-11-12T13:50:00Z",
+     "duration": 120,
+     "distance": 135.0
+    },
+    {
+     "mode": "BUS",
+     "from": {
+      "name": "SNCF Brifaut",
+      "stopId": "r80742_4-178",
+      "lat": 47.32439,
+      "lon": 5.027584999999998
+     },
+     "to": {
+      "name": "Cours Fleury",
+      "stopId": "r80742_4-1255",
+      "lat": 47.327415,
+      "lon": 5.0422590000000005
+     },
+     "startTime": "2026-11-12T13:53:00Z",
+     "endTime": "2026-11-12T14:01:00Z",
+     "duration": 480,
+     "tripId": "20261112_14:39_r80742_19-10-4-1-143900",
+     "routeShortName": "10",
+     "headsign": "AHUY",
+     "agencyName": "KEOLIS DIJON"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Cours Fleury",
+      "stopId": "r80742_4-1255",
+      "lat": 47.327415,
+      "lon": 5.0422590000000005
+     },
+     "to": {
+      "name": "END",
+      "lat": 47.3297,
+      "lon": 5.045
+     },
+     "startTime": "2026-11-12T14:01:00Z",
+     "endTime": "2026-11-12T14:08:00Z",
+     "duration": 420,
+     "distance": 443.0
+    }
+   ]
+  },
+  {
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 47.9918,
+      "lon": 3.617
+     },
+     "to": {
+      "name": "Brienon-sur-Armançon Mairie",
+      "stopId": "r83634_SNCF:OCECarTER87117994",
+      "lat": 47.992025000000005,
+      "lon": 3.617066
+     },
+     "startTime": "2026-11-13T05:26:00Z",
+     "endTime": "2026-11-13T05:27:00Z",
+     "duration": 60,
+     "distance": 39.0
+    },
+    {
+     "mode": "BUS",
+     "from": {
+      "name": "Brienon-sur-Armançon Mairie",
+      "stopId": "r83634_SNCF:OCECarTER87117994",
+      "lat": 47.992025000000005,
+      "lon": 3.617066
+     },
+     "to": {
+      "name": "Saint-Florentin-Ville",
+      "stopId": "r83634_SNCF:OCECarTER87683334",
+      "lat": 48.005065,
+      "lon": 3.741985
+     },
+     "startTime": "2026-11-13T05:27:00Z",
+     "endTime": "2026-11-13T05:37:00Z",
+     "duration": 600,
+     "tripId": "20261113_06:14_r83634_SNCF:OCESN043281R13054467:2540119",
+     "routeShortName": "K941",
+     "headsign": "43281",
+     "agencyName": "Trains Express Régionaux"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Saint-Florentin-Ville",
+      "stopId": "r83634_SNCF:OCECarTER87683334",
+      "lat": 48.005065,
+      "lon": 3.741985
+     },
+     "to": {
+      "name": "Saint-Florentin - Vergigny",
+      "stopId": "r83582_StopPoint:OCETrain TER-87683318",
+      "lat": 47.981058,
+      "lon": 3.731036
+     },
+     "startTime": "2026-11-13T05:37:00Z",
+     "endTime": "2026-11-13T06:25:00Z",
+     "duration": 2880,
+     "distance": 3431.0
+    },
+    {
+     "mode": "REGIONAL_RAIL",
+     "from": {
+      "name": "Saint-Florentin - Vergigny",
+      "stopId": "r83582_StopPoint:OCETrain TER-87683318",
+      "lat": 47.981058,
+      "lon": 3.731036
+     },
+     "to": {
+      "name": "Dijon",
+      "stopId": "r83582_StopPoint:OCETrain TER-87713040",
+      "lat": 47.323411,
+      "lon": 5.0272559999999995
+     },
+     "startTime": "2026-11-13T07:12:00Z",
+     "endTime": "2026-11-13T08:26:00Z",
+     "duration": 4440,
+     "tripId": "20261113_08:02_r83582_OCESN891373F1187_F:TER:FR:Line::65138810-3045-45FD-930D-FA56FDE62809::87683268:87713040:7:926:20261211",
+     "routeShortName": "P5",
+     "headsign": "891373",
+     "agencyName": "SNCF VOYAGEURS"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Dijon",
+      "stopId": "r83582_StopPoint:OCETrain TER-87713040",
+      "lat": 47.323411,
+      "lon": 5.0272559999999995
+     },
+     "to": {
+      "name": "SNCF Brifaut",
+      "stopId": "r80742_4-178",
+      "lat": 47.32439,
+      "lon": 5.027584999999998
+     },
+     "startTime": "2026-11-13T08:26:00Z",
+     "endTime": "2026-11-13T08:28:00Z",
+     "duration": 120,
+     "distance": 135.0
+    },
+    {
+     "mode": "BUS",
+     "from": {
+      "name": "SNCF Brifaut",
+      "stopId": "r80742_4-178",
+      "lat": 47.32439,
+      "lon": 5.027584999999998
+     },
+     "to": {
+      "name": "Cours Fleury",
+      "stopId": "r80742_4-1255",
+      "lat": 47.327415,
+      "lon": 5.0422590000000005
+     },
+     "startTime": "2026-11-13T08:32:00Z",
+     "endTime": "2026-11-13T08:39:00Z",
+     "duration": 420,
+     "tripId": "20261113_09:18_r80742_18-10-5-1-091800",
+     "routeShortName": "10",
+     "headsign": "AHUY",
+     "agencyName": "KEOLIS DIJON"
+    },
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "Cours Fleury",
+      "stopId": "r80742_4-1255",
+      "lat": 47.327415,
+      "lon": 5.0422590000000005
+     },
+     "to": {
+      "name": "END",
+      "lat": 47.3297,
+      "lon": 5.045
+     },
+     "startTime": "2026-11-13T08:39:00Z",
+     "endTime": "2026-11-13T08:46:00Z",
+     "duration": 420,
+     "distance": 443.0
+    }
+   ]
+  }
+ ]
+}

@@ -36,6 +36,10 @@ services:
     environment:
       MOTIS_URL: http://motis:8080
       PORT: "3000"
+      # Spec 09 (D55, D56) : lues dans le .env de la racine, rempli par Brainditech ; le compose refuse de démarrer sans elles.
+      CLES_APPAREILS: ${CLES_APPAREILS:?empreinte(s) de clé d'appareil à mettre dans .env (npm run cle:nouvelle)}
+      LIMITE_REQ_MINUTE: ${LIMITE_REQ_MINUTE:?limite par minute à mettre dans .env}
+      LIMITE_REQ_JOUR: ${LIMITE_REQ_JOUR:?limite par jour à mettre dans .env}
     depends_on:
       motis:
         condition: service_healthy

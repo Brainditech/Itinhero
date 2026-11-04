@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Possibilite } from "./motis-plan.js";
-import { retenir, verdict } from "./verdict.js";
+import { retenir, retenirPartir, verdict } from "./verdict.js";
 
 /** Possibilité minimale : seules les heures de départ et d'arrivée comptent pour le tri. */
 function possibilite(depart: string, arrivee: string): Possibilite {
@@ -35,5 +35,16 @@ describe("verdict", () => {
   it("liste vide ⇒ « impossible », au moins une ⇒ « possible »", () => {
     expect(verdict([])).toBe("impossible");
     expect(verdict([possibilite("2026-11-12T06:00:00Z", "2026-11-12T08:00:00Z")])).toBe("possible");
+  });
+});
+
+describe("retenirPartir (D57)", () => {
+  const H = 8 * 60; // 08:00
+  it("garde un départ à H ou après le jour J, écarte avant H et le lendemain", () => {
+    const pile = possibilite("2026-11-12T07:00:00Z", "2026-11-12T09:00:00Z"); // 08:00 Paris
+    const avant = possibilite("2026-11-12T06:59:00Z", "2026-11-12T09:00:00Z"); // 07:59
+    const lendemain = possibilite("2026-11-13T05:26:00Z", "2026-11-13T08:46:00Z");
+    const soir = possibilite("2026-11-12T22:30:00Z", "2026-11-13T01:00:00Z"); // 23:30, arrive le 13
+    expect(retenirPartir([pile, avant, lendemain, soir], JOUR, H)).toEqual([pile, soir]);
   });
 });

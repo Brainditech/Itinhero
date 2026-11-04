@@ -1,0 +1,20 @@
+[
+ {"id":"paris-lyon-eiffel","de":{"texte":"Gare de Lyon","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Tour Eiffel","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-14","heure":"10:00","sens":"partir"},
+ {"id":"paris-sacrecoeur-bnf","de":{"texte":"Sacré-Cœur","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Bibliothèque François Mitterrand","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-09","heure":"18:30","sens":"partir"},
+ {"id":"paris-chatelet-orly","de":{"texte":"Châtelet","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Aéroport d'Orly","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-13","heure":"07:00","sens":"partir"},
+ {"id":"defense-versailles","de":{"texte":"La Défense","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Château de Versailles","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-15","heure":"14:00","sens":"partir"},
+ {"id":"paris-nation-montparnasse-arriver","de":{"texte":"Place de la Nation","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Gare Montparnasse","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-17","heure":"09:00","sens":"arriver","marge":10},
+ {"id":"paris-rivoli-10","de":{"texte":"10 rue de Rivoli","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Parc des Buttes-Chaumont","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-10","heure":"12:00","sens":"partir"},
+ {"id":"lyon-partdieu-fourviere","de":{"texte":"Gare Part-Dieu","proche":{"lat":45.76,"lon":4.85}},"a":{"texte":"Basilique Notre-Dame de Fourvière","proche":{"lat":45.76,"lon":4.85}},"date":"2026-11-10","heure":"09:00","sens":"partir"},
+ {"id":"marseille-stcharles-ndgarde","de":{"texte":"Gare Saint-Charles","proche":{"lat":43.30,"lon":5.38}},"a":{"texte":"Notre-Dame de la Garde","proche":{"lat":43.30,"lon":5.38}},"date":"2026-11-18","heure":"15:00","sens":"partir"},
+ {"id":"auxerre-paris","de":{"texte":"Gare d'Auxerre","proche":{"lat":47.80,"lon":3.57}},"a":{"texte":"Gare de Bercy","proche":{"lat":48.8566,"lon":2.3522}},"date":"2026-11-16","heure":"07:00","sens":"partir"},
+ {"id":"tonnerre-sens-arriver","de":{"texte":"Mairie de Tonnerre","proche":{"lat":47.85,"lon":3.97}},"a":{"texte":"Hôpital de Sens","proche":{"lat":48.20,"lon":3.28}},"date":"2026-11-19","heure":"10:00","sens":"arriver","marge":10},
+ {"id":"toulouse-capitole-aeroport","de":{"texte":"Place du Capitole","proche":{"lat":43.60,"lon":1.44}},"a":{"texte":"Aéroport Toulouse-Blagnac","proche":{"lat":43.60,"lon":1.44}},"date":"2026-11-20","heure":"06:00","sens":"partir"},
+ {"id":"bordeaux-arcachon","de":{"texte":"Gare Saint-Jean","proche":{"lat":44.84,"lon":-0.58}},"a":{"texte":"Plage Pereire Arcachon","proche":{"lat":44.66,"lon":-1.17}},"date":"2026-11-14","heure":"09:00","sens":"partir"},
+ {"id":"lille-roubaix","de":{"texte":"Gare Lille Flandres","proche":{"lat":50.63,"lon":3.06}},"a":{"texte":"La Piscine Roubaix","proche":{"lat":50.69,"lon":3.18}},"date":"2026-11-12","heure":"17:30","sens":"partir"},
+ {"id":"nantes-strasbourg","de":{"texte":"Gare de Nantes","proche":{"lat":47.22,"lon":-1.55}},"a":{"texte":"Cathédrale de Strasbourg","proche":{"lat":48.58,"lon":7.75}},"date":"2026-11-13","heure":"07:00","sens":"partir"},
+ {"id":"brienon-auxerre-hopital","de":{"lat":47.9918,"lon":3.617,"nom":"Brienon Mairie"},"a":{"texte":"Hôpital d'Auxerre","proche":{"lat":47.80,"lon":3.57}},"date":"2026-11-06","heure":"14:00","sens":"arriver","marge":10},
+ {"id":"rennes-montstmichel","de":{"texte":"Gare de Rennes","proche":{"lat":48.11,"lon":-1.68}},"a":{"texte":"Mont-Saint-Michel","proche":{"lat":48.63,"lon":-1.51}},"date":"2026-11-07","heure":"08:00","sens":"partir"},
+ {"id":"nice-monaco","de":{"texte":"Gare de Nice-Ville","proche":{"lat":43.70,"lon":7.26}},"a":{"texte":"Casino de Monte-Carlo","proche":{"lat":43.74,"lon":7.42}},"date":"2026-11-08","heure":"11:00","sens":"partir"},
+ {"id":"paris-nuit","de":{"texte":"Place de la République","proche":{"lat":48.8566,"lon":2.3522}},"a":{"texte":"Gare de Versailles-Chantiers","proche":{"lat":48.80,"lon":2.13}},"date":"2026-11-14","heure":"23:30","sens":"partir"}
+]

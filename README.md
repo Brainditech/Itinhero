@@ -71,4 +71,12 @@ docker compose down -v           # arrête et efface les données : le prochain 
 - Configuration : `motis/config.yml` ; fixtures et sha256 : `fixtures/manifest.json`.
 - Tests du serveur : `cd serveur && npm test`.
 - Test Joigny (vrai MOTIS, spec 05) : `docker compose up -d`, puis `cd serveur && npm run test:joigny`. Il échoue si MOTIS est injoignable.
+- Clé d'appareil (spec 09, D55) : `cd serveur && npm run cle:nouvelle` (à lancer par Brainditech) ; l'empreinte va dans `CLES_APPAREILS` du `.env`, avec `LIMITE_REQ_MINUTE` et `LIMITE_REQ_JOUR`. Sans elles, le compose refuse de démarrer l'API.
+- Tests sur le MOTIS national (spec 09, jamais en CI) : `cd serveur && npm run test:national` ; comparaisons : `npm run build`, puis `node dist/comparaison/comparer.js src/comparaison/scenarios.json` et `node dist/comparaison/lieux.js`.
+- Lieux pour la recherche par catégorie (D61), depuis la racine :
+  ```bash
+  docker run --rm -v "$PWD/donnees:/d" itinhero-osmium:bookworm-20261020 tags-filter /d/osm/france-261102.osm.pbf nwr/amenity=restaurant,fast_food,cafe,bar,pub,pharmacy,doctors,dentist,hospital,clinic,veterinary,cinema,theatre,townhall,post_office,police,library,school,college,university,bank nwr/healthcare nwr/shop=supermarket,bakery,convenience,hairdresser,butcher,florist,optician,books -o /d/poi/poi.osm.pbf --overwrite
+  docker run --rm -v "$PWD/donnees:/d" itinhero-osmium:bookworm-20261020 export /d/poi/poi.osm.pbf -f geojsonseq --geometry-types=point,polygon -o /d/poi/poi.geojsonseq --overwrite
+  cd serveur && npm run donnees:lieux
+  ```
 - Extrait OSM du couloir : `scripts/extraire-osm.sh`, lancé une seule fois (D41). Ne pas le relancer pour « réparer » un sha256.
