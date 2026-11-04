@@ -5,9 +5,9 @@
 
 ## Où on en est
 
-- **Phase en cours** : 0 — Socle (chemin B : serveur et MOTIS), et phase 1 avancée par D34 ; branche `phase-0/ci` (spec 06, appliquée, CI verte).
-- **Dernière case cochée** : Phase 0 · « CI GitHub Actions », « Job CI qui lance MOTIS et le test Joigny » et « `fixtures/manifest.json` » (2026-11-04, spec 06).
-- **Prochaine action** : Brainditech relit et fusionne la PR #2 (`phase-0/ci`, verte). Puis la phase 0 se termine avec Sentry (app et serveur) et la mesure mémoire de MOTIS sur toute la France ; ensuite la phase 1. Les phases 2 bis (données nationales) et 6 ter (covoiturage) s'insèrent dans la suite. Brainditech juge sur des trajets comparés à SNCF Connect ou Google Maps, pas sur les calculs.
+- **Phase en cours** : 0 — Socle, avec les phases 1 et 2 bis avancées (D34, D54) ; branche `phase-2bis/donnees-nationales` (spec 08, appliquée). La spec 07 (Sentry) attend sur `phase-0/sentry`, repoussée par D54.
+- **Dernière case cochée** : Phase 0 · « Mesure de la mémoire de MOTIS chargé avec les données de toute la France » (2026-11-04, spec 08).
+- **Prochaine action** : Brainditech compare les quatre trajets d'essai de la spec 08 (§7) à SNCF Connect ou Google Maps, relit et fusionne la PR. Ensuite (D54) : spec 09, clé d'appareil, `GET /v1/lieux` et `POST /v1/itineraires` contre le MOTIS national ; puis spec 10, l'app branchée. Le MOTIS national tourne sur le PC (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api`) ; le stack des fixtures est arrêté.
 
 ## État par phase
 
@@ -71,12 +71,13 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-04 | PR #9 (spec 05) fusionnée par Brainditech. Spec 06 — CI (remplace la spec 01) rédigée et appliquée sur la demande de Brainditech : `.github/workflows/ci.yml`, jobs `verifications` (app : lint, types, tests, bundle Android ; serveur : types, tests, build) et `joigny` (import MOTIS, `up --wait`, `/health`, `test:joigny`). Node 22.23.4, actions épinglées par SHA. Répété en local : export Android 15 s, import MOTIS 3 s, `healthy` en 12 s, test Joigny 4 verts en 41 s. Cases CI pas encore cochées (exécutions GitHub attendues) | commit `6a1e3ec`, `docs/specs/06-ci.md`, branche `phase-0/ci` |
 | 2026-11-04 | Aucune exécution Actions ne démarrait sur le dépôt privé (blocage de facturation, 0,01 $). D52 : historique anonymisé (git-filter-repo 2.47.0), ancien dépôt renommé `Itinhero-prive` (privé), nouveau dépôt public `Brainditech/Itinhero`, protection de `main` ; identifiants de commit des preuves recalés sur le nouvel historique | `docs/decisions/0001-cadrage-v1.md` (D52) |
 | 2026-11-04 | CI verte sur le dépôt public. PR d'essai #1 : `verifications` rouge à « Tests (app) », fusion bloquée (`BLOCKED`), fermée sans fusion. PR #2 : `verifications` 1 min 24 s et `joigny` 1 min 23 s, verts (environ 3 min facturables par poussée, gratuites sur un dépôt public). Correctif : `expo-env.d.ts` écrit par la CI avant `tsc` (TS2882 sur `global.css`). Cases « CI GitHub Actions », « Job CI qui lance MOTIS et le test Joigny » et « `fixtures/manifest.json` » cochées | https://github.com/Brainditech/Itinhero/actions/runs/41756823866, https://github.com/Brainditech/Itinhero/actions/runs/41756803879 |
+| 2026-11-04 | D54 acceptée (« vas y charge tout ») : données nationales et premier trajet réel avant Sentry. Spec 08 appliquée : OSM France entière (Geofabrik, 5,1 Go, md5 vérifié) et 516 GTFS de transport.data.gouv.fr (1 825 Mo) dans un MOTIS à part (`itinhero-national`), 10 jeux écartés au contrôle dont 3 qui bloquaient tout l'import (BOM dans `locations.geojson`, fuseau vide, guillemet non refermé). Mémoire : 15,6 Gio au plus haut à l'import, 7,0 Gio au repos, 7,4 Gio en recherche, 16,6 Go sur disque. Laroche-Migennes → Flers le 12/11 : arrivée 10:09 par le métro 6 (issue 0006 corrigée sur le PC). Case « mémoire France entière » cochée. Serveur : 15 tests de `src/donnees/` verts | `docs/decisions/0002-memoire-motis.md`, `docs/specs/08-donnees-nationales.md` §7, `docs/preuves/2026-11-04-donnees-nationales/`, branche `phase-2bis/donnees-nationales` |
 
 ## Trous ouverts
 
 Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 
-- R1 : mémoire de MOTIS (taille du VPS), rouvert pour toute la France (D46).
+- R1 : mémoire de MOTIS mesurée pour toute la France le 2026-11-04 (15,6 Gio à l'import, 7,0 Gio au repos) ; reste à choisir le VPS en conséquence (phase 10).
 - R14 à R17 : covoiturage, GTFS régionaux, pages des numéros, pack hors ligne national (PLAN.md §9).
 - R3 : couverture des cars K941 par le GTFS-RT SNCF.
 - R4 : lieu de rendez-vous à Joigny dans OSM.

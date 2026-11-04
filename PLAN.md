@@ -218,8 +218,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Mesure de la mémoire de MOTIS chargé avec les fixtures (R1).
   Preuve : valeur, méthode et date dans `docs/decisions/`.
   Fait : `docs/decisions/0002-memoire-motis.md`, 2026-11-03 : 64 à 75 Mio au repos, 117 Mio au plus haut pendant les recherches, 60,8 Mo de données. À refaire avec l'OSM de production avant le choix du VPS.
-- [ ] Mesure de la mémoire de MOTIS chargé avec les données de toute la France (D46, R1 rouvert).
+- [x] Mesure de la mémoire de MOTIS chargé avec les données de toute la France (D46, R1 rouvert).
   Preuve : valeur (au repos, pendant les recherches, pendant l'import), méthode et date dans `docs/decisions/0002-memoire-motis.md`.
+  Fait (spec 08, D54) : `docs/decisions/0002-memoire-motis.md`, 2026-11-04 : OSM France entière et 516 GTFS ; 15,6 Gio au plus haut pendant l'import, 7,0 Gio au repos, 7,4 Gio pendant les recherches, 16,6 Go sur disque, import d'environ 15 min.
 - [x] Oracle GTFS : lecteur indépendant de MOTIS qui tire les valeurs attendues des fixtures.
   Preuve : tests unitaires sur stop_times et calendar_dates.
   Fait (spec 05, D43) : `serveur/src/oracle/`, 11 tests verts dans `serveur/src/oracle/oracle.test.ts` (calendar_dates seul, calendar + calendar_dates, ordre des arrêts, heure au-delà de 24:00, BOM et guillemets, sha256 faux refusé, lectures des vraies fixtures), 2026-11-04.
@@ -261,12 +262,14 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] Confirmation demandée quand il y a plusieurs candidats.
   Preuve : test, plus capture.
 
-### Phase 2 bis — Données nationales (D46)
+### Phase 2 bis — Données nationales (D46, avancée par D54)
 
 - [ ] GTFS d'Île-de-France Mobilités et OSM Île-de-France dans MOTIS (versions, tailles, licences et sha256 constatés).
   Preuve : test d'intégration Laroche-Migennes → Flers le 12/11 avec une étape métro ou RER à Paris, arrivée au plus tard à celle de la chaîne TER + K4 tirée par l'oracle (environ 10:01, au lieu de 16:16 : issue 0006).
+  Fait en partie (spec 08) : sur le PC, MOTIS national répond le 12/11 TER 05:03 → Bercy 06:35, métro 6 → Montparnasse, K4 07:14 → Flers 10:01 (recherche manuelle, `docs/specs/08-donnees-nationales.md` §7). Manque : le test d'intégration automatisé avec la valeur tirée par l'oracle.
 - [ ] GTFS régionaux et urbains de transport.data.gouv.fr et OSM France entière.
   Preuve : liste des jeux chargés (URL, date, sha256) dans le manifeste ; test Brienon-sur-Armançon → Wissous.
+  Fait en partie (spec 08) : 516 GTFS et l'OSM France chargés sur le PC, manifeste et rejets dans `docs/preuves/2026-11-04-donnees-nationales/` ; Brienon Mairie → Wissous le 12/11 : car 06:27 → Troyes, train → Paris Est, RER B → Antony, bus 297 → Wissous 10:18 (recherche manuelle). Manque : le test automatisé, et le chargement nocturne (phase 8).
 - [ ] Refus explicite hors des données chargées (étranger, réseau sans données).
   Preuve : test (départ ou arrivée hors données ⇒ « hors de la zone couverte », aucune possibilité affichée).
 - [ ] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
