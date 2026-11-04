@@ -1,7 +1,7 @@
 # Issue 0003 — Build Android : « app.fingerprint » déjà présent, `compressDebugAssets` échoue
 
 > Ouverte le 2026-11-03. État : **close le 2026-11-03.** Analyse approuvée par Brainditech (« ok »), hypothèse confirmée.
-> Branche : `phase-1/fond-carte` (spec 03), juste après `npx expo install --fix` (commit `d48cb1e`).
+> Branche : `phase-1/fond-carte` (spec 03), juste après `npx expo install --fix` (commit `75b04ab`).
 
 ## Reproduction
 
