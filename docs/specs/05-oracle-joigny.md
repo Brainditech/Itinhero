@@ -1,6 +1,6 @@
 # Spec 05 — Oracle GTFS et test Joigny
 
-> Rédigée le 2026-11-03. État : **proposée, en attente de l'approbation de Brainditech.**
+> Rédigée le 2026-11-03. État : **approuvée par Brainditech le 2026-11-04 (« oui vas y »), appliquée (§11).**
 > Branche : `phase-0/joigny`. Une seule PR (D34, point 4).
 > Mise à jour le 2026-11-04 après D45 à D51 : le test reste sur les fixtures figées du couloir (D16) ; l'OSM France entière (D46, qui remplace A13) relève de la phase 2 bis.
 > Décisions liées : D2, D3, D16, D17, D42, D46, A14, A15 ; nouvelles décisions proposées D43 et D44 (§3). Invariants : 13, 14, 15. Risque : R2 (tranché, sert ici).
@@ -137,3 +137,16 @@ Aucun secret, aucune route ajoutée à l'API, aucun port ouvert en plus. Le test
 3. **Claude** : `docker compose up -d` (MOTIS déjà importé, redémarrage rapide) ; enregistre une réponse de `/api/v6/plan` ; vérifie une fois l'hypothèse de §2 (`arriveBy=true` le 12/11) et consigne le résultat ici, au §11.
 4. **Claude** : `npm run test:joigny`, puis les vérifications du critère 9.
 5. **Brainditech** : relit la PR et la fusionne.
+
+## 11. Constats à l'application (2026-11-04)
+
+- `fflate` 0.8.3 et `csv-parse` 7.0.3 installés (`npm install --save-exact`), API lue dans les fichiers de types et la doc de ces versions (`Unzip` + `UnzipInflate` en flux ; analyseur `parse` en flux, `columns`, `bom`).
+- Format des identifiants rendus par MOTIS : arrêt `<jeu>_<stop_id>` (ex. `sncf_StopPoint:OCECar TER-87117994`) ; course `<date>_<heure>_<jeu>_<trip_id>` (ex. `20261112_06:14_sncf_OCESN43281R1187_R:…:737:20261211`). Le test compare donc la fin du `tripId` à `<jeu>_<trip_id>` de l'oracle.
+- **Hypothèse du §2 vérifiée** : `arriveBy=true`, `time=2026-11-12T08:50:00Z` ⇒ 5 possibilités, dont 2 seulement le 12/11 (arrivées 08:26 et 09:24) ; les 3 autres datent du 10/11 et du 11/11. Avec `numItineraries=1`, une seule possibilité, du 12/11. MOTIS élargit bien la fenêtre vers le passé pour atteindre `numItineraries`.
+- Recherche D44 (`time` = minuit de Paris en UTC, `searchWindow` = secondes jusqu'à H − M) : MOTIS renvoie aussi des possibilités hors fenêtre (12/11 : arrivées 10:26, 14:24, 17:24 ; 11/11 : quatre possibilités du 12/11 ; 15/11 : cinq du 16/11). Le filtre de `verdict.ts` les écarte toutes : 2 retenues le 12/11, 0 le 11/11 et le 15/11.
+- MOTIS rend une course Mobigo à `pickup_type=2` (856) en mode `ODM` (transport à la demande).
+- Écarts au §4, mineurs : l'assemblage de l'oracle est dans `serveur/src/oracle/oracle.ts` (classe `Oracle`), les tests de l'oracle sont regroupés dans `oracle.test.ts` ; une fonction `departs(jeu, arret, date)` s'ajoute à `courses`, pour les critères 5 et 6 (« aucun départ avant le rendez-vous »). Elle compte tout passage où la montée est permise, terminus compris : le constat est plus strict, pas plus lâche.
+- Le test Joigny n'utilise pas `beforeAll` : quand la préparation échoue, vitest y marque les tests « skipped ». Chaque test attend la préparation, donc MOTIS injoignable ⇒ 4 tests en échec (essayé avec `MOTIS_URL=http://127.0.0.1:9`).
+- Le test sait échouer : avec `marcheMaxMinutes` à 45, le critère 4 échoue (« marche de 48 min (D42) »), essayé puis remis à 50.
+- Durée : `npm test` du serveur 1 s (39 tests) ; `npm run test:joigny` 41 s, surtout la lecture répétée de `stop_times.txt` SNCF (83 Mo) par l'oracle.
+- Critère 9 : serveur `npx tsc --noEmit`, `npm test` (39), `npm run test:joigny` (4) verts ; racine `npx expo lint`, `npx tsc --noEmit`, `npm test` (25) verts.

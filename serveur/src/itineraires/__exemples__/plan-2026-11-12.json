@@ -1,0 +1,539 @@
+{
+  "_source": "MOTIS v2.11.4, GET /api/v6/plan, 2026-11-04, fixtures du manifeste ; Brienon-sur-Armançon Mairie -> lieu de rendez-vous à Joigny, time=2026-11-11T23:00:00Z, searchWindow=35400, useRoutedTransfers=true. Réduite aux champs du schéma (spec 05).",
+  "itineraries": [
+    {
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T05:26:00Z",
+          "endTime": "2026-11-12T05:27:00Z",
+          "duration": 60,
+          "distance": 0,
+          "from": {
+            "name": "START",
+            "lat": 47.992025,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          }
+        },
+        {
+          "mode": "BUS",
+          "startTime": "2026-11-12T05:27:00Z",
+          "endTime": "2026-11-12T05:37:00Z",
+          "duration": 600,
+          "tripId": "20261112_06:14_sncf_OCESN43281R1187_R:CTE:FR:Line::0A1BAEE0-0123-4813-9261-CCA779B617BF::87683268:87139501:12:737:20261211",
+          "routeShortName": "K941",
+          "from": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Saint-Florentin-Ville",
+            "stopId": "sncf_StopPoint:OCECar TER-87683334",
+            "lat": 48.005065,
+            "lon": 3.741985
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T05:37:00Z",
+          "endTime": "2026-11-12T06:25:00Z",
+          "duration": 2880,
+          "distance": 3431,
+          "from": {
+            "name": "Saint-Florentin-Ville",
+            "stopId": "sncf_StopPoint:OCECar TER-87683334",
+            "lat": 48.005065,
+            "lon": 3.741985
+          },
+          "to": {
+            "name": "Saint-Florentin - Vergigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683318",
+            "lat": 47.981058,
+            "lon": 3.731036
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-11-12T07:50:00Z",
+          "endTime": "2026-11-12T08:09:00Z",
+          "duration": 1140,
+          "tripId": "20261112_06:05_sncf_OCESN17752F1187_F:TER:FR:Line::B10C45A0-C32C-4232-85F2-4BB81B810084::87725689:87686006:15:1028:20261205",
+          "routeShortName": "K7",
+          "from": {
+            "name": "Saint-Florentin - Vergigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683318",
+            "lat": 47.981058,
+            "lon": 3.731036
+          },
+          "to": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T08:09:00Z",
+          "endTime": "2026-11-12T08:24:00Z",
+          "duration": 900,
+          "distance": 1052,
+          "from": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          },
+          "to": {
+            "name": "END",
+            "lat": 47.974911,
+            "lon": 3.385793
+          }
+        }
+      ]
+    },
+    {
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T05:26:00Z",
+          "endTime": "2026-11-12T05:27:00Z",
+          "duration": 60,
+          "distance": 0,
+          "from": {
+            "name": "START",
+            "lat": 47.992025,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          }
+        },
+        {
+          "mode": "BUS",
+          "startTime": "2026-11-12T05:27:00Z",
+          "endTime": "2026-11-12T05:37:00Z",
+          "duration": 600,
+          "tripId": "20261112_06:14_sncf_OCESN43281R1187_R:CTE:FR:Line::0A1BAEE0-0123-4813-9261-CCA779B617BF::87683268:87139501:12:737:20261211",
+          "routeShortName": "K941",
+          "from": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Saint-Florentin-Ville",
+            "stopId": "sncf_StopPoint:OCECar TER-87683334",
+            "lat": 48.005065,
+            "lon": 3.741985
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T05:37:00Z",
+          "endTime": "2026-11-12T06:25:00Z",
+          "duration": 2880,
+          "distance": 3431,
+          "from": {
+            "name": "Saint-Florentin-Ville",
+            "stopId": "sncf_StopPoint:OCECar TER-87683334",
+            "lat": 48.005065,
+            "lon": 3.741985
+          },
+          "to": {
+            "name": "Saint-Florentin - Vergigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683318",
+            "lat": 47.981058,
+            "lon": 3.731036
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-11-12T06:37:00Z",
+          "endTime": "2026-11-12T06:51:00Z",
+          "duration": 840,
+          "tripId": "20261112_06:21_sncf_OCESN891350F1187_F:TER:FR:Line::65138810-3045-45FD-930D-FA56FDE62809::87713040:87683573:10:826:20261211",
+          "routeShortName": "P5",
+          "from": {
+            "name": "Saint-Florentin - Vergigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683318",
+            "lat": 47.981058,
+            "lon": 3.731036
+          },
+          "to": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T06:51:00Z",
+          "endTime": "2026-11-12T06:53:00Z",
+          "duration": 120,
+          "distance": 0,
+          "from": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          },
+          "to": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-11-12T07:03:00Z",
+          "endTime": "2026-11-12T07:11:00Z",
+          "duration": 480,
+          "tripId": "20261112_06:35_sncf_OCESN892300F1187_F:TER:FR:Line::98933BFE-501C-47DD-9424-2313BB0EECFC::87696807:87686667:11:933:20261212",
+          "routeShortName": "P31",
+          "from": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          },
+          "to": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T07:11:00Z",
+          "endTime": "2026-11-12T07:26:00Z",
+          "duration": 900,
+          "distance": 1052,
+          "from": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          },
+          "to": {
+            "name": "END",
+            "lat": 47.974911,
+            "lon": 3.385793
+          }
+        }
+      ]
+    },
+    {
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T08:24:00Z",
+          "endTime": "2026-11-12T08:25:00Z",
+          "duration": 60,
+          "distance": 38,
+          "from": {
+            "name": "START",
+            "lat": 47.992025,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "MAIRIE",
+            "stopId": "mobigo_600326",
+            "lat": 47.991799,
+            "lon": 3.616984
+          }
+        },
+        {
+          "mode": "ODM",
+          "startTime": "2026-11-12T08:25:00Z",
+          "endTime": "2026-11-12T08:45:00Z",
+          "duration": 1200,
+          "tripId": "20261112_09:00_mobigo_1026321-1-1",
+          "routeShortName": "856",
+          "from": {
+            "name": "MAIRIE",
+            "stopId": "mobigo_600326",
+            "lat": 47.991799,
+            "lon": 3.616984
+          },
+          "to": {
+            "name": "MARCHE COUVERT",
+            "stopId": "mobigo_600401",
+            "lat": 47.962491,
+            "lon": 3.51452
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T08:45:00Z",
+          "endTime": "2026-11-12T08:50:00Z",
+          "duration": 300,
+          "distance": 291,
+          "from": {
+            "name": "MARCHE COUVERT",
+            "stopId": "mobigo_600401",
+            "lat": 47.962491,
+            "lon": 3.51452
+          },
+          "to": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-11-12T09:04:00Z",
+          "endTime": "2026-11-12T09:11:00Z",
+          "duration": 420,
+          "tripId": "20261112_09:45_sncf_OCESN891158F1187_F:TER:FR:Line::98933BFE-501C-47DD-9424-2313BB0EECFC::87683573:87686667:5:1134:20261212",
+          "routeShortName": "P31",
+          "from": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          },
+          "to": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T09:11:00Z",
+          "endTime": "2026-11-12T09:26:00Z",
+          "duration": 900,
+          "distance": 1052,
+          "from": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          },
+          "to": {
+            "name": "END",
+            "lat": 47.974911,
+            "lon": 3.385793
+          }
+        }
+      ]
+    },
+    {
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T12:24:00Z",
+          "endTime": "2026-11-12T12:25:00Z",
+          "duration": 60,
+          "distance": 0,
+          "from": {
+            "name": "START",
+            "lat": 47.992025,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          }
+        },
+        {
+          "mode": "BUS",
+          "startTime": "2026-11-12T12:25:00Z",
+          "endTime": "2026-11-12T12:38:00Z",
+          "duration": 780,
+          "tripId": "20261112_12:15_sncf_OCESN43282R1187_R:CTE:FR:Line::0A1BAEE0-0123-4813-9261-CCA779B617BF::87139501:87683268:12:1338:20261211",
+          "routeShortName": "K941",
+          "from": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCECar TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T12:38:00Z",
+          "endTime": "2026-11-12T12:39:00Z",
+          "duration": 60,
+          "distance": 0,
+          "from": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCECar TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          },
+          "to": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-11-12T13:02:00Z",
+          "endTime": "2026-11-12T13:09:00Z",
+          "duration": 420,
+          "tripId": "20261112_13:34_sncf_OCESN892606F1187_F:TER:FR:Line::0A658222-AADD-44FF-B769-75FEE61C107E::87683573:87686667:5:1527:20261211",
+          "routeShortName": "P25",
+          "from": {
+            "name": "Laroche - Migennes",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683268",
+            "lat": 47.960998000000004,
+            "lon": 3.5131910000000004
+          },
+          "to": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T13:09:00Z",
+          "endTime": "2026-11-12T13:24:00Z",
+          "duration": 900,
+          "distance": 1052,
+          "from": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          },
+          "to": {
+            "name": "END",
+            "lat": 47.974911,
+            "lon": 3.385793
+          }
+        }
+      ]
+    },
+    {
+      "legs": [
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T14:25:00Z",
+          "endTime": "2026-11-12T14:26:00Z",
+          "duration": 60,
+          "distance": 0,
+          "from": {
+            "name": "START",
+            "lat": 47.992025,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          }
+        },
+        {
+          "mode": "BUS",
+          "startTime": "2026-11-12T14:26:00Z",
+          "endTime": "2026-11-12T14:36:00Z",
+          "duration": 600,
+          "tripId": "20261112_15:13_sncf_OCESN43287R1187_R:CTE:FR:Line::0A1BAEE0-0123-4813-9261-CCA779B617BF::87683268:87139501:12:1636:20261211",
+          "routeShortName": "K941",
+          "from": {
+            "name": "Brienon-sur-Armançon Mairie",
+            "stopId": "sncf_StopPoint:OCECar TER-87117994",
+            "lat": 47.992025000000005,
+            "lon": 3.617066
+          },
+          "to": {
+            "name": "Saint-Florentin-Ville",
+            "stopId": "sncf_StopPoint:OCECar TER-87683334",
+            "lat": 48.005065,
+            "lon": 3.741985
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T14:36:00Z",
+          "endTime": "2026-11-12T15:24:00Z",
+          "duration": 2880,
+          "distance": 3431,
+          "from": {
+            "name": "Saint-Florentin-Ville",
+            "stopId": "sncf_StopPoint:OCECar TER-87683334",
+            "lat": 48.005065,
+            "lon": 3.741985
+          },
+          "to": {
+            "name": "Saint-Florentin - Vergigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683318",
+            "lat": 47.981058,
+            "lon": 3.731036
+          }
+        },
+        {
+          "mode": "REGIONAL_RAIL",
+          "startTime": "2026-11-12T15:51:00Z",
+          "endTime": "2026-11-12T16:09:00Z",
+          "duration": 1080,
+          "tripId": "20261112_13:16_sncf_OCESN17760F1187_F:TER:FR:Line::B10C45A0-C32C-4232-85F2-4BB81B810084::87723197:87686667:19:1827:20261212",
+          "routeShortName": "K7",
+          "from": {
+            "name": "Saint-Florentin - Vergigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683318",
+            "lat": 47.981058,
+            "lon": 3.731036
+          },
+          "to": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          }
+        },
+        {
+          "mode": "WALK",
+          "startTime": "2026-11-12T16:09:00Z",
+          "endTime": "2026-11-12T16:24:00Z",
+          "duration": 900,
+          "distance": 1052,
+          "from": {
+            "name": "Joigny",
+            "stopId": "sncf_StopPoint:OCETrain TER-87683243",
+            "lat": 47.973855,
+            "lon": 3.392997
+          },
+          "to": {
+            "name": "END",
+            "lat": 47.974911,
+            "lon": 3.385793
+          }
+        }
+      ]
+    }
+  ]
+}
