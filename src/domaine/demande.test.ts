@@ -53,6 +53,11 @@ describe("validerFormulaire", () => {
     expect(erreurs({ lieu: "   " }).lieu).toBe(MESSAGES.lieuVide);
   });
 
+  it("lieu d'un seul caractère ⇒ erreur (minimum de /v1/lieux, spec 10)", () => {
+    expect(erreurs({ lieu: " a " }).lieu).toBe(MESSAGES.lieuTropCourt);
+    expect(erreurs({ lieu: "Ay" }).lieu).toBeUndefined();
+  });
+
   it("lieu de plus de 200 caractères ⇒ erreur", () => {
     expect(erreurs({ lieu: "a".repeat(200) }).lieu).toBeUndefined();
     expect(erreurs({ lieu: "a".repeat(201) }).lieu).toBe(MESSAGES.lieuTropLong);

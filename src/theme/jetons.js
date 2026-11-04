@@ -21,6 +21,12 @@ const couleurs = {
   "desactive-fond": "#E4E6EC",
   "desactive-texte": "#8A90A0",
   erreur: "#B91C1C",
+  // États (design-system.md, « États ») : recopiés pour la spec 10, valeurs inchangées.
+  possible: "#15803D", // « À l'heure », variante sur blanc
+  avertissement: "#B45309", // marche > 15 min
+  "prevu-texte": "#3F4654", // horaire prévu, sans suivi en direct
+  "prevu-teinte": "#EEF0F3",
+  "prix-texte": "#374151", // prix non publié
 };
 
 const polices = {

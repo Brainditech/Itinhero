@@ -16,6 +16,8 @@ function dateExiste(texte: string): boolean {
 
 export const MARGE_MAX = 120;
 export const LIEU_MAX = 200;
+/** `GET /v1/lieux` demande au moins 2 caractères (spec 09 §4.4). */
+export const LIEU_MIN_RECHERCHE = 2;
 
 export const schemaDemande = z.object({
   lieu_texte: z.string().trim().min(1).max(LIEU_MAX),
@@ -44,6 +46,7 @@ export type ResultatFormulaire = { ok: true; demande: Demande } | { ok: false; e
 export const MESSAGES = {
   lieuVide: "Indiquez le lieu du rendez-vous.",
   lieuTropLong: `Le lieu tient en ${LIEU_MAX} caractères au plus.`,
+  lieuTropCourt: "Indiquez au moins 2 caractères.",
   datePassee: "Cette date est passée.",
   dateInvalide: "Choisissez une date.",
   heurePassee: "Cette heure est passée.",
@@ -77,6 +80,7 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   const lieu = champs.lieu.trim();
   if (lieu === "") erreurs.lieu = MESSAGES.lieuVide;
   else if (lieu.length > LIEU_MAX) erreurs.lieu = MESSAGES.lieuTropLong;
+  else if (lieu.length < LIEU_MIN_RECHERCHE) erreurs.lieu = MESSAGES.lieuTropCourt; // minimum de GET /v1/lieux (spec 10)
 
   // Les deux chaînes sont au format AAAA-MM-JJ / HH:MM : l'ordre alphabétique est l'ordre du temps.
   const dateValide = dateExiste(champs.date);
@@ -98,6 +102,22 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   if (Object.keys(erreurs).length > 0) return { ok: false, erreurs };
   const demande = schemaDemande.parse({ lieu_texte: lieu, date: champs.date, heure: champs.heure, sens: champs.sens, marge });
   return { ok: true, demande };
+}
+
+/** Demande du formulaire ⇒ corps de `POST /v1/itineraires` (spec 09 §4.5) ; rien d'autre ne change. */
+export function versRequeteItineraires(
+  demande: Demande,
+  depart: { lat: number; lon: number },
+  arrivee: { lat: number; lon: number },
+) {
+  return {
+    depart: { lat: depart.lat, lon: depart.lon },
+    arrivee: { lat: arrivee.lat, lon: arrivee.lon },
+    date: demande.date,
+    heure: demande.heure,
+    sens: demande.sens === "arriver_avant" ? ("arriver" as const) : ("partir" as const),
+    marge: demande.marge,
+  };
 }
 
 const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
