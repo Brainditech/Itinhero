@@ -7,7 +7,7 @@ const le12 = (hhmm: string) => new Date(`2026-11-12T${hhmm}:00+01:00`);
 
 describe("verdict", () => {
   it("possible quand l'arrivée est pile à rendez-vous moins la marge", () => {
-    expect(verdict(le12("09:50"), le12("10:00"), 10)).toBe("possible");
+    expect(verdict(le12("09:50"), le12("10:00"), 10)).toBe("impossible") // ESSAI CI ROUGE (spec 06, critère 2) : jamais fusionner;
   });
 
   it("impossible une minute après rendez-vous moins la marge", () => {
