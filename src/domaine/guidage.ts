@@ -367,8 +367,10 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
     const e = g.etape;
 
     if (e.mode === "marche") {
-      // Sans position (signal perdu), on reste où on était, pas au début de l'étape.
-      const abscisse = proj?.abscisse ?? etat.abscisse;
+      // Sans position (signal perdu), on reste où on était, pas au début de l'étape. Loin du tracé (plus de
+      // 3 × ECART_METRES), la projection ne dit rien de l'avancée : à 17 km, elle tombait au bout et affichait
+      // « Vous y êtes » (issue 0022). `etat.abscisse` ne prend la projection que près du tracé (plus haut).
+      const abscisse = etat.abscisse;
       const restante = Math.max(0, g.ligne.longueur - abscisse);
       // L'arrivée demande d'être au bout du tracé et près de lui : loin à côté, c'est un écart.
       if (proj && restante < FIN_MARCHE_METRES && proj.ecart <= ECART_METRES) {
