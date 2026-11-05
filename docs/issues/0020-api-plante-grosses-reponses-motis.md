@@ -1,7 +1,7 @@
 # Issue 0020 — L'API plante sur les grosses réponses de MOTIS : « Le serveur ne répond pas »
 
 - **Date** : 2026-11-05
-- **État** : **analyse, en attente d'approbation par Brainditech.** Rien n'est corrigé.
+- **État** : **corrigée** le 2026-11-05 (correction approuvée par Brainditech : « corrige ça de manière définitive », D89).
 - **Branche** : `issue/0020-api-plante-grosses-reponses-motis`
 
 ## 1. Reproduction
@@ -34,7 +34,7 @@ L'erreur sort de undici, le client HTTP de `fetch` dans Node, hors de toute prom
 - **Reproduit sans l'API**, dans l'image du serveur, sur le réseau Docker de MOTIS : 3 appels `fetch` en parallèle aux trois recherches de ce trajet, `await reponse.json()` ⇒ même `AssertionError`, dès le premier tour.
 - **Contre-essai** : les mêmes 3 appels lus par `http.get` (module `node:http`) ⇒ 5 tours sur 5 sans plantage (28, 57 et 25 itinéraires lus).
 
-## 4. Correction proposée (après approbation)
+## 4. Correction (approuvée, D89)
 
 Lire MOTIS par `node:http` au lieu de `fetch`, dans la seule fonction qui l'appelle : `lireMotis` ([serveur/src/itineraires/motis-plan.ts](../../serveur/src/itineraires/motis-plan.ts)), utilisée par la recherche, le géocodeur MOTIS et la course. Même contrat qu'aujourd'hui : délai (`delaiMs`), `ErreurMotis` sans l'URL complète (invariant 10), JSON validé ensuite par Zod (invariant 9). `sondeMotis` passe aussi par là (le corps est lu, puis jeté).
 
@@ -49,3 +49,15 @@ Options écartées :
 ## 5. Test de régression prévu
 
 `serveur/src/itineraires/motis-http.test.ts` (nouveau) : un petit serveur `node:http` local qui répond comme MOTIS (sans `Content-Length` ni `chunked`, 5 Mo de JSON, connexion fermée à la fin), lu 3 fois en parallèle par `lireMotis`. Le test doit faire planter le processus de test sur le code actuel (`fetch`), et passer après. Plus le contre-essai du §3 rejoué par Claude, puis la recherche du §1 refaite sur le téléphone.
+
+Écart avec ce plan, constaté en écrivant le test : **aucun faux serveur ne fait planter `fetch`**, même en rejouant les octets exacts enregistrés de MOTIS (en-têtes compris), dans un autre conteneur, avec ou sans délai, en parallèle ou non, ni avec un fil principal occupé pendant l'arrivée du corps. Un simple relais TCP en Node branché sur le vrai MOTIS, lui, plante dès le premier tour, et sur le même relais branché sur le faux serveur, rien. Le déclencheur tient donc au comportement TCP de MOTIS, pas aux octets. De plus, le Node de l'hôte (22.14.0, undici 6.21.1) ne plante pas même contre le vrai MOTIS : le défaut est celui d'undici 6.29.1 (Node 22.23.4, image du serveur et CI). Le test `motis-http.test.ts` fixe donc le contrat de `lireMotis` sur des réponses de la forme de MOTIS ; la preuve du plantage et de sa disparition est faite contre le vrai MOTIS (§6).
+
+## 6. Correction et preuves
+
+- `serveur/src/itineraires/motis-http.ts` (nouveau) : `lireHttp(url, delaiMs)` lit le corps entier par `node:http` ou `node:https` ; le délai couvre toute la lecture ; un corps interrompu (délai, connexion coupée avant la fin) est rejeté, jamais rendu tronqué.
+- `lireMotis` (`motis-plan.ts`) et `sondeMotis` (`motis.ts`) passent par `lireHttp`. Mêmes messages d'`ErreurMotis`, sans la requête de l'URL (invariant 10). Les outils `audit/quais.ts` et `comparaison/consignes-marches.ts`, qui lisaient aussi MOTIS par `fetch`, passent par `lireMotis`. Il ne reste aucun `fetch` vers MOTIS ni l'IGN (`donnees/telecharger.ts` télécharge les jeux de données, pas MOTIS).
+- Test `serveur/src/itineraires/motis-http.test.ts` (6 tests) : 3 corps de 5 Mo sans longueur, terminés par la fermeture, lus en parallèle 5 tours ; statut 500 ; JSON illisible ; serveur absent ; aucune réponse avant le délai ; corps commencé puis bloqué. Serveur : 209 tests verts, types verts.
+- **Avant / après contre le vrai MOTIS** (image `node:22.23.4-alpine3.24`, réseau `itinhero-national_default`, les 3 recherches du trajet du §1 : sans taxi, taxi au début, taxi à la fin) : avec `fetch`, `AssertionError` dès le premier tour (une seule recherche avec taxi suffit) ; avec `lireMotis` compilé, 10 tours sur 10 (13, 22 et 13 itinéraires).
+- **Dans le conteneur de l'API reconstruit** (`docker compose -p itinhero-national … up -d --build --no-deps api`) : `moteurMotis(…).plan` sur les 3 recherches, 5 tours ⇒ 16, 28 et 13 itinéraires à chaque tour, `RestartCount` 0.
+- IGN par `node:https` : recherche « basilique saint-denis » (6 résultats) et adresse inverse (1 résultat) lues.
+- Reste : refaire la recherche du §1 sur le téléphone (Brainditech).

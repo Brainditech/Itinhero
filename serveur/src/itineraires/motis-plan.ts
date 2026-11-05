@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { heureParis, instantParis, type HeureParis } from "../temps.js";
 import type { Morceau } from "./consignes.js";
+import { ErreurLecture, lireHttp, type ReponseBrute } from "./motis-http.js";
 
 /**
  * Appel de `/api/v6/plan` de MOTIS v2.11.4 (D58, qui révise D44 et D57) :
@@ -201,15 +202,19 @@ export class ErreurMotis extends Error {
  * elle porte des coordonnées ou le texte d'un lieu (invariant 10).
  */
 export async function lireMotis(url: URL, delaiMs: number): Promise<unknown> {
-  let reponse: Response;
+  let reponse: ReponseBrute;
   try {
-    reponse = await fetch(url, { signal: AbortSignal.timeout(delaiMs) });
+    // Jamais `fetch` : il fait planter le processus sur les réponses de MOTIS (issue 0020).
+    reponse = await lireHttp(url, delaiMs);
   } catch (e) {
-    throw new ErreurMotis(`MOTIS injoignable (${url.origin}${url.pathname}) : ${(e as Error).name}`);
+    const raison = e instanceof ErreurLecture ? e.message : ((e as NodeJS.ErrnoException).code ?? (e as Error).name);
+    throw new ErreurMotis(`MOTIS injoignable (${url.origin}${url.pathname}) : ${raison}`);
   }
-  if (!reponse.ok) throw new ErreurMotis(`MOTIS a répondu ${reponse.status} à ${url.pathname}`);
+  if (reponse.statut < 200 || reponse.statut > 299) {
+    throw new ErreurMotis(`MOTIS a répondu ${reponse.statut} à ${url.pathname}`);
+  }
   try {
-    return await reponse.json();
+    return JSON.parse(reponse.corps.toString("utf8"));
   } catch {
     throw new ErreurMotis(`MOTIS a rendu un JSON illisible à ${url.pathname}`);
   }
