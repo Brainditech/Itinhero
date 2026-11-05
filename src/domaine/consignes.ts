@@ -57,7 +57,11 @@ export function phraseConsigne(c: Consigne, destination: string): string {
     case "ascenseur":
       return `Prenez l'ascenseur${niveau(c)}`;
     case "arrivee": {
-      const lieu = destination.charAt(0).toUpperCase() + destination.slice(1);
+      // Sujet de la phrase, avec son article : « L'arrêt Mairie est devant vous », « La gare de Joigny… » (D83).
+      const type = /^(arrêt|gare|station) /i.exec(destination)?.[1]?.toLowerCase();
+      const nom = type ? destination.charAt(0).toLowerCase() + destination.slice(1) : destination;
+      const sujet = type === "arrêt" ? `l'${nom}` : type ? `la ${nom}` : nom;
+      const lieu = sujet.charAt(0).toUpperCase() + sujet.slice(1);
       if (c.cote_arrivee === "gauche") return `${lieu} est sur votre gauche`;
       if (c.cote_arrivee === "droite") return `${lieu} est sur votre droite`;
       return `${lieu} est devant vous`;

@@ -26,7 +26,9 @@ describe("phrases des consignes (spec 11, §4.2)", () => {
     expect(phraseConsigne(c({ manoeuvre: "arrivee", cote_arrivee: "gauche" }), "tribunal administratif")).toBe(
       "Tribunal administratif est sur votre gauche",
     );
-    expect(phraseConsigne(c({ manoeuvre: "arrivee", cote_arrivee: "devant" }), "arrêt Mairie")).toBe("Arrêt Mairie est devant vous");
+    expect(phraseConsigne(c({ manoeuvre: "arrivee", cote_arrivee: "devant" }), "arrêt Mairie")).toBe("L'arrêt Mairie est devant vous");
+    expect(phraseConsigne(c({ manoeuvre: "arrivee", cote_arrivee: "droite" }), "Gare de Joigny")).toBe("La gare de Joigny est sur votre droite");
+    expect(phraseConsigne(c({ manoeuvre: "arrivee", cote_arrivee: "devant" }), "station Godrans")).toBe("La station Godrans est devant vous");
   });
   it("désignations et libellés", () => {
     expect(designationRue("Rue de l'Est")).toBe("rue de l'Est");

@@ -57,6 +57,7 @@ Fausse piste écartée : l'écart au chemin semblait ne jamais se déclencher en
 - Vu en revérifiant : « Arrêter le guidage » ne fermait pas un guidage sans écran derrière lui (ouvert par un lien) ; il revient alors au Résultat. Les deux erreurs « multiple navigation containers » vues pendant l'essai venaient de ma manipulation (activité fermée par « Retour », puis rouverte par un lien sur le même moteur JS), pas du code ; disparues après rechargement.
 - Sixième tour, 2 remarques corrigées : élision et article contracté pour un nom dit tel quel (« d'Auxerre centre », « du Creusot », « Jusqu'aux Ulis » ; pas d'élision devant « h », souvent aspiré dans les noms de lieux) ; commentaire remis sur sa ligne.
 - Septième tour, 1 remarque corrigée : l'annonce vocale « Dans 150 m, arrivée à l'arrêt Mairie » prend son article (elle disait « arrivée à arrêt Mairie »).
+- Huitième tour, 1 remarque corrigée : la consigne d'arrivée (bandeau, voix, « Voir le chemin ») prend son article sujet : « L'arrêt Mairie est devant vous », « La gare de Joigny est sur votre droite ».
 
 ## 4. Tests de régression
 
