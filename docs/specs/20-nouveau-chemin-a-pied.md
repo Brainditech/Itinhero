@@ -1,7 +1,7 @@
 # Spec 20 — Perdu pendant une marche : un nouveau chemin à pied, le reste du trajet ne change pas
 
 - **Date** : 2026-11-05
-- **État** : **approuvée** par Brainditech le 2026-11-05 (« implémente ton étape 2 » : 2 min d'avance, un seul bouton). Règle : D96. Code appliqué ; critère 4 (téléphone) à constater.
+- **État** : **approuvée** par Brainditech le 2026-11-05 (« implémente ton étape 2 » : 2 min d'avance, un seul bouton). Règle : D96. **Appliquée** (PR #33) ; critère 4 constaté par adb le 2026-11-05.
 - **Branche** : spec seule sur `guidage/nouveau-chemin-a-pied` (PR #32, fusionnée avec la PR #31) ; code sur `phase-4/nouveau-chemin-a-pied`, partie de `main`.
 - **Case de PLAN.md** : phase 4, « Perdu pendant une marche : nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé quand le véhicule suivant reste à portée (D96, spec 20) ».
 - **Invariants** : 2 (l'app ne parle qu'à l'API Itinhero), 4 (la nouvelle marche a sa source), 6 (rien n'est gardé sur le serveur), 8 (clé d'appareil), 9 (entrée validée par Zod), 10 (aucune coordonnée dans les journaux ni dans Sentry).
@@ -87,7 +87,11 @@ Le 2026-11-05, à l'application :
 - **Position envoyée** : la dernière position du suivi si elle a moins de 10 s, sinon `lirePosition`. La même position sert à la recherche complète qui suit, sans seconde lecture (`recalculer(recherche, trajet, ici)`).
 - **Pendant la demande**, le guidage écrit « Recherche d'un chemin à pied… ». « Nouveau chemin » reste écrit 10 s dans la carte du bas. Si l'étape a fini entre-temps (« Je suis arrivé »), la réponse est ignorée.
 - **Tests** : 12 tests de route (`serveur/src/routes/marche.test.ts`), 2 tests nationaux (`marche.national.test.ts`, verts sur le MOTIS national), 11 tests du domaine (`src/domaine/nouveau-chemin.test.ts`), 2 tests du client (`api.test.ts`). Vérifié : avec une marge de 0 au lieu de 2 min, et sans l'oubli des annonces, 3 tests du domaine échouent.
-- **Critère 4** (téléphone, adb) : à constater.
+- **Critère 4** (téléphone, adb, 2026-11-05, captures dans `docs/screenshots/spec-20/`, non versionnées) : recherche Mairie de Joigny → gare de Sens, jeudi 12/11 avant 10:00 ; première possibilité : 18 min de marche jusqu'à la gare de Joigny, puis le TER K7 de 07:10.
+  - **Train à portée** (`sim=0,800,200,06:50`, écart de 190 m) : « Recalculer depuis ici » laisse le guidage ouvert, écrit « Nouveau chemin » et montre le nouveau tracé : 10 min, 600 m jusqu'à la gare de Joigny, « En avance de 10 min ». L'arrivée reste à 07:29 (le TER K7 est gardé). Vingt secondes plus tard, pas de nouvel écart ; « Nouveau chemin » s'est effacé (`11-nouveau-chemin.png`).
+  - **Train plus à portée** (`sim=0,300,200,07:02`, « TER K7 dans 8 min ») : « Le TER K7 de 07:10 n'est plus à portée : nouvelle recherche… », puis le Résultat (`13-plus-a-portee.png`, filmé : le message reste environ 1 s). En simulation, la recherche complète part du vrai jeudi 12/11 et non de l'heure simulée : elle propose donc encore le TER K7, ce qui est attendu.
+  - **17 km** (position réelle, à Brienon) : « Aucun chemin à pied : nouvelle recherche… », puis le Résultat : taxi 12 min et TER K7 (`15-aucun-chemin-17km.png`, `16-resultat-17km.png`).
+  - Avant l'essai, il a fallu reconstruire le conteneur de l'API (`docker compose … up -d --build --no-deps api`) : l'ancien répondait 404 à `/v1/marche`.
 
 ## 7. Ce qui n'est pas fait ici
 
