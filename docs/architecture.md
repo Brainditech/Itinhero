@@ -55,6 +55,7 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 | `POST /v1/assistant` | demande + réglages en cours → action ou identifiant de conseil par Claude, sous limite et plafond (D31) |
 | `GET /v1/lieux?q=&proche=` | candidats de l'IGN et de MOTIS classés ensemble (D60), doublons écartés ; `transport` d'un arrêt ou d'une gare (D92) |
 | `POST /v1/itineraires` | verdict + possibilités (segments sourcés, tous les tarifs applicables) ; avec l'heure de fin du rendez-vous, le retour lié (D47) ; taxi comme étape (D48) ; covoiturage (D50) |
+| `POST /v1/marche` | position et fin de la marche en cours → nouveau chemin à pied d'au plus 1 h (MOTIS `plan` sans transport), de même forme qu'une étape, ou null (D96) |
 | `POST /v1/numeros` | lieu et type (taxi, transport à la demande) → numéros des fiches validées, ou trouvés sur une page publique vérifiée par le serveur, « non vérifié » (D49) |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) |
 | `POST /v1/etat-courses` | état temps réel de trip_ids pour une date |

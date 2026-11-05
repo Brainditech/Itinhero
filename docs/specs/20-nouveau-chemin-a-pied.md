@@ -1,8 +1,8 @@
 # Spec 20 — Perdu pendant une marche : un nouveau chemin à pied, le reste du trajet ne change pas
 
 - **Date** : 2026-11-05
-- **État** : **à approuver** par Brainditech. Règle proposée : D96.
-- **Branche** : `guidage/nouveau-chemin-a-pied`, empilée sur `guidage/ecart-loin-immediat` (PR #31, D95) ; rebasée sur `main` dès que la PR #31 est fusionnée.
+- **État** : **approuvée** par Brainditech le 2026-11-05 (« implémente ton étape 2 » : 2 min d'avance, un seul bouton). Règle : D96. Code appliqué ; critère 4 (téléphone) à constater.
+- **Branche** : spec seule sur `guidage/nouveau-chemin-a-pied` (PR #32, fusionnée avec la PR #31) ; code sur `phase-4/nouveau-chemin-a-pied`, partie de `main`.
 - **Case de PLAN.md** : phase 4, « Perdu pendant une marche : nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé quand le véhicule suivant reste à portée (D96, spec 20) ».
 - **Invariants** : 2 (l'app ne parle qu'à l'API Itinhero), 4 (la nouvelle marche a sa source), 6 (rien n'est gardé sur le serveur), 8 (clé d'appareil), 9 (entrée validée par Zod), 10 (aucune coordonnée dans les journaux ni dans Sentry).
 
@@ -78,7 +78,16 @@ Hors marche (bus raté à l'arrêt, `rate`), rien ne change : recherche complèt
 
 ## 6. Constats
 
-À remplir à l'application.
+Le 2026-11-05, à l'application :
+
+- **MOTIS** (critère 3) : `plan` sans transport rend la marche dans `direct`, sans `itineraries`. `maxDirectTime` est respecté : depuis la gare de Joigny, 55 min de marche rendues avec 3600, rien à 73 min ; avec 7200, une marche de 90 min est rendue. `street_routing_max_direct_seconds` n'est pas dans `motis/config.yml` et sa valeur par défaut dépasse donc 2 h : c'est `maxDirectTime=3600` qui limite à 1 h. Depuis Brienon (17 km), `direct` est vide ⇒ `marche: null`.
+- **Réponse enregistrée** pour les tests : `serveur/src/itineraires/__exemples__/marche-joigny-gare-2026-11-05.json`, 300 m au nord de la gare de Joigny ⇒ la gare, 342 s, 389 m, 16 morceaux (dont deux escaliers).
+- **Une marche sans source n'est pas rendue** : sans carte OSM dans le manifeste, `marche: null` (invariant 4), comme une possibilité retirée par `/v1/itineraires`.
+- **Signature** : `remplacerMarche(parcours, etat, k, marche, maintenant)` rend le parcours et l'état. La nouvelle marche part de `maintenant` (l'heure simulée en développement), garde la fin de l'étape d'origine (nom, type, lieu) et prend « Votre position » pour départ. La durée retenue est celle des instants rendus par le serveur, pas les minutes arrondies.
+- **Position envoyée** : la dernière position du suivi si elle a moins de 10 s, sinon `lirePosition`. La même position sert à la recherche complète qui suit, sans seconde lecture (`recalculer(recherche, trajet, ici)`).
+- **Pendant la demande**, le guidage écrit « Recherche d'un chemin à pied… ». « Nouveau chemin » reste écrit 10 s dans la carte du bas. Si l'étape a fini entre-temps (« Je suis arrivé »), la réponse est ignorée.
+- **Tests** : 12 tests de route (`serveur/src/routes/marche.test.ts`), 2 tests nationaux (`marche.national.test.ts`, verts sur le MOTIS national), 11 tests du domaine (`src/domaine/nouveau-chemin.test.ts`), 2 tests du client (`api.test.ts`). Vérifié : avec une marge de 0 au lieu de 2 min, et sans l'oubli des annonces, 3 tests du domaine échouent.
+- **Critère 4** (téléphone, adb) : à constater.
 
 ## 7. Ce qui n'est pas fait ici
 

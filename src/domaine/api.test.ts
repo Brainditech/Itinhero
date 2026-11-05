@@ -19,6 +19,32 @@ const REQUETE = {
   marge: 0,
 };
 
+describe("clientApi.marche (spec 20)", () => {
+  const de = { lat: 47.97636, lon: 3.39367 };
+  const a = { lat: 47.973656, lon: 3.393667 };
+  const etape = REPONSE_CHATELET.possibilites[0]!.etapes[0]!; // une marche
+
+  it("POST JSON des deux points, la marche rendue ; null quand il n'y en a pas", async () => {
+    const fetch = repondre(200, { marche: etape });
+    const r = await clientApi({ urlApi: URL_API, cle: CLE, fetch }).marche({ ...de, nom: "secret" } as typeof de, a);
+    expect(r).toMatchObject({ etat: "ok", donnees: { mode: "marche" } });
+    const [url, init] = fetch.mock.calls[0]!;
+    expect(url).toBe("http://localhost:3000/v1/marche");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toMatchObject({ authorization: `Bearer ${CLE}` });
+    expect(JSON.parse(init.body as string)).toEqual({ de, a }); // rien d'autre que les deux points
+    const vide = await clientApi({ urlApi: URL_API, cle: CLE, fetch: repondre(200, { marche: null }) }).marche(de, a);
+    expect(vide).toEqual({ etat: "ok", donnees: null });
+  });
+
+  it("réponse non conforme ⇒ erreur_serveur ; 503 ⇒ erreur_serveur", async () => {
+    expect(await clientApi({ urlApi: URL_API, cle: CLE, fetch: repondre(200, { marche: { mode: "marche" } }) }).marche(de, a)).toEqual({
+      etat: "erreur_serveur",
+    });
+    expect(await clientApi({ urlApi: URL_API, cle: CLE, fetch: repondre(503, {}) }).marche(de, a)).toEqual({ etat: "erreur_serveur" });
+  });
+});
+
 describe("clientApi (spec 10, critère 2)", () => {
   it("itinéraires : 200 conforme ⇒ ok, avec la clé, en POST JSON", async () => {
     const fetch = repondre(200, REPONSE_CHATELET);

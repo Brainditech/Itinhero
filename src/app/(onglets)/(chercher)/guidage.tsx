@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Linking, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
@@ -11,7 +11,7 @@ import { CarteGuidage } from "@/composants/CarteGuidage";
 import { CARTE } from "@/composants/carte-module";
 import { symboleManoeuvre } from "@/composants/Fleches";
 import { iconeMode } from "@/composants/icones-mode";
-import type { Point } from "@/domaine/api";
+import { messageEchec, type Point } from "@/domaine/api";
 import { phraseConsigne } from "@/domaine/consignes";
 import {
   descendu,
@@ -35,12 +35,16 @@ import {
   vehiculeCourt,
   vehiculeMinuscule,
   type EtatGuidage,
+  type Parcours,
   type Releve,
   type Situation,
   type Statut,
 } from "@/domaine/guidage";
+import { choisirApresEcart, NOUVEAU_CHEMIN, phraseNouveauChemin, phraseNouvelleRecherche, remplacerMarche } from "@/domaine/nouveau-chemin";
 import { formaterDistance, jetonMode, possibiliteDe, trajetDuParametre } from "@/domaine/resultat";
 import { useDeroulerRecherche, useRecherche } from "@/recherche";
+import { useClient, useSession } from "@/session";
+import { lirePosition, MESSAGES_POSITION_GUIDAGE } from "@/stockage/position";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 import { dire, taire, vibrer } from "@/voix";
 
@@ -48,7 +52,8 @@ import { dire, taire, vibrer } from "@/voix";
  * Guidage en direct (spec 12, maquettes `design/guidage/01` à `05`) : la carte suit la position,
  * le bandeau du haut dit la prochaine manœuvre, le bas dit l'arrivée et l'avance sur l'horaire prévu.
  * Position au premier plan seulement, écran allumé (D73) ; voix d'Android (D74) ; écart au chemin (D75).
- * La position ne quitte jamais le téléphone, sauf pour « Recalculer depuis ici » (§7).
+ * La position ne quitte jamais le téléphone, sauf pour « Recalculer depuis ici » (§7) : pendant une marche,
+ * d'abord un nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé (spec 20, D96).
  */
 
 // Paramètre `sim` (développement seulement) : « étape,mètres,écart,HH:MM » ⇒ position et heure simulées,
@@ -99,6 +104,8 @@ function useSuiviPosition(active: boolean, ref: { current: Releve | null }) {
 const AIR = 56;
 /** Sans position depuis 10 s (permission refusée, pas de signal en gare) : « Étape suivante » apparaît. */
 const SANS_POSITION_MS = 10_000;
+/** « Nouveau chemin » reste écrit 10 s dans la carte du bas (spec 20). */
+const NOUVEAU_CHEMIN_MS = 10_000;
 
 export default function Guidage() {
   useKeepAwake();
@@ -106,11 +113,16 @@ export default function Guidage() {
   const params = useLocalSearchParams<{ i?: string; e?: string; t?: string; sim?: string }>();
   const { recherche } = useRecherche();
   const { recalculer: rechercherDepuisIci } = useDeroulerRecherche();
+  const client = useClient();
+  const { oublierCle } = useSession();
   // Le trajet guidé est figé à l'ouverture : la réponse d'un recalcul ne le remplace pas pendant que l'écran se ferme.
   // `t=retour` : une possibilité du retour planifié (spec 19).
   const [trajet] = useState(() => trajetDuParametre(params.t));
   const [possibilite] = useState(() => possibiliteDe(recherche?.reponse, trajet, Number(params.i ?? 0)));
-  const parcours = useMemo(() => (possibilite ? preparer(possibilite) : null), [possibilite]);
+  // Le parcours guidé change quand une marche est remplacée par un nouveau chemin (spec 20) ; le moteur le lit
+  // dans `parcoursRef` pour ne pas repartir de zéro. Le Résultat et la recherche gardée ne changent pas.
+  const [parcours, setParcours] = useState<Parcours | null>(() => (possibilite ? preparer(possibilite) : null));
+  const parcoursRef = useRef(parcours);
   const sim = __DEV__ ? (params.sim ?? null) : null;
   // « Me guider » d'une fenêtre d'étape (spec 17, D86) : le guidage part de cette étape.
   const [etapeDepart] = useState(() => params.e);
@@ -130,22 +142,33 @@ export default function Guidage() {
   const etatRef = useRef<EtatGuidage>(ETAT_INITIAL);
   const pasRef = useRef<() => void>(() => {});
   const enRecalculRef = useRef(false);
+  // Heure du guidage (simulée en développement), dernière position vue, et position simulée figée après un
+  // nouveau chemin (essai par adb : la personne simulée reste où elle était, sur le début du nouveau tracé).
+  const horlogeRef = useRef<() => number>(() => Date.now());
+  const iciRef = useRef<Point | null>(null);
+  const simFigeeRef = useRef<Point | null>(null);
+  const effacerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useSuiviPosition(sim === null, positionRef);
 
   // Moteur du guidage : à chaque seconde, la position et l'heure donnent la situation ;
   // les annonces se disent et la vibration part ici, une seule fois chacune.
   useEffect(() => {
-    if (!parcours || !possibilite) return;
+    const depart = parcoursRef.current;
+    if (!depart || !possibilite) return;
     const simulation = lireSimulation(sim ?? undefined);
     const debut = Date.now();
-    etatRef.current = simulation ? { ...ETAT_INITIAL, etape: simulation.etape } : etatDepart(etapeDepart, parcours.etapes.length);
+    etatRef.current = simulation ? { ...ETAT_INITIAL, etape: simulation.etape } : etatDepart(etapeDepart, depart.etapes.length);
+    const horloge = () => (simulation ? instantDuTrajet(possibilite, simulation.heure) + (Date.now() - debut) : Date.now());
+    horlogeRef.current = horloge;
     let sansPositionDepuis: number | null = null;
     const pas = () => {
-      const maintenant = simulation ? instantDuTrajet(possibilite, simulation.heure) + (Date.now() - debut) : Date.now();
+      const courant = parcoursRef.current ?? depart;
+      const maintenant = horloge();
       const ici = simulation
-        ? positionSimulee(parcours, simulation.etape, simulation.metres, simulation.ecart)
+        ? (simFigeeRef.current ?? positionSimulee(courant, simulation.etape, simulation.metres, simulation.ecart))
         : positionFraiche(positionRef.current, Date.now());
-      const s = situer(parcours, etatRef.current, ici, maintenant);
+      iciRef.current = ici;
+      const s = situer(courant, etatRef.current, ici, maintenant);
       etatRef.current = s.etat;
       // Toutes les phrases du même instant, dans l'ordre, en une seule annonce : aucune n'est coupée par la suivante.
       if (voixRef.current && s.annonces.length > 0) dire(s.annonces.join(". "));
@@ -163,8 +186,14 @@ export default function Guidage() {
       clearTimeout(premier);
       clearInterval(id);
     };
-  }, [parcours, possibilite, sim, etapeDepart]);
-  useEffect(() => () => taire(), []);
+  }, [possibilite, sim, etapeDepart]);
+  useEffect(
+    () => () => {
+      taire();
+      if (effacerRef.current) clearTimeout(effacerRef.current);
+    },
+    [],
+  );
 
   if (!possibilite || !parcours || !recherche) return <Redirect href="/resultat" />;
   if (!situation) return <View className="flex-1 bg-surface" />;
@@ -175,15 +204,78 @@ export default function Guidage() {
     if (router.canGoBack()) router.back();
     else router.replace("/resultat");
   };
+  /** Position à envoyer : la simulée en développement, sinon la dernière du suivi, sinon une lecture neuve. */
+  const positionPourRecalcul = async (): Promise<Point | string> => {
+    if (sim !== null && iciRef.current) return iciRef.current;
+    const fraiche = positionFraiche(positionRef.current, Date.now());
+    if (fraiche) return fraiche;
+    const lue = await lirePosition();
+    return lue.etat === "ok" ? lue.point : MESSAGES_POSITION_GUIDAGE[lue.etat];
+  };
+  /**
+   * Marche avec écart (spec 20, D96) : chemin à pied jusqu'à la fin de la marche. S'il suffit, le guidage reste
+   * ouvert et seule la marche change. Rend « fait » (rien d'autre à faire), ou la raison de la recherche complète.
+   */
+  const essayerNouveauChemin = async (ici: Point): Promise<{ fait: true } | { raison: string }> => {
+    const courant = parcoursRef.current;
+    const k = etatRef.current.etape;
+    const g = courant?.etapes[k];
+    if (!courant || !g || g.etape.mode !== "marche") return { raison: "" };
+    setRecalcul("Recherche d'un chemin à pied…");
+    const res = await client.marche(ici, { lat: g.etape.a.lat, lon: g.etape.a.lon });
+    if (res.etat === "cle_refusee") {
+      await oublierCle();
+      return { fait: true };
+    }
+    if (res.etat !== "ok") {
+      setRecalcul(messageEchec(res));
+      return { fait: true };
+    }
+    // Entre-temps, l'étape a pu finir (« Je suis arrivé ») : le chemin demandé ne sert plus.
+    if (etatRef.current.etape !== k || parcoursRef.current !== courant) {
+      setRecalcul(null);
+      return { fait: true };
+    }
+    const maintenant = horlogeRef.current();
+    const choix = choisirApresEcart(courant, k, res.donnees, maintenant);
+    if (choix.type === "recherche" || !res.donnees) return { raison: choix.type === "recherche" ? choix.raison : "" };
+    const nouveau = remplacerMarche(courant, etatRef.current, k, res.donnees, maintenant);
+    parcoursRef.current = nouveau.parcours;
+    etatRef.current = nouveau.etat;
+    if (sim !== null) simFigeeRef.current = ici;
+    setParcours(nouveau.parcours);
+    if (voixRef.current) dire(phraseNouveauChemin(nouveau.parcours, k));
+    setRecalcul(NOUVEAU_CHEMIN);
+    if (effacerRef.current) clearTimeout(effacerRef.current);
+    effacerRef.current = setTimeout(() => setRecalcul((r) => (r === NOUVEAU_CHEMIN ? null : r)), NOUVEAU_CHEMIN_MS);
+    pasRef.current();
+    return { fait: true };
+  };
   const recalculer = async () => {
     if (enRecalculRef.current) return;
     enRecalculRef.current = true;
     setRecalcul("Recherche en cours…");
-    // Même rendez-vous, même marge, depuis la position (spec 12 §7) ; en « partir à », à partir de maintenant.
-    // Réussi, le guidage se ferme et le Résultat montre la nouvelle réponse : un seul guidage à la fois.
-    const echec = await rechercherDepuisIci(recherche, trajet);
-    enRecalculRef.current = false;
-    setRecalcul(echec ? echec.message : null);
+    try {
+      const ici = await positionPourRecalcul();
+      if (typeof ici === "string") {
+        setRecalcul(ici);
+        return;
+      }
+      // Bouton d'une marche en écart : d'abord le chemin à pied. Bus raté à l'arrêt : recherche complète directement.
+      let raison = "";
+      if (situation.ecart && situation.vue.type === "marche") {
+        const essai = await essayerNouveauChemin(ici);
+        if ("fait" in essai) return;
+        raison = essai.raison;
+      }
+      setRecalcul(raison ? phraseNouvelleRecherche(raison) : "Recherche en cours…");
+      // Même rendez-vous, même marge, depuis la position (spec 12 §7) ; en « partir à », à partir de maintenant.
+      // Réussi, le guidage se ferme et le Résultat montre la nouvelle réponse : un seul guidage à la fois.
+      const echec = await rechercherDepuisIci(recherche, trajet, ici);
+      setRecalcul(echec ? echec.message : null);
+    } finally {
+      enRecalculRef.current = false;
+    }
   };
 
   return (
@@ -211,7 +303,7 @@ export default function Guidage() {
         {CARTE ? <AttributionGuidage /> : null}
         <CarteBas
           situation={situation}
-          arrivee={possibilite.arrivee}
+          arrivee={parcours.possibilite.arrivee}
           voix={voix}
           onVoix={() => {
             if (voix) taire();

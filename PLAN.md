@@ -136,6 +136,7 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 | `POST /v1/itineraires` | origine, destination, date, heure, sens, marge → verdict + possibilités (segments sourcés, tous les tarifs applicables) | 3 |
 | `POST /v1/itineraires` (suite) | heure de fin du rendez-vous facultative → retour lié (D47) ; taxi comme étape (D48) | 3 |
 | `POST /v1/itineraires` (suite) | covoiturage quand aucun transport public n'arrive à l'heure (D50) | 6 ter |
+| `POST /v1/marche` | position et fin de la marche en cours → nouveau chemin à pied d'au plus 1 h, de même forme qu'une étape, ou null (D96) | 4 |
 | `POST /v1/numeros` | lieu et type → numéros des fiches validées, ou trouvés sur une page publique vérifiée par le serveur, « non vérifié » (D49) | 4 |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) | 3, 4 |
 | `POST /v1/etat-courses` | trip_ids + date → état temps réel | 7 |

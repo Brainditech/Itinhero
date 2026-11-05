@@ -90,27 +90,29 @@ function situerArrets(l: Ligne, arrets: NonNullable<Etape["arrets"]>): ArretSitu
   });
 }
 
+/** Une étape prête à guider : tracé, instants, consignes et arrêts situés sur le tracé. */
+export function preparerEtape(p: Possibilite, e: Etape): EtapeGuidee {
+  const points = e.trace ? decoderTrace(e.trace) : [];
+  const l = ligne(points.length >= 2 ? points : [{ lat: e.de.lat, lon: e.de.lon }, { lat: e.a.lat, lon: e.a.lon }]);
+  const departMs = e.depart_utc ? Date.parse(e.depart_utc) : instantDuTrajet(p, e.depart);
+  const arriveeMs = e.arrivee_utc ? Date.parse(e.arrivee_utc) : instantDuTrajet(p, e.arrivee);
+  const consignes = (e.consignes ?? []).map((c, index) => ({
+    consigne: c,
+    index,
+    abscisse: c.manoeuvre === "arrivee" ? l.longueur : projeter(l, c).abscisse,
+  }));
+  const arrets: ArretSitue[] =
+    e.mode === "marche"
+      ? []
+      : [
+          ...situerArrets(l, e.arrets ?? []),
+          { nom: e.a.nom, passage: e.arrivee, point: { lat: e.a.lat, lon: e.a.lon }, abscisse: l.longueur, descente: true },
+        ];
+  return { etape: e, ligne: l, departMs, arriveeMs, consignes, arrets };
+}
+
 export function preparer(p: Possibilite): Parcours {
-  const etapes = p.etapes.map((e): EtapeGuidee => {
-    const points = e.trace ? decoderTrace(e.trace) : [];
-    const l = ligne(points.length >= 2 ? points : [{ lat: e.de.lat, lon: e.de.lon }, { lat: e.a.lat, lon: e.a.lon }]);
-    const departMs = e.depart_utc ? Date.parse(e.depart_utc) : instantDuTrajet(p, e.depart);
-    const arriveeMs = e.arrivee_utc ? Date.parse(e.arrivee_utc) : instantDuTrajet(p, e.arrivee);
-    const consignes = (e.consignes ?? []).map((c, index) => ({
-      consigne: c,
-      index,
-      abscisse: c.manoeuvre === "arrivee" ? l.longueur : projeter(l, c).abscisse,
-    }));
-    const arrets: ArretSitue[] =
-      e.mode === "marche"
-        ? []
-        : [
-            ...situerArrets(l, e.arrets ?? []),
-            { nom: e.a.nom, passage: e.arrivee, point: { lat: e.a.lat, lon: e.a.lon }, abscisse: l.longueur, descente: true },
-          ];
-    return { etape: e, ligne: l, departMs, arriveeMs, consignes, arrets };
-  });
-  return { possibilite: p, etapes, arriveeMs: Date.parse(p.arrivee_utc) };
+  return { possibilite: p, etapes: p.etapes.map((e) => preparerEtape(p, e)), arriveeMs: Date.parse(p.arrivee_utc) };
 }
 
 // ——— État ———
@@ -248,7 +250,7 @@ function aVenirA(departMs: number, heure: string, maintenant: number): Extract<S
 }
 
 /** Nom de la fin d'une marche : avant un taxi, le lieu de prise en charge tel quel (« Mairie », pas « arrêt Mairie »). */
-function nomFinMarche(parcours: Parcours, k: number): string {
+export function nomFinMarche(parcours: Parcours, k: number): string {
   const e = parcours.etapes[k]!.etape;
   const suivante = parcours.etapes[k + 1]?.etape;
   return suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);

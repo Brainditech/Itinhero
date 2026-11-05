@@ -6,6 +6,7 @@ import { routeCourse } from "./routes/course.js";
 import { routeHealth } from "./routes/health.js";
 import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
+import { routeMarche } from "./routes/marche.js";
 import type { AdresseInverse, GeocodeurIgn } from "./lieux/ign-geocode.js";
 import type { IndexHoraires } from "./itineraires/horaires-gtfs.js";
 import type { IndexLieux } from "./lieux/categories.js";
@@ -77,6 +78,7 @@ export function construireApp({
       routeLieux(v1, moteur, geocodeurIgn, lieux);
       routeItineraires(v1, moteur, manifest, { horaires, adresse: adresseIgn });
       routeCourse(v1, moteur);
+      routeMarche(v1, moteur, manifest);
     },
     { prefix: "/v1" },
   );
