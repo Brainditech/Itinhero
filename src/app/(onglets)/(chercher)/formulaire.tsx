@@ -50,6 +50,7 @@ const VALEURS_MAQUETTE: ChampsFormulaire = {
   heure: "10:00",
   sens: "arriver_avant",
   marge: "10",
+  retour: null,
 };
 
 /** Départ choisi sur l'Accueil (`depart=domicile|position`), Domicile sinon. */
@@ -134,18 +135,20 @@ export default function Formulaire() {
     return () => abonnement.remove();
   }, []);
 
-  function ouvrirSelecteur(mode: "date" | "time") {
+  /** `retour` : l'heure de fin du rendez-vous (spec 19), ouverte sur elle ou, vide, sur l'heure de l'aller. */
+  function ouvrirSelecteur(mode: "date" | "time" | "retour") {
     Keyboard.dismiss();
     const aujourdhui = new Date();
     aujourdhui.setHours(0, 0, 0, 0);
     DateTimePickerAndroid.open({
-      value: versDateLocale(champs.date, champs.heure),
-      mode,
+      value: versDateLocale(champs.date, mode === "retour" ? (champs.retour ?? champs.heure) : champs.heure),
+      mode: mode === "date" ? "date" : "time",
       is24Hour: true,
       minimumDate: mode === "date" ? aujourdhui : undefined,
       onValueChange: (_evenement, choisie) => {
         if (!choisie) return;
         if (mode === "date") changer("date", dateChoisie(choisie));
+        else if (mode === "retour") changer("retour", heureChoisie(choisie));
         else changer("heure", heureChoisie(choisie));
       },
     });
@@ -278,6 +281,20 @@ export default function Formulaire() {
                   }}
                 />
               ) : null}
+              {/* Spec 19 (D94) : facultative ; donnée, le retour est cherché à partir de cette heure, le même jour. */}
+              <View>
+                <ChampTouchable
+                  libelle="Fin du rendez-vous (retour)"
+                  valeur={champs.retour ?? "Aucune, pas de retour"}
+                  onPress={() => ouvrirSelecteur("retour")}
+                  erreur={erreurs.retour}
+                />
+                {champs.retour !== null ? (
+                  <View className="items-start">
+                    <Lien libelle="Sans retour" onPress={() => changer("retour", null)} />
+                  </View>
+                ) : null}
+              </View>
             </View>
           </CarteFlottante>
           {erreurRecherche ? <CarteErreur message={erreurRecherche} onReessayer={chercher} /> : null}

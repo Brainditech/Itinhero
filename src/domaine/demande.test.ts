@@ -27,6 +27,7 @@ const MAQUETTE: ChampsFormulaire = {
   heure: "10:00",
   sens: "arriver_avant",
   marge: "10",
+  retour: null,
 };
 
 // Mardi 3 novembre 2026, 18:00 à Paris (heure d'hiver, UTC+1).
@@ -46,6 +47,7 @@ describe("validerFormulaire", () => {
         arrivee: { type: "texte", texte: "Rendez-vous Joigny" },
         date: "2026-11-12", heure: "10:00", sens: "arriver_avant",
         marge: 10,
+        retour: null,
       },
     });
   });
@@ -246,5 +248,67 @@ describe("demandeRecalcul (« Recalculer depuis ici », PR #20)", () => {
   it("en « arriver avant », le rendez-vous et la marge ne bougent pas", () => {
     const r = demandeRecalcul({ ...demande, sens: "arriver_avant", heure: "15:35" }, perdu);
     expect(r).toEqual({ ...demande, sens: "arriver_avant", heure: "15:35", depart: POSITION });
+  });
+});
+
+describe("fin du rendez-vous et retour planifié (spec 19, D94)", () => {
+  it("sans fin du rendez-vous ⇒ demande sans retour, requête sans fin_rdv", () => {
+    const r = validerFormulaire(MAQUETTE, MAINTENANT);
+    expect(r.ok && r.demande.retour).toBeNull();
+  });
+
+  it("fin 16:00 après un rendez-vous à 10:00 ⇒ gardée dans la demande", () => {
+    const r = validerFormulaire({ ...MAQUETTE, retour: "16:00" }, MAINTENANT);
+    expect(r.ok && r.demande.retour).toBe("16:00");
+  });
+
+  it.each(["10:00", "09:30"])("fin %s, pas après 10:00 ⇒ message sous le champ", (fin) => {
+    expect(erreurs({ retour: fin })).toEqual({ retour: "La fin du rendez-vous est après 10:00." });
+  });
+
+  it("heure de fin illisible ⇒ « Choisissez une heure de fin. »", () => {
+    expect(erreurs({ retour: "16h" })).toEqual({ retour: MESSAGES.retourInvalide });
+  });
+
+  describe("demandeRecalcul pendant le retour", () => {
+    const allerRetour = schemaDemande.parse({
+      depart: { type: "domicile" },
+      arrivee: { type: "texte", texte: "Gifi Joigny" },
+      date: "2026-11-12",
+      heure: "10:00",
+      sens: "arriver_avant",
+      marge: 10,
+      retour: "16:00",
+    });
+
+    it("perdu avant la fin du rendez-vous ⇒ vers le domicile, « partir à » 16:00, sans nouveau retour", () => {
+      // Jeudi 12/11, 15:00 à Paris.
+      expect(demandeRecalcul(allerRetour, new Date("2026-11-12T14:00:00Z"), "retour")).toEqual({
+        depart: POSITION,
+        arrivee: DOMICILE,
+        date: "2026-11-12",
+        heure: "16:00",
+        sens: "partir_a",
+        marge: 10,
+        retour: null,
+      });
+    });
+
+    it("perdu après la fin ⇒ à partir de maintenant", () => {
+      // Jeudi 12/11, 17:20 à Paris.
+      expect(demandeRecalcul(allerRetour, new Date("2026-11-12T16:20:00Z"), "retour")).toMatchObject({
+        arrivee: DOMICILE,
+        heure: "17:20",
+        sens: "partir_a",
+      });
+    });
+
+    it("pendant l'aller en « partir à », le retour reste s'il est encore à venir, sinon il tombe", () => {
+      const partir = { ...allerRetour, sens: "partir_a" as const, heure: "08:00" };
+      // 09:05 : la fin 16:00 est encore à venir.
+      expect(demandeRecalcul(partir, new Date("2026-11-12T08:05:00Z")).retour).toBe("16:00");
+      // 16:30 : la fin est passée, plus de retour à chercher avec cet aller.
+      expect(demandeRecalcul(partir, new Date("2026-11-12T15:30:00Z")).retour).toBeNull();
+    });
   });
 });
