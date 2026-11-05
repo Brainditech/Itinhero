@@ -1,4 +1,5 @@
 import { writeFile } from "node:fs/promises";
+import { lireMotis } from "../itineraires/motis-plan.js";
 
 /**
  * Audit national des quais injoignables à pied (issue 0008).
@@ -28,9 +29,9 @@ function distance(a: { lat: number; lon: number }, b: { lat: number; lon: number
   return Math.sqrt(x * x + y * y) * r;
 }
 
+/** Sans `fetch` : il fait planter le processus sur les réponses de MOTIS (issue 0020). */
 async function json(url: string): Promise<unknown> {
-  const r = await fetch(url);
-  return r.json();
+  return lireMotis(new URL(url), 120_000);
 }
 
 /** Tous les arrêts d'un rectangle, en le découpant tant que MOTIS répond « too many stops ». */
