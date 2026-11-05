@@ -76,17 +76,6 @@ export function distanceConsigne(c: Consigne): string | null {
   return c.manoeuvre === "arrivee" || c.distance_metres <= 0 ? null : formaterDistance(c.distance_metres);
 }
 
-/** Consignes à montrer pour une étape à pied (au moins un départ et une arrivée). */
-export function consignesAMontrer(e: Etape): Consigne[] {
-  if (e.mode !== "marche" || !e.consignes || e.consignes.length < 2) return [];
-  return e.consignes;
-}
-
-/** « Voir le chemin (5 consignes) ». */
-export function libelleVoirChemin(n: number): string {
-  return `Voir le chemin (${n} consigne${n > 1 ? "s" : ""})`;
-}
-
 /** Nom de la destination d'une marche, pour la phrase d'arrivée ; avant un taxi, son lieu tel quel (D83). */
 export function destinationMarche(e: Etape, suivante?: Etape): string {
   return suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);

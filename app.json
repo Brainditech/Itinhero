@@ -18,6 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"],
       "package": "com.anonymous.Itinhero"
     },
     "web": {

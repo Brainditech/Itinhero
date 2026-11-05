@@ -22,7 +22,6 @@ import {
   phraseTaxi,
   resumePossibilite,
 } from "@/domaine/resultat";
-import { CheminAPied } from "@/composants/CheminAPied";
 import { iconeMode } from "@/composants/icones-mode";
 import { Chevron } from "@/composants/Repli";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -101,14 +100,24 @@ function PrixNonPublie() {
   );
 }
 
-/** Une étape dépliée : heure, arrêts, ligne, direction, et l'état « horaire prévu » (invariant 12). */
-function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
+/**
+ * Une étape dépliée : heure, arrêts, ligne, direction, et l'état « horaire prévu » (invariant 12).
+ * La toucher ouvre sa fenêtre : la carte en fond, les consignes ou les arrêts en bas (spec 17, D84).
+ */
+function LigneEtape({ etape, suivante, ouvrir }: { etape: Etape; suivante?: Etape; ouvrir: () => void }) {
   const marche = etape.mode === "marche";
   const couleur = couleurs[jetonMode(etape.mode)];
   const direction = directionEtape(etape);
   const reservation = phraseReservation(etape) ?? phraseTaxi(etape);
   return (
-    <View className="flex-row gap-3">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${etape.depart}, ${marche ? `Marche, ${phraseMarche(etape, suivante)}` : `${libelleEtape(etape)}${direction ? ` ${direction}` : ""}`}`}
+      accessibilityHint="Ouvre la carte de cette étape"
+      onPress={ouvrir}
+      // Pas de surbrillance au toucher : elle clignotait à chaque défilement du Résultat (retour de Brainditech).
+      className="flex-row gap-3"
+    >
       <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
         {etape.depart}
       </Text>
@@ -126,7 +135,6 @@ function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
             <Text className="font-inter text-badge text-texte-secondaire">
               {phraseMarche(etape, suivante)}
             </Text>
-            <CheminAPied etape={etape} suivante={suivante} />
           </>
         ) : (
           <>
@@ -153,7 +161,10 @@ function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
           </>
         )}
       </View>
-    </View>
+      <View className="min-h-12 w-8 items-center justify-center self-center">
+        <SymbolView name={{ android: "chevron_right", web: "chevron_right" }} size={26} tintColor={couleurs.primaire} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -239,7 +250,11 @@ export function CartePossibilite({
             const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${formaterAttente(attente)}` : null;
             return (
               <View key={i}>
-                <LigneEtape etape={e} suivante={p.etapes[i + 1]} />
+                <LigneEtape
+                  etape={e}
+                  suivante={p.etapes[i + 1]}
+                  ouvrir={() => router.push({ pathname: "/etape", params: { i: String(index), e: String(i) } })}
+                />
                 {texte ? <LigneAttente texte={texte} /> : null}
               </View>
             );

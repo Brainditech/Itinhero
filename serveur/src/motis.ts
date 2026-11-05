@@ -1,3 +1,4 @@
+import { construireUrlCourse } from "./itineraires/motis-course.js";
 import { construireUrlPlan, lireMotis, type DemandeRecherche, type Point } from "./itineraires/motis-plan.js";
 import { planComplet, type AppelsMotis, type Cote } from "./itineraires/marche-couteuse.js";
 import { construireUrlGeocode } from "./lieux/motis-geocode.js";
@@ -27,6 +28,8 @@ export function sondeMotis(motisUrl: string, delaiMs = 2000): SondeMotis {
 export type Moteur = {
   plan(demande: DemandeRecherche): Promise<unknown>;
   geocoder(texte: string, proche?: Point): Promise<unknown>;
+  /** Tous les arrêts d'une course (spec 17) ; absent d'un moteur de test ⇒ 503. */
+  course?(id: string): Promise<unknown>;
 };
 
 export function moteurMotis(motisUrl: string): Moteur {
@@ -35,6 +38,7 @@ export function moteurMotis(motisUrl: string): Moteur {
     // Recherche ordinaire, complétée si une marche courte est masquée par son coût (issue 0008, D62).
     plan: (d) => planComplet(appels, d),
     geocoder: (t, p) => lireMotis(construireUrlGeocode(motisUrl, t, p), 5_000),
+    course: (id) => lireMotis(construireUrlCourse(motisUrl, id), 10_000),
   };
 }
 
