@@ -19,13 +19,17 @@ import {
   instantDuTrajet,
   jusqua,
   aLieu,
+  lieuMontee,
   minutesEnTexte,
   phraseStatut,
   positionFraiche,
   positionSimulee,
   PRECISION_MAX_METRES,
   preparer,
+  SEUILS_ANNONCE,
   situer,
+  textesVehicule,
+  titreDescente,
   vehiculeCourt,
   vehiculeMinuscule,
   type EtatGuidage,
@@ -136,8 +140,7 @@ export default function Guidage() {
         ? positionSimulee(parcours, simulation.etape, simulation.metres, simulation.ecart)
         : positionFraiche(positionRef.current, Date.now());
       const s = situer(parcours, etatRef.current, ici, maintenant);
-      etatRef.current = s.etat;
-      // Toutes les phrases du même instant, dans l'ordre, en une seule annonce : aucune n'est coupée par la suivante.
+      etatRef.current = s.etat;      // Toutes les phrases du même instant, dans l'ordre, en une seule annonce : aucune n'est coupée par la suivante.
       if (voixRef.current && s.annonces.length > 0) dire(s.annonces.join(". "));
       if (s.vibrer) vibrer();
       if (ici) sansPositionDepuis = null;
@@ -244,7 +247,13 @@ function contenuBandeau(s: Situation): ContenuBandeau {
   const e = g.etape;
   if (v.type === "marche") {
     const p = v.prochaine.consigne;
-    const titre = p.manoeuvre === "arrivee" && v.distance < 15 ? "Vous y êtes" : `Dans ${formaterDistance(v.distance)}`;
+    // Au point de manœuvre (ou au départ, sans position), « Dans 0 m » ne veut rien dire : « Maintenant ».
+    const titre =
+      p.manoeuvre === "arrivee" && v.distance < 15
+        ? "Vous y êtes"
+        : v.distance <= SEUILS_ANNONCE[2]
+          ? "Maintenant"
+          : `Dans ${formaterDistance(v.distance)}`;
     return {
       icone: symboleManoeuvre(p.manoeuvre),
       titre,
@@ -278,14 +287,10 @@ function contenuBandeau(s: Situation): ContenuBandeau {
     };
   }
   if (v.type === "vehicule") {
-    return {
-      icone,
-      titre: v.restants.length > 1 ? `Descendez dans ${v.restants.length} arrêts` : "Sans arrêt jusqu'à la descente",
-      sousTitre: `Descente : ${e.a.nom}`,
-      bande: { icone: "schedule", texte: `Prochain arrêt : ${v.restants[0]!.nom}` },
-    };
+    const t = textesVehicule(e, v.restants);
+    return { icone, titre: t.titre, sousTitre: t.sousTitre, bande: { icone: "schedule", texte: t.bande } };
   }
-  return { icone: "flag", titre: "Descendez au prochain arrêt", sousTitre: `${v.descente.nom} · ${e.arrivee}`, bande: null };
+  return { icone: "flag", titre: titreDescente(e), sousTitre: `${v.descente.nom} · ${e.arrivee}`, bande: null };
 }
 
 const minuscule = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -356,11 +361,16 @@ function AttributionGuidage() {
 
 // ——— Carte du bas ———
 
-function Pastille({ couleur, fond, icone, texte }: { couleur: string; fond: string; icone: AndroidSymbol; texte: string }) {
+function Pastille({ couleur, fond, icone, texte, pleine = false }: { couleur: string; fond: string; icone: AndroidSymbol; texte: string; pleine?: boolean }) {
+  // `pleine` : texte de deux lignes (« Position introuvable : … »), sur toute la largeur de la carte ; sans elle,
+  // Android mesure le texte à la largeur de la carte sans compter l'icône, et la pastille déborde.
   return (
-    <View className="flex-row items-center gap-2 self-start rounded-full px-3 py-1" style={{ backgroundColor: fond }}>
+    <View
+      className={`flex-row items-center gap-2 px-3 ${pleine ? "self-stretch rounded-bouton py-2" : "self-start rounded-full py-1"}`}
+      style={{ backgroundColor: fond }}
+    >
       <SymbolView name={{ android: icone, web: icone }} size={20} tintColor={couleur} />
-      <Text className="font-inter-semibold text-secondaire" style={{ color: couleur }}>
+      <Text className={`${pleine ? "flex-1 " : ""}font-inter-semibold text-secondaire`} style={{ color: couleur }}>
         {texte}
       </Text>
     </View>
@@ -368,6 +378,9 @@ function Pastille({ couleur, fond, icone, texte }: { couleur: string; fond: stri
 }
 
 function PastilleStatut({ statut }: { statut: Statut }) {
+  if (statut.type === "a_venir") {
+    return <Pastille couleur={couleurs["prevu-texte"]} fond={couleurs["prevu-teinte"]} icone="event" texte={phraseStatut(statut)} />;
+  }
   const bien = statut.type === "avance" || statut.type === "a_l_heure";
   return (
     <Pastille
@@ -490,11 +503,11 @@ function CarteBas({
 
       {v.type === "marche" ? <PastilleStatut statut={v.statut} /> : null}
       {sansPositionLongtemps ? (
-        <Pastille couleur={couleurs.fond} fond={couleurs.avertissement} icone="location_off" texte="Position introuvable : passez à l'étape suivante vous-même" />
+        <Pastille pleine couleur={couleurs.fond} fond={couleurs.avertissement} icone="location_off" texte="Position introuvable : passez à l'étape suivante vous-même" />
       ) : null}
-      {v.type === "attente" && v.aLArret ? <Pastille couleur={couleurs.fond} fond={couleurs.possible} icone="check" texte="Vous êtes à l'arrêt" /> : null}
-      {v.type === "attente" && !v.aLArret && v.distanceArret !== null ? (
-        <Pastille couleur={couleurs.fond} fond={couleurs.avertissement} icone="directions_walk" texte={`L'arrêt est à ${formaterDistance(v.distanceArret)}`} />
+      {v.type === "attente" && e && v.aLArret ? <Pastille couleur={couleurs.fond} fond={couleurs.possible} icone="check" texte={lieuMontee(e).ici} /> : null}
+      {v.type === "attente" && e && !v.aLArret && v.distanceArret !== null ? (
+        <Pastille couleur={couleurs.fond} fond={couleurs.avertissement} icone="directions_walk" texte={lieuMontee(e).loin(formaterDistance(v.distanceArret))} />
       ) : null}
       {v.type === "attente" || v.type === "vehicule" || v.type === "descente" ? <PastillePrevu /> : null}
 

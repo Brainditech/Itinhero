@@ -113,7 +113,12 @@ Guidage photo et guidage en sous-sol (hors v1) ; guidage écran éteint (D73) ; 
 - Carte : tracé recoupé au changement d'étape ou tous les 5 m, plus chaque seconde ; une seule table d'icônes de mode (`src/composants/icones-mode.ts`) ; vitesse de marche en un seul endroit ; « Attendez le taxi », sans sa durée.
 - Un test de régression par défaut du calcul, qui échoue sur l'ancien code (`guidage.test.ts`, « PR #20 » ; `demande.test.ts`, `demandeRecalcul`).
 
+### Essai sur le téléphone (2026-11-05, issue 0017, D83)
+
+Domicile → gare de Joigny, jeudi 12/11 : chaque état ouvert par `sim`, plus le guidage réel avec la localisation coupée. Corrigé : taxi guidé comme un taxi (« En taxi », « Vous arrivez », « au point de rendez-vous »), train direct sans « Prochain arrêt » répété, « Vous êtes à la gare », « jusqu'à la gare de Joigny », « Maintenant » au lieu de « Dans 0 m », « Départ prévu le 12/11 à 06:17 » pour un trajet d'un autre jour, pastille « Position introuvable » dans la carte, point gris sans position, message du recalcul sans « choisissez Domicile », détail sans « 0 m ».
+
 ### Reste
+- Recalcul réussi sur le téléphone : la localisation était coupée pendant l'essai.
 
 - Critère 5 (mode avion) et critère 6 (essai sur le terrain, seuils de D75) : par Brainditech.
 - Voix : nouveau development build nécessaire (`expo-speech` ajouté).

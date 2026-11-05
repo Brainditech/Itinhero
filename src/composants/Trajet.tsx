@@ -4,11 +4,11 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
 import type { Etape, Possibilite } from "@/domaine/api";
+import { phraseMarche } from "@/domaine/guidage";
 import {
   aMarcheLongue,
   attenteApres,
   directionEtape,
-  formaterDistance,
   formaterAttente,
   formaterDuree,
   jetonMode,
@@ -125,7 +125,7 @@ function LigneEtape({ etape }: { etape: Etape }) {
         {marche ? (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
-              {`${etape.duree_minutes} min${etape.distance_metres != null ? `, ${formaterDistance(etape.distance_metres)}` : ""} jusqu'à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee}`}
+              {phraseMarche(etape)}
             </Text>
             <CheminAPied etape={etape} />
           </>

@@ -6,7 +6,7 @@ import { messageEchec, type Candidat, type Point, type ReponseItineraires } from
 import { demandeRecalcul, versRequeteItineraires, type Bout, type CoteBout, type Demande } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
 import { useClient, useSession } from "@/session";
-import { MESSAGES_POSITION, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
+import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
 
 // Recherche en cours dans la pile de l'onglet Chercher : Formulaire ⇒ Confirmation(s) ⇒ Résultat.
@@ -147,8 +147,10 @@ export function useDeroulerRecherche() {
    */
   async function recalculer(r: Recherche): Promise<EchecRecherche | null> {
     const demande = demandeRecalcul(r.demande, new Date());
-    const depart = await lieuFixe("depart", demande.depart);
-    if (!depart || "message" in depart) return depart ?? { champ: null, message: "La recherche a échoué." };
+    const lue = await lirePosition();
+    // Dans le guidage, pas de choix « Domicile » : le message dit seulement quoi faire pour la position.
+    if (lue.etat !== "ok") return { champ: null, message: MESSAGES_POSITION_GUIDAGE[lue.etat] };
+    const depart = lieuChoisi(demande.depart, lue.point);
     return avancer({ demande, depart: { lieu: depart, candidats: [] }, arrivee: r.arrivee, reponse: null }, "revenir");
   }
 

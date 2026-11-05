@@ -1,6 +1,7 @@
 import type { Consigne, Etape, Point, Possibilite } from "./api";
 import { phraseConsigne } from "./consignes";
 import { cap, decoderTrace, distance, ligne, pointA, projeter, projeterEnAvancant, type Ligne } from "./geo";
+import { maintenantAParis } from "./demande";
 import { formaterDistance, libelleEtape, nomLieuEtape } from "./resultat";
 
 // Guidage en direct (spec 12, §4.4) : pur TypeScript, sans Expo, testé sous Node.
@@ -35,6 +36,8 @@ export const DESCENTE_DIRECTE_MS = 2 * 60_000;
 export const POSITION_PERIMEE_MS = 10_000;
 /** Relevé moins précis que ceci (position d'antenne sous terre) : écarté. */
 export const PRECISION_MAX_METRES = 100;
+/** Au-delà de cette avance, le trajet est à venir : on dit quand il part, pas l'avance (trajet d'un autre jour). */
+export const A_VENIR_MS = 12 * 3_600_000;
 
 // ——— Position lue ———
 
@@ -155,7 +158,9 @@ export type Statut =
   | { type: "avance"; minutes: number }
   | { type: "a_l_heure" }
   | { type: "presse"; vehicule: string; minutes: number }
-  | { type: "retard"; minutes: number };
+  | { type: "retard"; minutes: number }
+  /** Départ à plus de 12 h : « Départ prévu le 12/11 à 06:17 » (sans la date si c'est aujourd'hui). */
+  | { type: "a_venir"; date: string | null; heure: string };
 
 export type Ecart = { metres: number; vers: Point };
 
@@ -202,10 +207,52 @@ export type Situation = {
   minutesRestantes: number;
 };
 
-/** « 6 min », « 1 h 05 ». */
+/** « 6 min », « 1 h 05 », « 7 j 02 h ». */
 export function minutesEnTexte(m: number): string {
   if (m < 60) return `${m} min`;
-  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
+  if (m < 1440) return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
+  return `${Math.floor(m / 1440)} j ${String(Math.floor((m % 1440) / 60)).padStart(2, "0")} h`;
+}
+
+/** Départ du trajet à plus de 12 h : le statut dit quand il part (« le 12/11 à 06:17 »), pas une avance. */
+function statutAVenir(p: Possibilite, maintenant: number): Statut | null {
+  const departMs = Date.parse(p.depart_utc);
+  if (departMs - maintenant < A_VENIR_MS) return null;
+  const jour = maintenantAParis(new Date(departMs)).date;
+  const memeJour = jour === maintenantAParis(new Date(maintenant)).date;
+  return { type: "a_venir", date: memeJour ? null : `${jour.slice(8, 10)}/${jour.slice(5, 7)}`, heure: p.depart };
+}
+
+/** Le taxi vient vous prendre et vous dépose : ni arrêt, ni « prochain arrêt ». */
+export function estTaxi(e: Etape): boolean {
+  return e.mode === "taxi";
+}
+
+/** Lieu de montée dit à la personne : « à la gare », « à l'arrêt », « au point de rendez-vous » (taxi). */
+export function lieuMontee(e: Etape): { ici: string; loin: (distance: string) => string } {
+  if (estTaxi(e)) return { ici: "Vous êtes au point de rendez-vous", loin: (d) => `Le point de rendez-vous est à ${d}` };
+  const nom = nomLieuEtape(e.de).toLowerCase();
+  if (nom.startsWith("gare")) return { ici: "Vous êtes à la gare", loin: (d) => `La gare est à ${d}` };
+  if (nom.startsWith("station")) return { ici: "Vous êtes à la station", loin: (d) => `La station est à ${d}` };
+  return { ici: "Vous êtes à l'arrêt", loin: (d) => `L'arrêt est à ${d}` };
+}
+
+/** Textes du bandeau dans le véhicule (maquette 03) : titre, sous-titre et bande du bas. */
+export function textesVehicule(e: Etape, restants: ArretSitue[]): { titre: string; sousTitre: string; bande: string } {
+  if (estTaxi(e)) return { titre: "En taxi", sousTitre: jusqua(nomLieuEtape(e.a)), bande: `Arrivée prévue à ${e.arrivee}` };
+  // Sans arrêt avant la descente (train direct), « Prochain arrêt » redirait la descente : on donne l'heure d'arrivée.
+  if (restants.length <= 1) {
+    return { titre: "Sans arrêt jusqu'à la descente", sousTitre: `Descente : ${e.a.nom}`, bande: `Arrivée prévue à ${e.arrivee}` };
+  }
+  return { titre: `Descendez dans ${restants.length} arrêts`, sousTitre: `Descente : ${e.a.nom}`, bande: `Prochain arrêt : ${restants[0]!.nom}` };
+}
+
+/** Titre et phrase de la descente imminente (maquette 04) : un taxi ne s'arrête pas « au prochain arrêt ». */
+export function titreDescente(e: Etape): string {
+  return estTaxi(e) ? "Vous arrivez" : "Descendez au prochain arrêt";
+}
+export function phraseDescente(e: Etape, nom: string): string {
+  return `${titreDescente(e)} : ${nom}`;
 }
 
 /** « bus 803 », « TER K7 », « taxi » : minuscule sauf les sigles. */
@@ -223,6 +270,8 @@ export function vehiculeCourt(e: Etape): string {
 
 function statutMarche(parcours: Parcours, k: number, restante: number, maintenant: number): Statut {
   const g = parcours.etapes[k]!;
+  const aVenir = statutAVenir(parcours.possibilite, maintenant);
+  if (aVenir) return aVenir;
   const marcheMs = (restante / vitesseMarche(g.etape)) * 1000;
   const suivante = parcours.etapes[k + 1];
   const vehicule = suivante && suivante.etape.mode !== "marche" ? suivante : null;
@@ -404,7 +453,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
       ? g.ligne.longueur - proj.abscisse <= DESCENTE_DIRECTE_METRES
       : g.arriveeMs - maintenant <= DESCENTE_DIRECTE_MS;
     if (restants.length <= 1 && (!direct || proche)) {
-      dire(`${k}:descente`, `Descendez au prochain arrêt : ${descente.nom}`);
+      dire(`${k}:descente`, phraseDescente(e, descente.nom));
       if (!etat0.annonces.includes(`${k}:descente`)) vibrer = true;
       return {
         etat,
@@ -425,9 +474,20 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
 
 /** « à l'arrêt Mairie », « à la gare de Dijon », « à Tribunal administratif de Dijon ». */
 export function aLieu(destination: string): string {
-  const m = /^(arrêt|gare|station) /.exec(destination);
+  // « Gare de Joigny » (nom d'un lieu choisi) se dit comme « gare de Joigny » : « à la gare de Joigny ».
+  const m = /^(arrêt|gare|station) /i.exec(destination);
   if (!m) return `à ${destination}`;
-  return m[1] === "arrêt" ? `à l'${destination}` : `à la ${destination}`;
+  const nom = destination.charAt(0).toLowerCase() + destination.slice(1);
+  return m[1]!.toLowerCase() === "arrêt" ? `à l'${nom}` : `à la ${nom}`;
+}
+
+/**
+ * Ligne d'une marche dans le détail : « 5 min, 310 m jusqu'à l'arrêt Mairie, arrivée 06:22 ».
+ * Une correspondance dans la même gare (0 m) ne dit pas « 0 m ».
+ */
+export function phraseMarche(e: Etape): string {
+  const metres = e.distance_metres ? `, ${formaterDistance(e.distance_metres)}` : "";
+  return `${e.duree_minutes} min${metres} jusqu'${aLieu(nomLieuEtape(e.a))}, arrivée ${e.arrivee}`;
 }
 
 /** « Jusqu'à l'arrêt Mairie », « Jusqu'à la gare de Dijon ». */
@@ -439,13 +499,15 @@ export function jusqua(destination: string): string {
 export function phraseStatut(s: Statut): string {
   switch (s.type) {
     case "avance":
-      return `En avance de ${s.minutes} min`;
+      return `En avance de ${minutesEnTexte(s.minutes)}`;
     case "a_l_heure":
       return "À l'heure";
     case "presse":
       return s.minutes > 0 ? `Pressez le pas : ${s.vehicule} dans ${s.minutes} min` : `Pressez le pas : ${s.vehicule} maintenant`;
     case "retard":
-      return `En retard de ${s.minutes} min`;
+      return `En retard de ${minutesEnTexte(s.minutes)}`;
+    case "a_venir":
+      return s.date ? `Départ prévu le ${s.date} à ${s.heure}` : `Départ prévu à ${s.heure}`;
   }
 }
 

@@ -96,10 +96,10 @@ function Epingle({ couleur, icone }: { couleur: string; icone: AndroidSymbol }) 
 }
 
 /** Point de position : rond plein, liseré blanc, faisceau vers l'avant (la carte est tournée dans le sens de la marche). */
-function PointPosition({ faisceau }: { faisceau: number | null }) {
+function PointPosition({ faisceau, estimee }: { faisceau: number | null; estimee: boolean }) {
   return (
     <View style={{ width: 120, height: 120, alignItems: "center", justifyContent: "center" }}>
-      {faisceau !== null ? (
+      {faisceau !== null && !estimee ? (
         <View
           style={{
             position: "absolute",
@@ -122,7 +122,9 @@ function PointPosition({ faisceau }: { faisceau: number | null }) {
           width: 30,
           height: 30,
           borderRadius: 15,
-          backgroundColor: couleurs.primaire,
+          // Sans position, le point gris dit « là où le guidage vous croit », pas « vous êtes ici ».
+          backgroundColor: estimee ? couleurs["texte-secondaire"] : couleurs.primaire,
+          opacity: estimee ? 0.6 : 1,
           borderWidth: 4,
           borderColor: couleurs.fond,
           boxShadow: "0px 2px 6px rgba(20, 22, 31, 0.3)",
@@ -300,7 +302,7 @@ export function CarteGuidage({
           </CARTE.Marker>
         ) : null}
         <CARTE.Marker lngLat={[ici.lon, ici.lat]} anchor="center">
-          <PointPosition faisceau={s.cap === null || s.vue.type === "attente" ? null : s.cap - capCarte} />
+          <PointPosition faisceau={s.cap === null || s.vue.type === "attente" ? null : s.cap - capCarte} estimee={position === null} />
         </CARTE.Marker>
       </CARTE.Map>
     </View>
