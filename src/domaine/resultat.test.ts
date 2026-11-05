@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Etape, Possibilite, ReponseItineraires } from "./api";
 import { REPONSE_CHATELET } from "./reponse-chatelet";
-import { versRequeteItineraires } from "./demande";
+import { versRequeteItineraires, type BoutLieu } from "./demande";
 import {
   aMarcheLongue,
   attenteApres,
@@ -21,7 +21,6 @@ import {
   libelleEtape,
   phraseVerdict,
   resumePossibilite,
-  sousTitreDemande,
   nomBout,
   NOM_MAX,
   quandDemande,
@@ -34,6 +33,16 @@ import {
   nuitDehors,
   phraseTaxi,
 } from "./resultat";
+
+const LIEU_GARE: BoutLieu = {
+  type: "lieu",
+  nom: "Gare d'Auxerre-Saint-Gervais",
+  lat: 47.7929,
+  lon: 3.5821,
+  nature: "arret",
+  commune: "Auxerre",
+  code_postal: "89000",
+};
 
 const chatelet = REPONSE_CHATELET.possibilites[0]!;
 const marche = chatelet.etapes[0]!;
@@ -224,30 +233,11 @@ describe("issue 0010 : Brienon → Dijon lisible", () => {
   });
 });
 
-describe("Confirmation", () => {
-  const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "France Travail Joigny" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
+describe("Lieux du formulaire", () => {
 
   it("jour court sans fuseau (R11)", () => {
     expect(jourCourt("2026-11-12")).toBe("Jeudi 12/11");
     expect(jourCourt("2026-11-15")).toBe("Dimanche 15/11");
-  });
-
-  it("sous-titre de la maquette 03", () => {
-    expect(sousTitreDemande(demande)).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Domicile");
-    expect(sousTitreDemande({ ...demande, depart: { type: "position" }, sens: "partir_a", marge: 0 })).toBe(
-      "Jeudi 12/11 · partir à 10:00 · depuis ma position",
-    );
-    expect(sousTitreDemande({ ...demande, marge: 0 })).toContain("sans marge");
-  });
-
-  it("départ tapé : à confirmer, puis le nom du lieu choisi (spec 13, §4.3)", () => {
-    const tape = { ...demande, depart: { type: "texte" as const, texte: "gare d'Auxerre" } };
-    expect(sousTitreDemande(tape)).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis un lieu à confirmer");
-    expect(sousTitreDemande(tape, { nom: "Gare d'Auxerre" })).toBe(
-      "Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Gare d'Auxerre",
-    );
-    // Domicile et position ne dépendent pas d'un lieu choisi.
-    expect(sousTitreDemande(demande, { nom: "ignoré" })).toContain("depuis Domicile");
   });
 
   it("noms envoyés à l'API pour chaque forme de bout (spec 13, §4.4)", () => {
@@ -257,6 +247,14 @@ describe("Confirmation", () => {
       "Tribunal Administratif de Dijon",
     );
     expect(nomBout({ type: "texte", texte: "x" }, { nom: "a".repeat(200) })).toHaveLength(NOM_MAX);
+    // Lieu choisi dans les suggestions (D90) : son nom, quel que soit le candidat passé.
+    expect(nomBout(LIEU_GARE, null)).toBe("Gare d'Auxerre-Saint-Gervais");
+    expect(nomBout({ ...LIEU_GARE, nom: "b".repeat(200) }, null)).toHaveLength(NOM_MAX);
+  });
+
+  it("adresse d'un lieu choisi : celle de sa nature et de sa commune (spec 18, §4.4)", () => {
+    expect(adresseBout(LIEU_GARE, { type: "arret", commune: "Auxerre", code_postal: "89000" })).toBe("Arrêt, 89000 Auxerre");
+    expect(adresseBout({ ...LIEU_GARE, nature: "lieu" }, { type: "lieu", commune: "Auxerre", code_postal: null })).toBe("Auxerre");
   });
 
   it("détail d'un candidat", () => {

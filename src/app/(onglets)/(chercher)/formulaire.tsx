@@ -20,6 +20,8 @@ import {
   SelecteurDeuxChoix,
 } from "@/composants/elements";
 import { AttributionCarte, FondCarte, useAttributionCarte } from "@/composants/FondCarte";
+import { useSuggestionsLieu } from "@/composants/useSuggestionsLieu";
+import type { Candidat } from "@/domaine/api";
 import {
   dateChoisie,
   echangerBouts,
@@ -35,6 +37,8 @@ import {
   type ErreursFormulaire,
   type Sens,
 } from "@/domaine/demande";
+import { detailCandidat } from "@/domaine/resultat";
+import { boutDuCandidat, candidatDuBout, reporterLieu, type EtatSuggestions } from "@/domaine/suggestions";
 import { DOMICILE_ABSENT, useDeroulerRecherche } from "@/recherche";
 
 // Valeurs en dur de la maquette design/accueil/02-formulaire-repli.png (règle 5), marge D17.
@@ -69,8 +73,9 @@ const CHOIX_SENS = [
  * Formulaire de repli (spec 02). Ouvert par le lien de l'Accueil, ou par son « Chercher » avec
  * `raison=indisponible` (D15 : /v1/comprendre n'existe pas encore), et le départ choisi (`depart`).
  * Départ et Arrivée (spec 13) : texte tapé, Domicile ou Ma position, échangés par ⇅.
- * « Chercher » : validation, puis la recherche dans l'ordre de D78 (`useDeroulerRecherche`) ;
- * un lieu tapé ambigu ⇒ Confirmation, introuvable ⇒ message sous son champ.
+ * Pendant la frappe, les lieux suggérés s'affichent sous le champ (spec 18, D89) ; un lieu touché s'y écrit (D90).
+ * « Chercher » : validation, puis la recherche dans l'ordre de D78 (`useDeroulerRecherche`) ; un texte tapé
+ * qui donne un seul lieu s'écrit dans son champ, plusieurs ⇒ la liste s'ouvre sous ce champ, aucun ⇒ message.
  */
 export default function Formulaire() {
   const insets = useSafeAreaInsets();
@@ -84,11 +89,33 @@ export default function Formulaire() {
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
   const [enCours, setEnCours] = useState(false);
   const { demarrer } = useDeroulerRecherche();
+  // Champ de lieu qui a le clavier, et lieux à choisir laissés par « Chercher » sous un champ (D90).
+  const [actif, setActif] = useState<CoteBout | null>(null);
+  const [aChoisir, setAChoisir] = useState<Partial<Record<CoteBout, Candidat[]>>>({});
+  const suggereDepart = useSuggestionsLieu(champs.depart, champs.arrivee, actif === "depart");
+  const suggereArrivee = useSuggestionsLieu(champs.arrivee, champs.depart, actif === "arrivee");
+  const listeDe = (cote: CoteBout): EtatSuggestions => {
+    const imposes = aChoisir[cote];
+    if (imposes) return { etat: "ok", candidats: imposes };
+    return cote === "depart" ? suggereDepart : suggereArrivee;
+  };
 
   // Un champ modifié perd son message d'erreur ; les autres le gardent jusqu'au prochain « Chercher ».
   function changer<K extends keyof ChampsFormulaire>(cle: K, valeur: ChampsFormulaire[K]) {
     setChamps((c) => ({ ...c, [cle]: valeur }));
     setErreurs((e) => ({ ...e, [cle]: undefined }));
+    if (cle === "depart" || cle === "arrivee") setAChoisir((a) => ({ ...a, [cle]: undefined }));
+  }
+
+  // Lieu touché dans la liste : il s'écrit dans le champ, la liste et le clavier se ferment (spec 18, §4.1).
+  function choisir(cote: CoteBout, c: Candidat) {
+    changer(cote, boutDuCandidat(c));
+    Keyboard.dismiss();
+  }
+
+  // Le champ qui prend le clavier devient actif ; celui qui le perd ne l'est plus (s'il l'était encore).
+  function activer(cote: CoteBout, a: boolean) {
+    setActif((x) => (a ? cote : x === cote ? null : x));
   }
 
   // Le départ choisi sur l'Accueil suit quand on revient au formulaire déjà ouvert
@@ -128,20 +155,25 @@ export default function Formulaire() {
   function echanger() {
     setChamps(echangerBouts);
     setErreurs((e) => ({ ...e, depart: undefined, arrivee: undefined }));
+    setAChoisir({});
   }
 
   async function chercher() {
     if (enCours) return;
     Keyboard.dismiss();
     setErreurRecherche(undefined);
+    setAChoisir({});
     const resultat = validerFormulaire(champs, new Date());
     setErreurs(resultat.ok ? {} : resultat.erreurs);
     if (!resultat.ok) return;
     setEnCours(true);
     try {
-      const echec = await demarrer(resultat.demande);
-      if (echec?.champ) setErreurs({ [echec.champ]: echec.message });
-      else if (echec) setErreurRecherche(echec.message);
+      // Un texte qui donne un seul lieu s'écrit dans son champ (D90), s'il n'a pas changé entre-temps.
+      const echec = await demarrer(resultat.demande, (cote, texte, lieu) => setChamps((c) => reporterLieu(c, cote, texte, lieu)));
+      if (echec?.champ) {
+        setErreurs({ [echec.champ]: echec.message });
+        if (echec.candidats) setAChoisir({ [echec.champ]: echec.candidats });
+      } else if (echec) setErreurRecherche(echec.message);
     } catch {
       setErreurRecherche("La recherche a échoué.");
     } finally {
@@ -181,13 +213,33 @@ export default function Formulaire() {
             <View className="gap-4">
               {/* Écart voulu à la maquette (spec 13, §4) : Départ et Arrivée à la place de « Lieu » et des puces du départ. */}
               <View>
-                <ChampLieuDuFormulaire cote="depart" champs={champs} erreurs={erreurs} onChange={changer} />
+                <ChampLieuDuFormulaire
+                  cote="depart"
+                  champs={champs}
+                  erreurs={erreurs}
+                  onChange={changer}
+                  suggestions={listeDe("depart")}
+                  onChoisir={(c) => choisir("depart", c)}
+                  onActif={(a) => activer("depart", a)}
+                />
                 {/* Entre les deux champs, à droite ; -my-2 : sans trop les écarter ; zIndex : au-dessus du libellé
-                    « Arrivée » qu'il chevauche, pour le dessin comme pour le toucher. */}
-                <View className="-my-2 items-end" style={{ pointerEvents: "box-none", zIndex: 1 }}>
+                    « Arrivée » qu'il chevauche, pour le dessin comme pour le toucher. Sous une liste ouverte, il ne
+                    la chevauche pas : il cacherait la fin de sa dernière ligne. */}
+                <View
+                  className={`${listeDe("depart").etat === "ferme" ? "-my-2" : "-mb-2 mt-1"} items-end`}
+                  style={{ pointerEvents: "box-none", zIndex: 1 }}
+                >
                   <BoutonEchange onPress={echanger} />
                 </View>
-                <ChampLieuDuFormulaire cote="arrivee" champs={champs} erreurs={erreurs} onChange={changer} />
+                <ChampLieuDuFormulaire
+                  cote="arrivee"
+                  champs={champs}
+                  erreurs={erreurs}
+                  onChange={changer}
+                  suggestions={listeDe("arrivee")}
+                  onChoisir={(c) => choisir("arrivee", c)}
+                  onActif={(a) => activer("arrivee", a)}
+                />
               </View>
               <View className="flex-row gap-3">
                 <View className="flex-[1.4]">
@@ -242,28 +294,39 @@ export default function Formulaire() {
   );
 }
 
-/** Départ ou Arrivée, avec le lien vers Réglages quand le domicile manque. */
+/** Départ ou Arrivée, avec ses lieux suggérés, et le lien vers Réglages quand le domicile manque. */
 function ChampLieuDuFormulaire({
   cote,
   champs,
   erreurs,
   onChange,
+  suggestions,
+  onChoisir,
+  onActif,
 }: {
   cote: CoteBout;
   champs: ChampsFormulaire;
   erreurs: ErreursFormulaire;
   onChange: (cle: CoteBout, bout: Bout) => void;
+  suggestions: EtatSuggestions;
+  onChoisir: (c: Candidat) => void;
+  onActif: (actif: boolean) => void;
 }) {
   const erreur = erreurs[cote];
+  const bout = champs[cote];
   return (
     <View>
       <ChampLieu
         libelle={cote === "depart" ? "Départ" : "Arrivée"}
         nomCourt={cote === "depart" ? "départ" : "arrivée"}
-        bout={champs[cote]}
+        bout={bout}
         onChange={(b) => onChange(cote, b)}
         erreur={erreur}
         longueurMax={LIEU_MAX}
+        detail={bout.type === "lieu" ? detailCandidat(candidatDuBout(bout)) : undefined}
+        suggestions={suggestions}
+        onChoisir={onChoisir}
+        onActif={onActif}
       />
       {erreur === DOMICILE_ABSENT ? (
         <View className="items-start">

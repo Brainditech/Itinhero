@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { distance } from "./geo";
+
 // Forme unique d'une demande (spec 02, décision 5 ; invariant 9) : produite par le formulaire
 // de repli et, plus tard, par `/v1/comprendre`.
 
@@ -19,17 +21,33 @@ export const LIEU_MAX = 200;
 /** `GET /v1/lieux` demande au moins 2 caractères (spec 09 §4.4). */
 export const LIEU_MIN_RECHERCHE = 2;
 
+/** Deux lieux choisis plus proches que ça sont « le même lieu » (spec 18, §4.3). */
+export const MEME_LIEU_METRES = 50;
+
+/** Lieu choisi dans les suggestions, ou retenu à « Chercher » (D90) : ce qu'on voit dans le champ est ce qui est cherché. */
+export const schemaBoutLieu = z.object({
+  type: z.literal("lieu"),
+  nom: z.string().min(1).max(LIEU_MAX),
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+  nature: z.enum(["adresse", "lieu", "arret"]),
+  commune: z.string().nullish(),
+  code_postal: z.string().nullish(),
+});
+
 /**
- * Un bout du trajet, départ ou arrivée (D77) : Domicile, Ma position, ou un texte à chercher
- * par `GET /v1/lieux`. `/v1/comprendre` produira la même forme.
+ * Un bout du trajet, départ ou arrivée (D77) : Domicile, Ma position, un texte à chercher
+ * par `GET /v1/lieux`, ou un lieu déjà choisi (D90). `/v1/comprendre` produira la même forme.
  */
 export const schemaBout = z.discriminatedUnion("type", [
   z.object({ type: z.literal("domicile") }),
   z.object({ type: z.literal("position") }),
   z.object({ type: z.literal("texte"), texte: z.string().trim().min(LIEU_MIN_RECHERCHE).max(LIEU_MAX) }),
+  schemaBoutLieu,
 ]);
 
 export type Bout = z.infer<typeof schemaBout>;
+export type BoutLieu = z.infer<typeof schemaBoutLieu>;
 export type CoteBout = "depart" | "arrivee";
 
 export const schemaDemande = z.object({
@@ -113,8 +131,8 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   const erreurArrivee = erreurBout(arrivee, MESSAGES.arriveeVide);
   if (erreurDepart) erreurs.depart = erreurDepart;
   if (erreurArrivee) erreurs.arrivee = erreurArrivee;
-  // Domicile → Domicile, position → position : rien à chercher (spec 13, §4.1).
-  else if (depart.type !== "texte" && depart.type === arrivee.type) erreurs.arrivee = MESSAGES.memeLieu;
+  // Domicile → Domicile, position → position (spec 13, §4.1), deux lieux choisis au même point (spec 18, §4.3).
+  else if (memeLieu(depart, arrivee)) erreurs.arrivee = MESSAGES.memeLieu;
 
   // Les deux chaînes sont au format AAAA-MM-JJ / HH:MM : l'ordre alphabétique est l'ordre du temps.
   const dateValide = dateExiste(champs.date);
@@ -136,6 +154,11 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   if (Object.keys(erreurs).length > 0) return { ok: false, erreurs };
   const demande = schemaDemande.parse({ depart, arrivee, date: champs.date, heure: champs.heure, sens: champs.sens, marge });
   return { ok: true, demande };
+}
+
+function memeLieu(a: Bout, b: Bout): boolean {
+  if (a.type === "lieu" && b.type === "lieu") return distance(a, b) < MEME_LIEU_METRES;
+  return (a.type === "domicile" || a.type === "position") && a.type === b.type;
 }
 
 function nettoyerBout(b: Bout): Bout {

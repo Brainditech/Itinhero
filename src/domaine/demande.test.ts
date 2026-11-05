@@ -98,6 +98,23 @@ describe("validerFormulaire", () => {
     }
   });
 
+  it("lieux choisis des deux côtés acceptés ; à moins de 50 m ⇒ même lieu (spec 18, critère 3)", () => {
+    const gare: Bout = { type: "lieu", nom: "Gare d'Auxerre", lat: 47.7929, lon: 3.5821, nature: "arret", commune: "Auxerre", code_postal: null };
+    const joigny: Bout = { type: "lieu", nom: "Joigny", lat: 47.9822, lon: 3.3972, nature: "lieu", commune: "Joigny", code_postal: "89300" };
+    for (const [depart, arrivee] of [
+      [gare, joigny],
+      [gare, DOMICILE],
+      [POSITION, gare],
+      [texte("Joigny"), gare],
+    ] as [Bout, Bout][]) {
+      const r = validerFormulaire({ ...MAQUETTE, depart, arrivee }, MAINTENANT);
+      expect(r).toMatchObject({ ok: true, demande: { depart, arrivee } });
+    }
+    // 0,0003° de latitude ≈ 33 m ; 0,0006° ≈ 67 m.
+    expect(erreurs({ depart: gare, arrivee: { ...gare, nom: "Parvis", lat: 47.7932 } })).toEqual({ arrivee: MESSAGES.memeLieu });
+    expect(erreurs({ depart: gare, arrivee: { ...gare, nom: "Parvis", lat: 47.7935 } })).toEqual({});
+  });
+
   it("date d'hier ⇒ erreur ; aujourd'hui ⇒ valide", () => {
     expect(erreurs({ date: "2026-11-02" }).date).toBe(MESSAGES.datePassee);
     expect(erreurs({ date: "2026-11-03", heure: "20:00" })).toEqual({});
