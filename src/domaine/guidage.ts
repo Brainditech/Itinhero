@@ -128,6 +128,12 @@ export type EtatGuidage = {
 
 export const ETAT_INITIAL: EtatGuidage = { etape: 0, horsCheminDepuis: null, annonces: [], aBord: false, abscisse: 0 };
 
+/** Étape où démarre le guidage ouvert par « Me guider » (spec 17, D86) : le rang `e`, sinon la première. */
+export function etatDepart(e: string | undefined, nombreEtapes: number): EtatGuidage {
+  const k = e === undefined || !/^\d+$/.test(e) ? 0 : Number(e);
+  return { ...ETAT_INITIAL, etape: k < nombreEtapes ? k : 0 };
+}
+
 /** Recul permis sur le tracé (m) : à pied on peut revenir sur ses pas, un véhicule non. */
 const RECUL_MARCHE_METRES = 100;
 const RECUL_VEHICULE_METRES = 30;

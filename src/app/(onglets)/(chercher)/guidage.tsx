@@ -16,6 +16,7 @@ import { phraseConsigne } from "@/domaine/consignes";
 import {
   descendu,
   ETAT_INITIAL,
+  etatDepart,
   instantDuTrajet,
   jusqua,
   aLieu,
@@ -102,13 +103,15 @@ const SANS_POSITION_MS = 10_000;
 export default function Guidage() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ i?: string; sim?: string }>();
+  const params = useLocalSearchParams<{ i?: string; e?: string; sim?: string }>();
   const { recherche } = useRecherche();
   const { recalculer: rechercherDepuisIci } = useDeroulerRecherche();
   // Le trajet guidé est figé à l'ouverture : la réponse d'un recalcul ne le remplace pas pendant que l'écran se ferme.
   const [possibilite] = useState(() => recherche?.reponse?.possibilites[Number(params.i ?? 0)]);
   const parcours = useMemo(() => (possibilite ? preparer(possibilite) : null), [possibilite]);
   const sim = __DEV__ ? (params.sim ?? null) : null;
+  // « Me guider » d'une fenêtre d'étape (spec 17, D86) : le guidage part de cette étape.
+  const [etapeDepart] = useState(() => params.e);
 
   const [situation, setSituation] = useState<Situation | null>(null);
   const [position, setPosition] = useState<Point | null>(null);
@@ -133,7 +136,7 @@ export default function Guidage() {
     if (!parcours || !possibilite) return;
     const simulation = lireSimulation(sim ?? undefined);
     const debut = Date.now();
-    etatRef.current = { ...ETAT_INITIAL, etape: simulation?.etape ?? 0 };
+    etatRef.current = simulation ? { ...ETAT_INITIAL, etape: simulation.etape } : etatDepart(etapeDepart, parcours.etapes.length);
     let sansPositionDepuis: number | null = null;
     const pas = () => {
       const maintenant = simulation ? instantDuTrajet(possibilite, simulation.heure) + (Date.now() - debut) : Date.now();
@@ -158,7 +161,7 @@ export default function Guidage() {
       clearTimeout(premier);
       clearInterval(id);
     };
-  }, [parcours, possibilite, sim]);
+  }, [parcours, possibilite, sim, etapeDepart]);
   useEffect(() => () => taire(), []);
 
   if (!possibilite || !parcours || !recherche) return <Redirect href="/resultat" />;

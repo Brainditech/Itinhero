@@ -8,6 +8,7 @@ import { decoderTrace, distance, ligne, pointA, projeter } from "./geo";
 import {
   descendu,
   ETAT_INITIAL,
+  etatDepart,
   instantDuTrajet,
   jusqua,
   aLieu,
@@ -504,5 +505,15 @@ describe("issue 0017 — trajet d'un autre jour", () => {
     expect(minutesEnTexte(125)).toBe("2 h 05");
     expect(minutesEnTexte(10189)).toBe("7 j 01 h");
     expect(phraseStatut({ type: "avance", minutes: 75 })).toBe("En avance de 1 h 15");
+  });
+});
+
+describe("spec 17 — « Me guider » démarre à l'étape choisie (D86)", () => {
+  it("le rang donné, sinon la première étape", () => {
+    expect(etatDepart("2", 5).etape).toBe(2);
+    expect(etatDepart(undefined, 5).etape).toBe(0);
+    expect(etatDepart("9", 5).etape).toBe(0);
+    expect(etatDepart("-1", 5).etape).toBe(0);
+    expect(etatDepart("x", 5)).toEqual(ETAT_INITIAL);
   });
 });

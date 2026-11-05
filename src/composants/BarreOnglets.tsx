@@ -33,8 +33,8 @@ export function BarreOnglets({ state, navigateToTab }: BottomTabBarProps) {
     };
   }, []);
 
-  // Le guidage occupe tout l'écran (spec 12, maquettes design/guidage/).
-  if (clavierOuvert || segments.includes("guidage" as never)) return null;
+  // Le guidage et la fenêtre d'une étape occupent tout l'écran (spec 12, spec 17).
+  if (clavierOuvert || segments.includes("guidage" as never) || segments.includes("etape" as never)) return null;
 
   return (
     <View

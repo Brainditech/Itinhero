@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Consigne } from "./api";
-import { designationRue, distanceConsigne, libelleVoirChemin, phraseConsigne } from "./consignes";
+import { designationRue, distanceConsigne, phraseConsigne } from "./consignes";
 
 const c = (x: Partial<Consigne> & Pick<Consigne, "manoeuvre">): Consigne => ({ rue: null, distance_metres: 0, lat: 47, lon: 5, ...x });
 
@@ -37,8 +37,6 @@ describe("phrases des consignes (spec 11, §4.2)", () => {
     expect(designationRue("RN 6")).toBe("la RN 6");
     expect(distanceConsigne(c({ manoeuvre: "droite", distance_metres: 123 }))).toBe("120 m");
     expect(distanceConsigne(c({ manoeuvre: "arrivee" }))).toBeNull();
-    expect(libelleVoirChemin(1)).toBe("Voir le chemin (1 consigne)");
-    expect(libelleVoirChemin(8)).toBe("Voir le chemin (8 consignes)");
   });
   it("issue 0014 : numéro et nom d'une même route", () => {
     expect(designationRue("N 77 (Avenue du 19 Mars 1962)")).toBe("la N 77 (avenue du 19 Mars 1962)");
