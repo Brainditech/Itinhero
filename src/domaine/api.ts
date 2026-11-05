@@ -110,6 +110,9 @@ const schemaArretCourse = schemaPoint.extend({ nom: z.string(), passage: HEURE.n
 export type ArretCourse = z.infer<typeof schemaArretCourse>;
 const schemaReponseCourse = z.object({ arrets: z.array(schemaArretCourse) });
 
+// `POST /v1/marche` (spec 20, D96) : un nouveau chemin à pied, de même forme qu'une étape ; null sans chemin d'au plus 1 h.
+const schemaReponseMarche = z.object({ marche: schemaEtape.nullable() });
+
 export const schemaPossibilite = z.object({
   depart: HEURE,
   arrivee: HEURE,
@@ -244,6 +247,14 @@ export function clientApi({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(requete),
+      });
+    },
+    /** Chemin à pied de `de` (la position) à `a` (la fin de la marche en cours), parti maintenant (spec 20). */
+    marche(de: Point, a: Point): Promise<ResultatApi<Etape | null>> {
+      return appeler("/v1/marche", schemaReponseMarche.transform((r) => r.marche), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ de: { lat: de.lat, lon: de.lon }, a: { lat: a.lat, lon: a.lon } }),
       });
     },
   };

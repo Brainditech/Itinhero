@@ -16,7 +16,7 @@ export const MAX_POSSIBILITES = 10;
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-const schemaPoint = z
+export const schemaPoint = z
   .object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) })
   .strict();
 

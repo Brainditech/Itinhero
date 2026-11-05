@@ -155,12 +155,17 @@ export function useDeroulerRecherche() {
    * Le guidage en cours se ferme : on revient au Résultat, qui montre la nouvelle réponse.
    * Pendant un retour (spec 19, D94) : vers le départ de l'aller, sans nouveau retour.
    */
-  async function recalculer(r: Recherche, trajet: Trajet = "aller"): Promise<EchecRecherche | null> {
+  async function recalculer(r: Recherche, trajet: Trajet = "aller", ici?: Point): Promise<EchecRecherche | null> {
     const demande = demandeRecalcul(r.demande, new Date(), trajet);
-    const lue = await lirePosition();
-    // Dans le guidage, pas de choix « Domicile » : le message dit seulement quoi faire pour la position.
-    if (lue.etat !== "ok") return { champ: null, message: MESSAGES_POSITION_GUIDAGE[lue.etat] };
-    const depart = lieuChoisi(demande.depart, lue.point);
+    // `ici` : position déjà lue par le guidage (spec 20 : celle du chemin à pied demandé juste avant).
+    let point = ici;
+    if (!point) {
+      const lue = await lirePosition();
+      // Dans le guidage, pas de choix « Domicile » : le message dit seulement quoi faire pour la position.
+      if (lue.etat !== "ok") return { champ: null, message: MESSAGES_POSITION_GUIDAGE[lue.etat] };
+      point = lue.point;
+    }
+    const depart = lieuChoisi(demande.depart, point);
     const arrivee = trajet === "retour" ? r.depart : r.arrivee;
     return avancer({ demande, depart: { lieu: depart }, arrivee, reponse: null }, "revenir");
   }

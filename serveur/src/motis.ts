@@ -1,4 +1,5 @@
 import { construireUrlCourse } from "./itineraires/motis-course.js";
+import { construireUrlMarche } from "./itineraires/motis-marche.js";
 import { construireUrlPlan, lireMotis, type DemandeRecherche, type Point } from "./itineraires/motis-plan.js";
 import { planComplet, type AppelsMotis, type Cote } from "./itineraires/marche-couteuse.js";
 import { construireUrlGeocode } from "./lieux/motis-geocode.js";
@@ -28,6 +29,8 @@ export type Moteur = {
   geocoder(texte: string, proche?: Point): Promise<unknown>;
   /** Tous les arrêts d'une course (spec 17) ; absent d'un moteur de test ⇒ 503. */
   course?(id: string): Promise<unknown>;
+  /** Chemin à pied seul, parti à `instant` (spec 20) ; absent d'un moteur de test ⇒ 503. */
+  marche?(de: Point, a: Point, instant: Date): Promise<unknown>;
 };
 
 export function moteurMotis(motisUrl: string): Moteur {
@@ -37,6 +40,7 @@ export function moteurMotis(motisUrl: string): Moteur {
     plan: (d) => planComplet(appels, d),
     geocoder: (t, p) => lireMotis(construireUrlGeocode(motisUrl, t, p), 5_000),
     course: (id) => lireMotis(construireUrlCourse(motisUrl, id), 10_000),
+    marche: (de, a, instant) => lireMotis(construireUrlMarche(motisUrl, de, a, instant), 10_000),
   };
 }
 

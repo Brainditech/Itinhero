@@ -1,0 +1,363 @@
+{
+ "requestParameters": {},
+ "from": {
+  "name": "",
+  "lat": 47.97636,
+  "lon": 3.39367,
+  "vertexType": "NORMAL"
+ },
+ "to": {
+  "name": "",
+  "lat": 47.973656,
+  "lon": 3.393667,
+  "vertexType": "NORMAL"
+ },
+ "direct": [
+  {
+   "duration": 342,
+   "startTime": "2026-11-12T08:00:00Z",
+   "endTime": "2026-11-12T08:05:00Z",
+   "transfers": 0,
+   "id": "",
+   "legs": [
+    {
+     "mode": "WALK",
+     "from": {
+      "name": "START",
+      "lat": 47.97636,
+      "lon": 3.39367,
+      "departure": "2026-11-12T08:00:00Z",
+      "scheduledDeparture": "2026-11-12T08:00:00Z",
+      "vertexType": "NORMAL"
+     },
+     "to": {
+      "name": "END",
+      "lat": 47.973656,
+      "lon": 3.393667,
+      "arrival": "2026-11-12T08:05:00Z",
+      "scheduledArrival": "2026-11-12T08:05:00Z",
+      "vertexType": "NORMAL"
+     },
+     "duration": 342,
+     "startTime": "2026-11-12T08:00:00Z",
+     "endTime": "2026-11-12T08:05:00Z",
+     "scheduledStartTime": "2026-11-12T08:00:00Z",
+     "scheduledEndTime": "2026-11-12T08:05:00Z",
+     "realTime": false,
+     "scheduled": false,
+     "distance": 389,
+     "legGeometry": {
+      "points": "uzfozAohcnE??r@wG??|\\lJ??dZlIrGlB??rHpB`^|J??pTjGhCSlCg@??a@gGGaA??dA_AnDq@??bEq@??lDJvAjCd@Z??NfC??~HwA??|GuA??UqD??t@gA??AcG??G{I",
+      "precision": 6,
+      "length": 41
+     },
+     "steps": [
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 10,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "toOsmNode": 12326803640,
+       "polyline": {
+        "points": "uzfozAohcnE??r@wG",
+        "precision": 6,
+        "length": 3
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 55,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 218067962,
+       "fromOsmNode": 12326803640,
+       "toOsmNode": 13357958210,
+       "polyline": {
+        "points": "ayfozAgqcnE|\\lJ",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "Avenue Charles de Gaulle",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 66,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 218067962,
+       "fromOsmNode": 13357958210,
+       "toOsmNode": 140084267,
+       "polyline": {
+        "points": "c{eozAyecnEdZlIrGlB",
+        "precision": 6,
+        "length": 3
+       },
+       "streetName": "Avenue Charles de Gaulle",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 75,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 218067962,
+       "fromOsmNode": 140084267,
+       "toOsmNode": 4282200340,
+       "polyline": {
+        "points": "iwdozA}wbnErHpB`^|J",
+        "precision": 6,
+        "length": 3
+       },
+       "streetName": "Avenue Charles de Gaulle",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 55,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 218067962,
+       "fromOsmNode": 4282200340,
+       "toOsmNode": 771792577,
+       "polyline": {
+        "points": "sncozAmhbnEpTjGhCSlCg@",
+        "precision": 6,
+        "length": 4
+       },
+       "streetName": "Avenue Charles de Gaulle",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 12,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 106466015,
+       "fromOsmNode": 771792577,
+       "toOsmNode": 5714987038,
+       "polyline": {
+        "points": "ipbozA}abnEa@gGGaA",
+        "precision": 6,
+        "length": 3
+       },
+       "streetName": "Place de la Gare",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 14,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 601266418,
+       "fromOsmNode": 5714987038,
+       "toOsmNode": 5714987039,
+       "polyline": {
+        "points": "sqbozAglbnEdA_AnDq@",
+        "precision": 6,
+        "length": 3
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 11,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 601266418,
+       "fromOsmNode": 5714987039,
+       "toOsmNode": 5714986717,
+       "polyline": {
+        "points": "}ibozAyobnEbEq@",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 19,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 601266395,
+       "fromOsmNode": 5714986717,
+       "toOsmNode": 5714986709,
+       "polyline": {
+        "points": "ycbozAkqbnElDJvAjCd@Z",
+        "precision": 6,
+        "length": 4
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "STAIRS",
+       "distance": 5,
+       "fromLevel": 1,
+       "toLevel": 0,
+       "osmWay": 1143963380,
+       "fromOsmNode": 5714986709,
+       "toOsmNode": 10648959641,
+       "polyline": {
+        "points": "mzaozAwkbnENfC",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 18,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 171934378,
+       "fromOsmNode": 10648959641,
+       "toOsmNode": 1828919860,
+       "polyline": {
+        "points": "}yaozAogbnE~HwA",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 16,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 171934378,
+       "fromOsmNode": 1828919860,
+       "toOsmNode": 1828919855,
+       "polyline": {
+        "points": "}oaozAgjbnE|GuA",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "STAIRS",
+       "distance": 7,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 1143963381,
+       "fromOsmNode": 1828919855,
+       "toOsmNode": 10648959642,
+       "polyline": {
+        "points": "_gaozA}lbnEUqD",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 4,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 601266407,
+       "fromOsmNode": 10648959642,
+       "toOsmNode": 2297205636,
+       "polyline": {
+        "points": "ugaozAorbnEt@gA",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 10,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "osmWay": 220624416,
+       "fromOsmNode": 2297205636,
+       "toOsmNode": 4282202341,
+       "polyline": {
+        "points": "_faozAwtbnEAcG",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      },
+      {
+       "relativeDirection": "CONTINUE",
+       "distance": 12,
+       "fromLevel": 0,
+       "toLevel": 0,
+       "fromOsmNode": 4282202341,
+       "polyline": {
+        "points": "afaozA{|bnEG{I",
+        "precision": 6,
+        "length": 2
+       },
+       "streetName": "",
+       "exit": "",
+       "stayOn": false,
+       "area": false,
+       "toll": false
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "itineraries": [],
+ "previousPageCursor": "",
+ "nextPageCursor": ""
+}
