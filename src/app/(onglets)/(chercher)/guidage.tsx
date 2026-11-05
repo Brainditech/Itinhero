@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CarteGuidage } from "@/composants/CarteGuidage";
 import { CARTE } from "@/composants/carte-module";
 import { symboleManoeuvre } from "@/composants/Fleches";
+import { iconeMode } from "@/composants/icones-mode";
 import type { Point } from "@/domaine/api";
 import { phraseConsigne } from "@/domaine/consignes";
 import {
@@ -20,12 +21,15 @@ import {
   aLieu,
   minutesEnTexte,
   phraseStatut,
+  positionFraiche,
   positionSimulee,
+  PRECISION_MAX_METRES,
   preparer,
   situer,
   vehiculeCourt,
   vehiculeMinuscule,
   type EtatGuidage,
+  type Releve,
   type Situation,
   type Statut,
 } from "@/domaine/guidage";
@@ -53,8 +57,12 @@ function lireSimulation(brut: string | undefined): Simulation | null {
   return { etape: Number(etape), metres: Number(metres), ecart: Number(ecart), heure };
 }
 
-/** Position lue au premier plan, toutes les secondes ou tous les 3 m (D73) : rangée dans `ref`, jamais gardée. */
-function useSuiviPosition(active: boolean, ref: { current: Point | null }) {
+/**
+ * Position lue au premier plan, toutes les secondes, même immobile (D73) : rangée dans `ref`, jamais gardée.
+ * Sans `distanceInterval`, Android envoie un relevé chaque seconde même à l'arrêt : un relevé qui vieillit
+ * veut donc dire que le signal est perdu.
+ */
+function useSuiviPosition(active: boolean, ref: { current: Releve | null }) {
   useEffect(() => {
     if (!active) return;
     let abonnement: Location.LocationSubscription | null = null;
@@ -63,9 +71,10 @@ function useSuiviPosition(active: boolean, ref: { current: Point | null }) {
       const { granted } = await Location.requestForegroundPermissionsAsync();
       if (!granted || fini) return;
       abonnement = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 3 },
+        { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
         (l) => {
-          ref.current = { lat: l.coords.latitude, lon: l.coords.longitude };
+          if (l.coords.accuracy !== null && l.coords.accuracy > PRECISION_MAX_METRES) return;
+          ref.current = { point: { lat: l.coords.latitude, lon: l.coords.longitude }, recuA: Date.now() };
         },
       );
       if (fini) abonnement.remove();
@@ -82,14 +91,17 @@ function useSuiviPosition(active: boolean, ref: { current: Point | null }) {
 
 /** Marge entre le point suivi et le bandeau ou la carte du bas (dp). */
 const AIR = 56;
+/** Sans position depuis 10 s (permission refusée, pas de signal en gare) : « Étape suivante » apparaît. */
+const SANS_POSITION_MS = 10_000;
 
 export default function Guidage() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ i?: string; sim?: string }>();
   const { recherche } = useRecherche();
-  const { demarrer } = useDeroulerRecherche();
-  const possibilite = recherche?.reponse?.possibilites[Number(params.i ?? 0)];
+  const { recalculer: rechercherDepuisIci } = useDeroulerRecherche();
+  // Le trajet guidé est figé à l'ouverture : la réponse d'un recalcul ne le remplace pas pendant que l'écran se ferme.
+  const [possibilite] = useState(() => recherche?.reponse?.possibilites[Number(params.i ?? 0)]);
   const parcours = useMemo(() => (possibilite ? preparer(possibilite) : null), [possibilite]);
   const sim = __DEV__ ? (params.sim ?? null) : null;
 
@@ -98,14 +110,16 @@ export default function Guidage() {
   const [voix, setVoix] = useState(true);
   const [nordEnHaut, setNordEnHaut] = useState(false);
   const [recalcul, setRecalcul] = useState<string | null>(null);
+  const [positionPerdue, setPositionPerdue] = useState(false);
   // Bas du bandeau et haut de la carte du bas, mesurés : la carte cadre la position entre les deux.
   const [bandeauBas, setBandeauBas] = useState(insets.top + 220);
   const [carteHaut, setCarteHaut] = useState<number | null>(null);
   const hauteur = useWindowDimensions().height;
-  const positionRef = useRef<Point | null>(null);
+  const positionRef = useRef<Releve | null>(null);
   const voixRef = useRef(true);
   const etatRef = useRef<EtatGuidage>(ETAT_INITIAL);
   const pasRef = useRef<() => void>(() => {});
+  const enRecalculRef = useRef(false);
   useSuiviPosition(sim === null, positionRef);
 
   // Moteur du guidage : à chaque seconde, la position et l'heure donnent la situation ;
@@ -115,13 +129,20 @@ export default function Guidage() {
     const simulation = lireSimulation(sim ?? undefined);
     const debut = Date.now();
     etatRef.current = { ...ETAT_INITIAL, etape: simulation?.etape ?? 0 };
+    let sansPositionDepuis: number | null = null;
     const pas = () => {
       const maintenant = simulation ? instantDuTrajet(possibilite, simulation.heure) + (Date.now() - debut) : Date.now();
-      const ici = simulation ? positionSimulee(parcours, simulation.etape, simulation.metres, simulation.ecart) : positionRef.current;
+      const ici = simulation
+        ? positionSimulee(parcours, simulation.etape, simulation.metres, simulation.ecart)
+        : positionFraiche(positionRef.current, Date.now());
       const s = situer(parcours, etatRef.current, ici, maintenant);
       etatRef.current = s.etat;
-      if (voixRef.current && s.annonces.length > 0) dire(s.annonces[s.annonces.length - 1]!);
+      // Toutes les phrases du même instant, dans l'ordre, en une seule annonce : aucune n'est coupée par la suivante.
+      if (voixRef.current && s.annonces.length > 0) dire(s.annonces.join(". "));
       if (s.vibrer) vibrer();
+      if (ici) sansPositionDepuis = null;
+      else sansPositionDepuis ??= Date.now();
+      setPositionPerdue(sansPositionDepuis !== null && Date.now() - sansPositionDepuis >= SANS_POSITION_MS);
       setPosition(ici);
       setSituation(s);
     };
@@ -143,9 +164,13 @@ export default function Guidage() {
     router.back();
   };
   const recalculer = async () => {
+    if (enRecalculRef.current) return;
+    enRecalculRef.current = true;
     setRecalcul("Recherche en cours…");
-    // Même rendez-vous, même marge, depuis la position (spec 12 §7, comme une recherche « depuis ma position »).
-    const echec = await demarrer({ ...recherche.demande, depart: { type: "position" } });
+    // Même rendez-vous, même marge, depuis la position (spec 12 §7) ; en « partir à », à partir de maintenant.
+    // Réussi, le guidage se ferme et le Résultat montre la nouvelle réponse : un seul guidage à la fois.
+    const echec = await rechercherDepuisIci(recherche);
+    enRecalculRef.current = false;
     setRecalcul(echec ? echec.message : null);
   };
 
@@ -183,11 +208,14 @@ export default function Guidage() {
           }}
           onArreter={arreter}
           onDescendu={() => {
+            // Un double appui ne saute qu'une étape : seule l'étape affichée peut être passée.
+            if (etatRef.current.etape !== situation.etat.etape) return;
             etatRef.current = descendu(etatRef.current);
             pasRef.current();
           }}
           onRecalculer={recalculer}
           recalcul={recalcul}
+          positionPerdue={positionPerdue}
         />
       </View>
     </View>
@@ -202,19 +230,6 @@ function couleurBandeau(s: Situation): string {
   if (!g || g.etape.mode === "marche") return couleurs.primaire;
   return couleurs[jetonMode(g.etape.mode)];
 }
-
-const ICONES_MODE: Record<string, AndroidSymbol> = {
-  bus: "directions_bus",
-  car: "directions_bus",
-  transport_a_la_demande: "airport_shuttle",
-  tram: "tram",
-  metro: "subway",
-  train_banlieue: "train",
-  train: "train",
-  bateau: "directions_boat",
-  remontee: "funicular",
-  taxi: "local_taxi",
-};
 
 type ContenuBandeau = { icone: AndroidSymbol; titre: string; sousTitre: string | null; bande: { icone: AndroidSymbol; texte: string } | null };
 
@@ -239,9 +254,19 @@ function contenuBandeau(s: Situation): ContenuBandeau {
         : null,
     };
   }
-  const icone = ICONES_MODE[e.mode] ?? "commute";
+  const icone = iconeMode(e.mode);
   if (v.type === "attente") {
     const direction = e.direction ? ` direction ${e.direction}` : "";
+    if (v.rate) {
+      // Taxi et transport à la demande viennent vous chercher : ils sont en retard, pas « passés ».
+      const vientVousChercher = e.mode === "taxi" || e.mode === "transport_a_la_demande";
+      return {
+        icone,
+        titre: `${vehiculeCourt(e)} prévu à ${e.depart}`,
+        sousTitre: vientVousChercher ? `Le ${vehiculeMinuscule(e)} n'est pas encore là ?` : `Le ${vehiculeMinuscule(e)} est peut-être passé`,
+        bande: { icone: "refresh", texte: vientVousChercher ? "Sinon, recalculez depuis ici" : "Recalculez pour trouver le suivant" },
+      };
+    }
     return {
       icone,
       titre: v.minutes > 0 ? `${vehiculeCourt(e)} dans ${minutesEnTexte(v.minutes)}` : `${vehiculeCourt(e)} à ${e.depart}`,
@@ -255,7 +280,7 @@ function contenuBandeau(s: Situation): ContenuBandeau {
   if (v.type === "vehicule") {
     return {
       icone,
-      titre: `Descendez dans ${v.restants.length} arrêts`,
+      titre: v.restants.length > 1 ? `Descendez dans ${v.restants.length} arrêts` : "Sans arrêt jusqu'à la descente",
       sousTitre: `Descente : ${e.a.nom}`,
       bande: { icone: "schedule", texte: `Prochain arrêt : ${v.restants[0]!.nom}` },
     };
@@ -411,6 +436,7 @@ function CarteBas({
   onDescendu,
   onRecalculer,
   recalcul,
+  positionPerdue,
 }: {
   situation: Situation;
   arrivee: string;
@@ -420,6 +446,7 @@ function CarteBas({
   onDescendu: () => void;
   onRecalculer: () => void;
   recalcul: string | null;
+  positionPerdue: boolean;
 }) {
   const v = situation.vue;
   const g = situation.courante;
@@ -431,7 +458,13 @@ function CarteBas({
       : v.type === "fin"
         ? "Bon rendez-vous"
         : `${minutesEnTexte(situation.minutesRestantes)} restantes`;
-  const boutonPlein = v.type === "descente" || situation.ecart !== null;
+  const sansPositionLongtemps = v.type === "marche" && v.sansPosition && positionPerdue;
+  // Hors du chemin près du bout de la marche (GPS décalé dans un hall de gare) : la personne peut finir l'étape
+  // elle-même, par un bouton discret (un détour en route ne doit pas faire sauter la marche d'un appui par erreur).
+  const finirHorsChemin = v.type === "marche" && situation.ecart !== null && v.restanteMetres <= 150 && !sansPositionLongtemps;
+  const passerALaMain = sansPositionLongtemps;
+  const rate = v.type === "attente" && v.rate;
+  const boutonPlein = v.type === "descente" || situation.ecart !== null || passerALaMain || rate;
 
   return (
     <View className="gap-3 self-stretch rounded-carte border border-bordure-carte bg-fond p-5" style={{ boxShadow: ombreFlottante }}>
@@ -456,6 +489,9 @@ function CarteBas({
       </View>
 
       {v.type === "marche" ? <PastilleStatut statut={v.statut} /> : null}
+      {sansPositionLongtemps ? (
+        <Pastille couleur={couleurs.fond} fond={couleurs.avertissement} icone="location_off" texte="Position introuvable : passez à l'étape suivante vous-même" />
+      ) : null}
       {v.type === "attente" && v.aLArret ? <Pastille couleur={couleurs.fond} fond={couleurs.possible} icone="check" texte="Vous êtes à l'arrêt" /> : null}
       {v.type === "attente" && !v.aLArret && v.distanceArret !== null ? (
         <Pastille couleur={couleurs.fond} fond={couleurs.avertissement} icone="directions_walk" texte={`L'arrêt est à ${formaterDistance(v.distanceArret)}`} />
@@ -470,7 +506,7 @@ function CarteBas({
         </Ligne>
       ) : null}
       {v.type === "attente" && e ? (
-        <Ligne icone={ICONES_MODE[e.mode] ?? "commute"} couleur={couleurMode}>
+        <Ligne icone={iconeMode(e.mode)} couleur={couleurMode}>
           {`Montez dans le ${vehiculeMinuscule(e)} ${aLieu(nomLieuEtape(e.de))}`}
         </Ligne>
       ) : null}
@@ -489,7 +525,15 @@ function CarteBas({
       {recalcul ? <Text className="font-inter text-badge text-texte-secondaire">{recalcul}</Text> : null}
 
       {v.type === "descente" ? <BoutonPlein icone={null} libelle="Je suis descendu" onPress={onDescendu} /> : null}
-      {situation.ecart && v.type === "marche" ? <BoutonPlein icone="refresh" libelle="Recalculer depuis ici" onPress={onRecalculer} /> : null}
+      {(situation.ecart && v.type === "marche") || rate ? <BoutonPlein icone="refresh" libelle="Recalculer depuis ici" onPress={onRecalculer} /> : null}
+      {passerALaMain ? <BoutonPlein icone="skip_next" libelle="Étape suivante" onPress={onDescendu} /> : null}
+      {finirHorsChemin ? (
+        <Pressable accessibilityRole="button" onPress={onDescendu} className="min-h-12 items-center justify-center">
+          <Text className="font-inter-semibold text-primaire" style={{ fontSize: 20 }}>
+            Je suis arrivé, étape suivante
+          </Text>
+        </Pressable>
+      ) : null}
 
       {boutonPlein ? (
         <Pressable accessibilityRole="button" onPress={onArreter} className="min-h-12 items-center justify-center">

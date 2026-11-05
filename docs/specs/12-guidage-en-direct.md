@@ -101,6 +101,18 @@ Guidage photo et guidage en sous-sol (hors v1) ; guidage écran éteint (D73) ; 
 - Dans le véhicule, la carte cadre la position en bas et l'arrêt visé en haut (troisième arrêt restant, ou la descente), comme la maquette 03.
 - « Recalculer depuis ici » refait la recherche avec « Ma position » au départ, même rendez-vous et même marge ; il est montré même sans réseau, et dit l'échec s'il n'y en a pas.
 
+### Corrections de la relecture de la PR #20 (2026-11-05, D82)
+
+- « Recalculer depuis ici » garde l'arrivée déjà trouvée, cherche depuis la position lue maintenant et, en « partir à », à partir de l'heure actuelle (`demandeRecalcul`) ; réussi, il revient au Résultat (`router.dismissTo`), ce qui ferme le guidage : jamais deux guidages, ni voix sous le Résultat.
+- Train direct : « Descendez au prochain arrêt » à 1 km de la descente (2 min avant l'arrivée prévue sans position), plus à la montée ; le bandeau dit « Sans arrêt jusqu'à la descente ».
+- Arrivée de la marche seulement à 40 m au plus du tracé ; plus loin, c'est l'écart de D75.
+- Bus raté : encore à l'arrêt 2 min après le départ prévu, l'écran reste à l'attente (« Le bus est peut-être passé ») avec « Recalculer depuis ici ».
+- Position : un relevé par seconde même immobile (`distanceInterval: 0`) ; un relevé de plus de 10 s (signal perdu sous terre) ou moins précis que 100 m ne compte pas, et la marche garde sa dernière abscisse (pas de retour au début). Sans position depuis 10 s pendant une marche : « Position introuvable » et le bouton « Étape suivante » ; hors du chemin à 150 m au plus de la fin (GPS décalé dans un hall), un bouton discret « Je suis arrivé, étape suivante ». Un double appui ne saute qu'une étape.
+- Le trajet guidé est figé à l'ouverture de l'écran ; taxi ou transport à la demande en retard : « n'est pas encore là ? » au lieu de « peut-être passé ».
+- Les phrases d'un même instant sont dites ensemble, dans l'ordre (plus de phrase perdue).
+- Carte : tracé recoupé au changement d'étape ou tous les 5 m, plus chaque seconde ; une seule table d'icônes de mode (`src/composants/icones-mode.ts`) ; vitesse de marche en un seul endroit ; « Attendez le taxi », sans sa durée.
+- Un test de régression par défaut du calcul, qui échoue sur l'ancien code (`guidage.test.ts`, « PR #20 » ; `demande.test.ts`, `demandeRecalcul`).
+
 ### Reste
 
 - Critère 5 (mode avion) et critère 6 (essai sur le terrain, seuils de D75) : par Brainditech.

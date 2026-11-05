@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import type { AndroidSymbol } from "expo-symbols";
 
 import type { Etape, Possibilite } from "@/domaine/api";
 import {
@@ -25,28 +24,13 @@ import {
   resumePossibilite,
 } from "@/domaine/resultat";
 import { CheminAPied } from "@/composants/CheminAPied";
+import { iconeMode } from "@/composants/icones-mode";
 import { Chevron } from "@/composants/Repli";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 // Carte d'itinéraire et frise (design system, « Carte d'itinéraire » ; maquette 04 ; D67).
 
-const ICONES: Record<string, AndroidSymbol> = {
-  marche: "directions_walk",
-  bus: "directions_bus",
-  car: "directions_bus",
-  transport_a_la_demande: "airport_shuttle",
-  tram: "tram",
-  metro: "subway",
-  train_banlieue: "train",
-  train: "train",
-  bateau: "directions_boat",
-  remontee: "funicular",
-  taxi: "local_taxi",
-};
-
-function icone(mode: string): AndroidSymbol {
-  return ICONES[mode] ?? "commute";
-}
+const icone = iconeMode;
 
 /** Bande des modes : un bloc plein par transport, la marche en pointillé (jamais un bloc). */
 export function Frise({ etapes }: { etapes: Etape[] }) {

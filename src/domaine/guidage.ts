@@ -23,6 +23,28 @@ export const A_L_ARRET_METRES = 50;
 export const A_BORD_METRES = 80;
 /** Vitesse de marche quand l'étape ne donne pas la sienne (m/s, 4,3 km/h). */
 export const VITESSE_MARCHE = 1.2;
+/** Encore « à l'arrêt » (bus pas encore pris, ou raté) à moins de 100 m de l'arrêt de montée : marge du GPS en gare. */
+export const ENCORE_A_L_ARRET_METRES = 100;
+/** Délai après le départ prévu au-delà duquel on se croit à bord sans position, ou le bus raté à l'arrêt. */
+export const A_BORD_DELAI_MS = 2 * 60_000;
+/** Sans arrêt intermédiaire (train direct) : descente imminente à 1 km de l'arrêt, ou 2 min avant l'arrivée sans position. */
+export const DESCENTE_DIRECTE_METRES = 1000;
+export const DESCENTE_DIRECTE_MS = 2 * 60_000;
+
+/** Relevé plus vieux que ceci (souterrain, signal perdu) : la position est réputée inconnue. */
+export const POSITION_PERIMEE_MS = 10_000;
+/** Relevé moins précis que ceci (position d'antenne sous terre) : écarté. */
+export const PRECISION_MAX_METRES = 100;
+
+// ——— Position lue ———
+
+/** Dernier relevé de position et l'instant où il est arrivé (ms). */
+export type Releve = { point: Point; recuA: number };
+
+/** Position du dernier relevé s'il est encore frais, sinon null : un relevé figé ne fait pas croire qu'on est resté là. */
+export function positionFraiche(r: Releve | null, maintenant: number): Point | null {
+  return r && maintenant - r.recuA <= POSITION_PERIMEE_MS ? r.point : null;
+}
 
 // ——— Préparation du parcours ———
 
@@ -117,9 +139,14 @@ function suivre(l: Ligne, p: Point, derniere: number, recul: number, tolerance: 
   return partout.ecart + 20 < devant.ecart ? partout : devant;
 }
 
-/** « Je suis descendu » (§4.3) : passage à l'étape suivante. */
+/** « Je suis descendu » (§4.3), ou « Étape suivante » sans position : passage à l'étape suivante. */
 export function descendu(etat: EtatGuidage): EtatGuidage {
   return { ...etat, etape: etat.etape + 1, aBord: false, horsCheminDepuis: null, abscisse: 0 };
+}
+
+/** Vitesse de marche de l'étape (m/s), d'après sa distance et sa durée, sinon 4,3 km/h. */
+export function vitesseMarche(e: Etape): number {
+  return e.distance_metres && e.duree_minutes > 0 ? e.distance_metres / (e.duree_minutes * 60) : VITESSE_MARCHE;
 }
 
 // ——— Ce que l'écran montre ———
@@ -142,12 +169,16 @@ export type Vue =
       restanteMinutes: number;
       statut: Statut;
       destination: string;
+      /** Position inconnue : l'étape ne peut pas finir toute seule. */
+      sansPosition: boolean;
     }
   | {
       type: "attente";
       minutes: number;
       aLArret: boolean;
       distanceArret: number | null;
+      /** Départ prévu passé de plus de 2 min et toujours à l'arrêt : le véhicule est peut-être passé. */
+      rate: boolean;
     }
   | { type: "vehicule"; restants: ArretSitue[] }
   | { type: "descente"; descente: ArretSitue; ensuite: string }
@@ -177,8 +208,10 @@ export function minutesEnTexte(m: number): string {
   return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`;
 }
 
-/** « bus 803 », « TER K7 » : minuscule sauf les sigles. */
+/** « bus 803 », « TER K7 », « taxi » : minuscule sauf les sigles. */
 export function vehiculeMinuscule(e: Etape): string {
+  // Le libellé d'un taxi porte sa durée (« Taxi 12 min ») : sans elle ici.
+  if (e.mode === "taxi") return "taxi";
   const l = libelleEtape(e);
   return /^[A-Z]{2,}/.test(l) ? l : l.charAt(0).toLowerCase() + l.slice(1);
 }
@@ -190,9 +223,7 @@ export function vehiculeCourt(e: Etape): string {
 
 function statutMarche(parcours: Parcours, k: number, restante: number, maintenant: number): Statut {
   const g = parcours.etapes[k]!;
-  const e = g.etape;
-  const vitesse = e.distance_metres && e.duree_minutes > 0 ? e.distance_metres / (e.duree_minutes * 60) : VITESSE_MARCHE;
-  const marcheMs = (restante / vitesse) * 1000;
+  const marcheMs = (restante / vitesseMarche(g.etape)) * 1000;
   const suivante = parcours.etapes[k + 1];
   const vehicule = suivante && suivante.etape.mode !== "marche" ? suivante : null;
   const reference = vehicule ? vehicule.departMs : g.arriveeMs;
@@ -258,9 +289,11 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
     const e = g.etape;
 
     if (e.mode === "marche") {
-      const abscisse = proj?.abscisse ?? 0;
+      // Sans position (signal perdu), on reste où on était, pas au début de l'étape.
+      const abscisse = proj?.abscisse ?? etat.abscisse;
       const restante = Math.max(0, g.ligne.longueur - abscisse);
-      if (proj && restante < FIN_MARCHE_METRES) {
+      // L'arrivée demande d'être au bout du tracé et près de lui : loin à côté, c'est un écart.
+      if (proj && restante < FIN_MARCHE_METRES && proj.ecart <= ECART_METRES) {
         const derniere = g.consignes[g.consignes.length - 1];
         if (derniere) dire(`${k}:${derniere.index}:arrivee`, phraseConsigne(derniere.consigne, nomLieuEtape(e.a)));
         etat = { ...etat, etape: k + 1, aBord: false, horsCheminDepuis: null, abscisse: 0 };
@@ -303,7 +336,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
         }
       }
       const suivante = apres.find((c) => c.abscisse > prochaine.abscisse) ?? null;
-      const vitesse = e.distance_metres && e.duree_minutes > 0 ? e.distance_metres / (e.duree_minutes * 60) : VITESSE_MARCHE;
+      const vitesse = vitesseMarche(e);
       return {
         etat,
         vue: {
@@ -315,6 +348,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
           restanteMinutes: Math.max(1, Math.ceil(restante / vitesse / 60)),
           statut: statutMarche(parcours, k, restante, maintenant),
           destination,
+          sansPosition: position === null,
         },
         courante: g,
         abscisse,
@@ -328,10 +362,13 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
 
     // Étape en véhicule (§4.3).
     const avance = proj && proj.ecart < 150 ? proj.abscisse : 0;
-    const aBord = etat.aBord || avance > A_BORD_METRES || maintenant > g.departMs + 2 * 60_000;
+    const distanceArret = position ? distance(position, { lat: e.de.lat, lon: e.de.lon }) : null;
+    // L'heure seule ne fait pas monter : encore à l'arrêt après le départ prévu, le véhicule est raté.
+    const encoreALArret = distanceArret !== null && distanceArret <= ENCORE_A_L_ARRET_METRES;
+    const departPasse = maintenant > g.departMs + A_BORD_DELAI_MS;
+    const aBord = etat.aBord || avance > A_BORD_METRES || (departPasse && !encoreALArret);
     if (aBord !== etat.aBord) etat = { ...etat, aBord };
     if (!aBord) {
-      const distanceArret = position ? distance(position, { lat: e.de.lat, lon: e.de.lon }) : null;
       return {
         etat,
         vue: {
@@ -339,6 +376,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
           minutes: Math.max(0, Math.ceil((g.departMs - maintenant) / 60_000)),
           aLArret: distanceArret !== null && distanceArret <= A_L_ARRET_METRES,
           distanceArret,
+          rate: departPasse,
         },
         courante: g,
         abscisse: 0,
@@ -360,7 +398,12 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
     );
     const abscisse = proj?.abscisse ?? null;
     const capVehicule = capDevant(g.ligne, abscisse ?? 0);
-    if (restants.length <= 1) {
+    // Sans arrêt intermédiaire (train direct), l'« avant-dernier arrêt » est la montée : on attend l'approche.
+    const direct = g.arrets.length <= 1;
+    const proche = proj && proj.ecart < 150
+      ? g.ligne.longueur - proj.abscisse <= DESCENTE_DIRECTE_METRES
+      : g.arriveeMs - maintenant <= DESCENTE_DIRECTE_MS;
+    if (restants.length <= 1 && (!direct || proche)) {
       dire(`${k}:descente`, `Descendez au prochain arrêt : ${descente.nom}`);
       if (!etat0.annonces.includes(`${k}:descente`)) vibrer = true;
       return {

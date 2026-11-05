@@ -11,9 +11,12 @@ import {
   jusqua,
   aLieu,
   phraseStatut,
+  positionFraiche,
   positionSimulee,
   preparer,
   situer,
+  vehiculeMinuscule,
+  vitesseMarche,
   type EtatGuidage,
   type Situation,
 } from "./guidage";
@@ -186,5 +189,149 @@ describe("heures du trajet", () => {
     expect(POSSIBILITE.depart).toBe("08:14");
     expect((depart - avant) / 60_000).toBe(1);
     expect(instantDuTrajet(POSSIBILITE, "00:10") - depart).toBeGreaterThan(0);
+  });
+});
+
+// ——— Régressions de la relecture de la PR #20 ———
+
+describe("PR #20, défaut 3 — train direct, sans arrêt intermédiaire", () => {
+  // Le TER K7 Saint-Florentin → Dijon sans ses 4 arrêts intermédiaires : un direct, courant dans l'Yonne.
+  const direct = preparer({ ...possibiliteSansArrets() });
+  const k = 3;
+  const g = direct.etapes[k]!;
+  it("pas de « Descendez au prochain arrêt » à la montée, ni de vibration", () => {
+    const etat: EtatGuidage = { ...ETAT_INITIAL, etape: k, aBord: true };
+    const s = situer(direct, etat, positionSimulee(direct, k, 200), g.departMs + 60_000);
+    expect(s.vue.type).toBe("vehicule");
+    expect(s.vibrer).toBe(false);
+    expect(s.annonces).toEqual([]);
+  });
+  it("annoncée une fois, à l'approche de l'arrivée (1 km), avec vibration", () => {
+    let etat: EtatGuidage = { ...ETAT_INITIAL, etape: k };
+    const vues: { m: number; vue: string }[] = [];
+    let vibre = 0;
+    for (let m = 0; m <= g.ligne.longueur; m += 250) {
+      const t = g.departMs + (m / g.ligne.longueur) * (g.arriveeMs - g.departMs);
+      const s = situer(direct, etat, positionSimulee(direct, k, m), t);
+      etat = s.etat;
+      vues.push({ m, vue: s.vue.type });
+      if (s.vibrer) vibre++;
+    }
+    const premiere = vues.find((v) => v.vue === "descente")!;
+    expect(g.ligne.longueur - premiere.m).toBeLessThanOrEqual(1000);
+    expect(g.ligne.longueur - premiere.m).toBeGreaterThan(50);
+    expect(vibre).toBe(1);
+  });
+  it("sans position : annoncée 2 min avant l'arrivée prévue, pas avant", () => {
+    const etat: EtatGuidage = { ...ETAT_INITIAL, etape: k, aBord: true };
+    expect(situer(direct, etat, null, g.arriveeMs - 10 * 60_000).vue.type).toBe("vehicule");
+    expect(situer(direct, etat, null, g.arriveeMs - 90_000).vue.type).toBe("descente");
+  });
+});
+
+function possibiliteSansArrets() {
+  return { ...POSSIBILITE, etapes: POSSIBILITE.etapes.map((e, i) => (i === 3 ? { ...e, arrets: [] } : e)) };
+}
+
+describe("PR #20, défaut 4 — pas d'arrivée loin du chemin", () => {
+  // Marche gare → tribunal en ligne droite (étape sans tracé) : une position de côté se projette au bout du tracé.
+  const droit = preparer({ ...POSSIBILITE, etapes: POSSIBILITE.etapes.map((e, i) => (i === 4 ? { ...e, trace: null } : e)) });
+  const k = 4;
+  const g = droit.etapes[k]!;
+  it("au niveau de la fin du tracé mais à 200 m de côté : ni arrivée, ni étape suivante ; l'écart est signalé", () => {
+    let etat: EtatGuidage = { ...ETAT_INITIAL, etape: k, abscisse: g.ligne.longueur - 20 };
+    let s: Situation | null = null;
+    const dites: string[] = [];
+    for (let t = 0; t <= 20; t++) {
+      s = situer(droit, etat, positionSimulee(droit, k, g.ligne.longueur, 200), heure("10:44") + t * 1000);
+      etat = s.etat;
+      dites.push(...s.annonces);
+    }
+    expect(s!.etat.etape).toBe(k);
+    expect(dites.some((d) => /est sur votre|est devant vous/.test(d))).toBe(false);
+    expect(s!.vue.type).toBe("marche");
+    expect(s!.ecart?.metres).toBeGreaterThan(150);
+    expect(dites).toContain("Vous vous éloignez du chemin");
+  });
+  it("au bout du tracé, sur le chemin : arrivée", () => {
+    const s = situer(droit, { ...ETAT_INITIAL, etape: k, abscisse: g.ligne.longueur - 20 }, positionSimulee(droit, k, g.ligne.longueur), heure("10:44"));
+    expect(s.etat.etape).toBe(k + 1);
+  });
+});
+
+describe("PR #20, défaut 5 — bus raté", () => {
+  const k = 1;
+  const g = parcours.etapes[k]!;
+  it("encore à l'arrêt 5 min après le départ prévu : toujours en attente, véhicule peut-être passé", () => {
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: k }, positionSimulee(parcours, k, 0), g.departMs + 5 * 60_000);
+    expect(s.etat.aBord).toBe(false);
+    expect(s.vue).toMatchObject({ type: "attente", aLArret: true, rate: true });
+  });
+  it("avant le départ prévu, pas « raté »", () => {
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: k }, positionSimulee(parcours, k, 0), g.departMs - 60_000);
+    expect(s.vue).toMatchObject({ type: "attente", rate: false });
+  });
+  it("sans position, l'heure fait toujours passer à bord", () => {
+    expect(situer(parcours, { ...ETAT_INITIAL, etape: k }, null, g.departMs + 5 * 60_000).etat.aBord).toBe(true);
+  });
+  it("parti avec le bus (80 m sur la ligne) : à bord", () => {
+    expect(situer(parcours, { ...ETAT_INITIAL, etape: k }, positionSimulee(parcours, k, 300), g.departMs + 60_000).etat.aBord).toBe(true);
+  });
+});
+
+describe("PR #20, défaut 6 — sans GPS, la marche peut être passée à la main", () => {
+  it("sans position, la vue de marche le dit, et « étape suivante » passe à l'étape d'après", () => {
+    const s = situer(parcours, ETAT_INITIAL, null, heure("08:14"));
+    expect(s.vue).toMatchObject({ type: "marche", sansPosition: true });
+    const suite = situer(parcours, descendu(s.etat), null, heure("08:16"));
+    expect(suite.etat.etape).toBe(1);
+    expect(suite.vue.type).toBe("attente");
+  });
+  it("avec position, sansPosition est faux", () => {
+    expect(situer(parcours, { ...ETAT_INITIAL, etape: 2 }, positionSimulee(parcours, 2, 10), heure("08:50")).vue).toMatchObject({ sansPosition: false });
+  });
+});
+
+describe("PR #20, mineurs — taxi et vitesse", () => {
+  it("un taxi s'écrit « taxi », sans sa durée", () => {
+    const taxi = { ...POSSIBILITE.etapes[1]!, mode: "taxi" as const, duree_minutes: 12, ligne: null };
+    expect(vehiculeMinuscule(taxi)).toBe("taxi");
+  });
+  it("vitesse de marche : d'après l'étape, sinon 1,2 m/s", () => {
+    const e = POSSIBILITE.etapes[2]!;
+    expect(vitesseMarche(e)).toBeCloseTo(e.distance_metres! / (e.duree_minutes * 60));
+    expect(vitesseMarche({ ...e, distance_metres: null })).toBe(1.2);
+  });
+});
+
+describe("relecture, A et B — signal perdu sous terre", () => {
+  const k = 1;
+  const g = parcours.etapes[k]!;
+  const releve = { point: positionSimulee(parcours, k, 0)!, recuA: g.departMs - 60_000 };
+  it("un relevé de plus de 10 s ne compte plus comme position", () => {
+    expect(positionFraiche(releve, releve.recuA + 5_000)).toEqual(releve.point);
+    expect(positionFraiche(releve, releve.recuA + 11_000)).toBeNull();
+    expect(positionFraiche(null, 0)).toBeNull();
+  });
+  it("dernier relevé pris à l'arrêt du métro, puis plus rien : l'heure fait passer à bord, pas « raté »", () => {
+    const t = g.departMs + 5 * 60_000;
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: k }, positionFraiche(releve, t), t);
+    expect(s.etat.aBord).toBe(true);
+  });
+  it("relevé figé pendant une marche : sansPosition, donc « Étape suivante » possible", () => {
+    const r = { point: positionSimulee(parcours, 2, 10)!, recuA: heure("08:50") };
+    const t = heure("08:50") + 30_000;
+    expect(situer(parcours, { ...ETAT_INITIAL, etape: 2 }, positionFraiche(r, t), t).vue).toMatchObject({ sansPosition: true });
+  });
+});
+
+describe("relecture, tour 2 — signal perdu en pleine marche", () => {
+  it("à 800 m, sans position : la marche reste à 800 m, pas au début", () => {
+    const k = 4;
+    const avec = situer(parcours, { ...ETAT_INITIAL, etape: k, abscisse: 790 }, positionSimulee(parcours, k, 800), heure("10:35"));
+    const sans = situer(parcours, avec.etat, null, heure("10:35") + 12_000);
+    expect(sans.abscisse).toBeCloseTo(avec.abscisse!, 0);
+    expect(sans.vue.type === "marche" && sans.vue.restanteMetres).toBeCloseTo(avec.vue.type === "marche" ? avec.vue.restanteMetres : -1, 0);
+    expect(sans.vue.type === "marche" && sans.vue.prochaine.index).toBe(avec.vue.type === "marche" && avec.vue.prochaine.index);
   });
 });

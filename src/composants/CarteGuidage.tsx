@@ -5,8 +5,9 @@ import { SymbolView } from "expo-symbols";
 import type { AndroidSymbol } from "expo-symbols";
 
 import { CARTE } from "@/composants/carte-module";
+import { iconeMode } from "@/composants/icones-mode";
 import type { Point } from "@/domaine/api";
-import { cap as capEntre, distance, portion } from "@/domaine/geo";
+import { cap as capEntre, distance, pointA, portion } from "@/domaine/geo";
 import type { Parcours, Situation } from "@/domaine/guidage";
 import { jetonMode } from "@/domaine/resultat";
 import { couleurs } from "@/theme/jetons";
@@ -15,26 +16,14 @@ import { couleurs } from "@/theme/jetons";
 // tracé restant en couleur, tracé fait en gris ; arrêt de montée et de descente épinglés.
 
 const GRIS_FAIT = "#A9AEBB";
-
-const ICONES_MODE: Record<string, AndroidSymbol> = {
-  bus: "directions_bus",
-  car: "directions_bus",
-  transport_a_la_demande: "airport_shuttle",
-  tram: "tram",
-  metro: "subway",
-  train_banlieue: "train",
-  train: "train",
-  bateau: "directions_boat",
-  remontee: "funicular",
-  taxi: "local_taxi",
-};
+const PAS_TRACE_METRES = 5;
 
 type Trait = { coords: number[][]; couleur: string; marche: boolean };
 
-function traits(parcours: Parcours, s: Situation): { faits: Trait[]; restants: Trait[] } {
+/** Tracé fait et tracé restant, pour l'étape `k` à l'abscisse `a` (m) de son tracé. */
+function traits(parcours: Parcours, k: number, a: number): { faits: Trait[]; restants: Trait[] } {
   const faits: Trait[] = [];
   const restants: Trait[] = [];
-  const k = s.etat.etape;
   parcours.etapes.forEach((g, i) => {
     const marche = g.etape.mode === "marche";
     const couleur = marche ? couleurs.primaire : couleurs[jetonMode(g.etape.mode)];
@@ -42,7 +31,6 @@ function traits(parcours: Parcours, s: Situation): { faits: Trait[]; restants: T
     if (i < k) faits.push({ coords: tout, couleur: GRIS_FAIT, marche });
     else if (i > k) restants.push({ coords: tout, couleur, marche });
     else {
-      const a = s.abscisse ?? 0;
       const vers = (pts: Point[]) => pts.map((p) => [p.lon, p.lat]);
       if (a > 0) faits.push({ coords: vers(portion(g.ligne, 0, a)), couleur: GRIS_FAIT, marche });
       restants.push({ coords: a > 0 ? vers(portion(g.ligne, a, g.ligne.longueur)) : tout, couleur, marche });
@@ -60,6 +48,15 @@ const collection = (ts: Trait[]) => ({
       properties: { couleur: t.couleur, marche: t.marche },
       geometry: { type: "LineString" as const, coordinates: t.coords },
     })),
+});
+
+const pointsGeo = (arrets: { point: Point }[]) => ({
+  type: "FeatureCollection" as const,
+  features: arrets.map((a) => ({
+    type: "Feature" as const,
+    properties: {},
+    geometry: { type: "Point" as const, coordinates: [a.point.lon, a.point.lat] },
+  })),
 });
 
 /** Épingle en goutte : rond de couleur avec une icône blanche, pointe en bas. */
@@ -185,15 +182,25 @@ export function CarteGuidage({
   marges: { haut: number; bas: number };
 }) {
   const s = situation;
-  const { faits, restants } = useMemo(() => traits(parcours, s), [parcours, s]);
-  const g = s.courante;
   const k = s.etat.etape;
+  // La situation change chaque seconde : le tracé n'est recoupé qu'au changement d'étape ou tous les 5 m (batterie).
+  const abscissePas = Math.round((s.abscisse ?? 0) / PAS_TRACE_METRES) * PAS_TRACE_METRES;
+  const { faitsGeo, restantsGeo } = useMemo(() => {
+    const t = traits(parcours, k, abscissePas);
+    return { faitsGeo: collection(t.faits), restantsGeo: collection(t.restants) };
+  }, [parcours, k, abscissePas]);
+  const g = s.courante;
   // Prochaine étape en véhicule (montée) et l'étape en véhicule en cours (descente).
   const vehicule = g && g.etape.mode !== "marche" ? g : (parcours.etapes.slice(k + 1).find((x) => x.etape.mode !== "marche") ?? null);
   const enVehicule = g !== null && g.etape.mode !== "marche" && s.vue.type !== "attente";
   const couleurVehicule = vehicule ? couleurs[jetonMode(vehicule.etape.mode)] : couleurs.primaire;
   const arrets = enVehicule && g ? g.arrets.filter((a) => !a.descente && a.abscisse > (s.abscisse ?? 0)) : [];
-  const ici = position ?? (g ? g.ligne.points[0]! : null);
+  const cleArrets = `${k}:${arrets.map((a) => a.abscisse).join(",")}`;
+  // Même liste d'arrêts ⇒ même objet : la source n'est pas renvoyée à la carte chaque seconde.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- la clé résume la liste
+  const arretsGeo = useMemo(() => pointsGeo(arrets), [cleArrets]);
+  // Sans position : le point reste sur le tracé, là où le guidage nous croit (dernière abscisse connue).
+  const ici = position ?? (g ? pointA(g.ligne, s.abscisse ?? 0) : null);
   // Dans le véhicule (maquettes 03 et 04) : la position en bas, l'arrêt visé en haut (troisième arrêt restant ou descente).
   const vise = enVehicule && g ? (arrets[2]?.point ?? { lat: g.etape.a.lat, lon: g.etape.a.lon }) : null;
   const cadreVehicule = ici && vise && distance(ici, vise) > 30 ? cadrer(ici, vise, marges) : null;
@@ -221,7 +228,7 @@ export function CarteGuidage({
           padding={{ top: marges.haut, bottom: marges.bas, left: 0, right: 0 }}
           duration={600}
         />
-        <CARTE.GeoJSONSource id="guidage-faits" data={collection(faits)}>
+        <CARTE.GeoJSONSource id="guidage-faits" data={faitsGeo}>
           <CARTE.Layer
             id="guidage-faits-trait"
             type="line"
@@ -229,7 +236,7 @@ export function CarteGuidage({
             paint={{ "line-color": GRIS_FAIT, "line-width": 6, "line-dasharray": [0, 2] }}
           />
         </CARTE.GeoJSONSource>
-        <CARTE.GeoJSONSource id="guidage-restants" data={collection(restants)}>
+        <CARTE.GeoJSONSource id="guidage-restants" data={restantsGeo}>
           <CARTE.Layer
             id="guidage-vehicules"
             type="line"
@@ -264,14 +271,7 @@ export function CarteGuidage({
         ) : null}
         <CARTE.GeoJSONSource
           id="guidage-arrets"
-          data={{
-            type: "FeatureCollection",
-            features: arrets.map((a) => ({
-              type: "Feature" as const,
-              properties: {},
-              geometry: { type: "Point" as const, coordinates: [a.point.lon, a.point.lat] },
-            })),
-          }}
+          data={arretsGeo}
         >
           <CARTE.Layer
             id="guidage-arrets-rond"
@@ -291,7 +291,7 @@ export function CarteGuidage({
             anchor="bottom"
             offset={s.vue.type === "attente" && s.vue.aLArret ? [0, -18] : [0, 0]}
           >
-            <Epingle couleur={couleurVehicule} icone={ICONES_MODE[vehicule.etape.mode] ?? "commute"} />
+            <Epingle couleur={couleurVehicule} icone={iconeMode(vehicule.etape.mode)} />
           </CARTE.Marker>
         ) : null}
         {enVehicule && g ? (

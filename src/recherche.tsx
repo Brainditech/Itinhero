@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { messageEchec, type Candidat, type Point, type ReponseItineraires } from "@/domaine/api";
-import { versRequeteItineraires, type Bout, type CoteBout, type Demande } from "@/domaine/demande";
+import { demandeRecalcul, versRequeteItineraires, type Bout, type CoteBout, type Demande } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
 import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
@@ -71,7 +71,11 @@ export function useDeroulerRecherche() {
   const { oublierCle } = useSession();
   const { setRecherche } = useRecherche();
 
-  async function avancer(r: Recherche): Promise<EchecRecherche | null> {
+  /**
+   * `revenir` : le Résultat déjà ouvert sous l'écran courant reprend la nouvelle réponse, et tout ce qui est
+   * au-dessus de lui (le guidage) se ferme, au lieu d'un nouveau Résultat empilé par-dessus.
+   */
+  async function avancer(r: Recherche, ouvrir: "pousser" | "revenir" = "pousser"): Promise<EchecRecherche | null> {
     let courante = r;
     for (const cote of COTES) {
       const bout = courante.demande[cote];
@@ -108,7 +112,8 @@ export function useDeroulerRecherche() {
     }
     if (res.etat !== "ok") return { champ: null, message: messageEchec(res) };
     setRecherche({ ...courante, reponse: res.donnees });
-    router.push("/resultat");
+    if (ouvrir === "revenir") router.dismissTo("/resultat");
+    else router.push("/resultat");
     return null;
   }
 
@@ -135,6 +140,18 @@ export function useDeroulerRecherche() {
     return avancer(r);
   }
 
+  /**
+   * « Recalculer depuis ici » (spec 12, §7) : départ à la position lue maintenant, même arrivée (déjà trouvée,
+   * sans nouvelle confirmation), même rendez-vous et même marge ; en « partir à », à partir de maintenant.
+   * Le guidage en cours se ferme : on revient au Résultat, qui montre la nouvelle réponse.
+   */
+  async function recalculer(r: Recherche): Promise<EchecRecherche | null> {
+    const demande = demandeRecalcul(r.demande, new Date());
+    const depart = await lieuFixe("depart", demande.depart);
+    if (!depart || "message" in depart) return depart ?? { champ: null, message: "La recherche a échoué." };
+    return avancer({ demande, depart: { lieu: depart, candidats: [] }, arrivee: r.arrivee, reponse: null }, "revenir");
+  }
+
   /** Candidat confirmé pour un bout : un départ qui change oblige à rechercher une arrivée tapée près de lui. */
   function confirmer(r: Recherche, cote: CoteBout, candidat: Candidat): Promise<EchecRecherche | null> {
     const suite: Recherche = { ...r, [cote]: { ...r[cote], lieu: lieuChoisi(r.demande[cote], candidat) }, reponse: null };
@@ -142,5 +159,5 @@ export function useDeroulerRecherche() {
     return avancer(suite);
   }
 
-  return { demarrer, confirmer };
+  return { demarrer, confirmer, recalculer };
 }
