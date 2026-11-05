@@ -275,7 +275,7 @@ export function ChampLieu({
             <TextInput
               accessibilityLabelledBy={id}
               value={tape}
-              // Une lettre changée dans un lieu choisi en refait un texte : le lieu est oublié (D90).
+              // Une lettre changée dans un lieu choisi en refait un texte : le lieu est oublié (D91).
               onChangeText={(texte) => onChange({ type: "texte", texte })}
               onFocus={() => {
                 setActif(true);

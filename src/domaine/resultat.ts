@@ -17,7 +17,7 @@ export function jourCourt(date: string): string {
 /** Longueur maximale d'un nom envoyé à l'API (`noms.depart`, `noms.arrivee`, issue 0010 C). */
 export const NOM_MAX = 120;
 
-/** Nom d'un bout pour l'API et l'écran : « Domicile », « Ma position », ou le nom du lieu choisi (spec 13, §4.4 ; D90). */
+/** Nom d'un bout pour l'API et l'écran : « Domicile », « Ma position », ou le nom du lieu choisi (spec 13, §4.4 ; D91). */
 export function nomBout(bout: Bout, choisi: { nom: string } | null): string {
   if (bout.type === "domicile") return "Domicile";
   if (bout.type === "position") return "Ma position";

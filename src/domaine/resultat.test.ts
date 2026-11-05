@@ -247,7 +247,7 @@ describe("Lieux du formulaire", () => {
       "Tribunal Administratif de Dijon",
     );
     expect(nomBout({ type: "texte", texte: "x" }, { nom: "a".repeat(200) })).toHaveLength(NOM_MAX);
-    // Lieu choisi dans les suggestions (D90) : son nom, quel que soit le candidat passé.
+    // Lieu choisi dans les suggestions (D91) : son nom, quel que soit le candidat passé.
     expect(nomBout(LIEU_GARE, null)).toBe("Gare d'Auxerre-Saint-Gervais");
     expect(nomBout({ ...LIEU_GARE, nom: "b".repeat(200) }, null)).toHaveLength(NOM_MAX);
   });

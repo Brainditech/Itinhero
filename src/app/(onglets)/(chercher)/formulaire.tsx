@@ -73,7 +73,7 @@ const CHOIX_SENS = [
  * Formulaire de repli (spec 02). Ouvert par le lien de l'Accueil, ou par son « Chercher » avec
  * `raison=indisponible` (D15 : /v1/comprendre n'existe pas encore), et le départ choisi (`depart`).
  * Départ et Arrivée (spec 13) : texte tapé, Domicile ou Ma position, échangés par ⇅.
- * Pendant la frappe, les lieux suggérés s'affichent sous le champ (spec 18, D89) ; un lieu touché s'y écrit (D90).
+ * Pendant la frappe, les lieux suggérés s'affichent sous le champ (spec 18, D90) ; un lieu touché s'y écrit (D91).
  * « Chercher » : validation, puis la recherche dans l'ordre de D78 (`useDeroulerRecherche`) ; un texte tapé
  * qui donne un seul lieu s'écrit dans son champ, plusieurs ⇒ la liste s'ouvre sous ce champ, aucun ⇒ message.
  */
@@ -89,7 +89,7 @@ export default function Formulaire() {
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
   const [enCours, setEnCours] = useState(false);
   const { demarrer } = useDeroulerRecherche();
-  // Champ de lieu qui a le clavier, et lieux à choisir laissés par « Chercher » sous un champ (D90).
+  // Champ de lieu qui a le clavier, et lieux à choisir laissés par « Chercher » sous un champ (D91).
   const [actif, setActif] = useState<CoteBout | null>(null);
   const [aChoisir, setAChoisir] = useState<Partial<Record<CoteBout, Candidat[]>>>({});
   const suggereDepart = useSuggestionsLieu(champs.depart, champs.arrivee, actif === "depart");
@@ -168,7 +168,7 @@ export default function Formulaire() {
     if (!resultat.ok) return;
     setEnCours(true);
     try {
-      // Un texte qui donne un seul lieu s'écrit dans son champ (D90), s'il n'a pas changé entre-temps.
+      // Un texte qui donne un seul lieu s'écrit dans son champ (D91), s'il n'a pas changé entre-temps.
       const echec = await demarrer(resultat.demande, (cote, texte, lieu) => setChamps((c) => reporterLieu(c, cote, texte, lieu)));
       if (echec?.champ) {
         setErreurs({ [echec.champ]: echec.message });

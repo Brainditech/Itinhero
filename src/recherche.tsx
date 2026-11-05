@@ -10,7 +10,7 @@ import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
 
-// Recherche en cours dans la pile de l'onglet Chercher : Formulaire ⇒ Résultat (plus de Confirmation, D90).
+// Recherche en cours dans la pile de l'onglet Chercher : Formulaire ⇒ Résultat (plus de Confirmation, D91).
 // En mémoire seulement : rien n'est gardé ni envoyé ailleurs qu'à l'API (invariant 6).
 
 /** Un bout trouvé : son point, le nom envoyé à l'API et affiché, et son adresse connue sur le téléphone (spec 14). */
@@ -28,11 +28,11 @@ export type Recherche = {
 
 /**
  * Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null).
- * `candidats` : texte ambigu, la liste s'ouvre sous son champ pour choisir (D90).
+ * `candidats` : texte ambigu, la liste s'ouvre sous son champ pour choisir (D91).
  */
 export type EchecRecherche = { champ: CoteBout | null; message: string; candidats?: Candidat[] };
 
-/** Texte tapé retenu à « Chercher » (un seul lieu trouvé) : le formulaire l'écrit dans son champ (D90). */
+/** Texte tapé retenu à « Chercher » (un seul lieu trouvé) : le formulaire l'écrit dans son champ (D91). */
 export type SurLieuRetenu = (cote: CoteBout, texteCherche: string, lieu: BoutLieu) => void;
 
 export const DOMICILE_ABSENT = "Indiquez votre domicile dans Réglages.";
@@ -69,7 +69,7 @@ export function useRecherche(): ContexteValeur {
  * 1. `demarrer` lit les bouts sans texte (domicile, position) ;
  * 2. `avancer` cherche chaque texte par `GET /v1/lieux`, le départ d'abord, près de l'autre bout s'il est connu,
  *    sinon près de la position si l'accès est déjà accordé ; un seul lieu ⇒ retenu, et écrit dans son champ ;
- *    plusieurs ⇒ la liste s'ouvre sous ce champ (D90) ;
+ *    plusieurs ⇒ la liste s'ouvre sous ce champ (D91) ;
  * 3. les deux bouts connus ⇒ `POST /v1/itineraires`, puis le Résultat.
  * Rend l'échec à montrer, ou null (écran suivant ouvert, ou clé refusée : l'écran de la clé s'ouvre).
  */
@@ -101,7 +101,7 @@ export function useDeroulerRecherche() {
       if (res.etat !== "ok") return { champ: null, message: messageEchec(res) };
       const candidats = res.donnees.slice(0, 5);
       if (candidats.length === 0) return { champ: cote, message: MESSAGES_SUGGESTIONS.aucun(bout.texte) };
-      // Plusieurs lieux : on choisit dans la liste, sous le champ (D90), jamais d'office.
+      // Plusieurs lieux : on choisit dans la liste, sous le champ (D91), jamais d'office.
       if (candidats.length > 1) return { champ: cote, message: MESSAGES_SUGGESTIONS.choisir, candidats };
       const lieu = boutDuCandidat(candidats[0]!);
       surLieuRetenu?.(cote, bout.texte, lieu);

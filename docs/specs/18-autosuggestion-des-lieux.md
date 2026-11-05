@@ -1,11 +1,11 @@
 # Spec 18 — Lieux suggérés pendant la frappe
 
 - **Date** : 2026-11-05
-- **État** : **approuvée par Brainditech le 2026-11-05 (« implemente »), avec une demande en plus : supprimer l'écran « C'est ce lieu » (« c'est moche »).** Appliquée, voir §10.
+- **État** : **approuvée par Brainditech le 2026-11-05 (« implemente »), avec une demande en plus : supprimer l'écran « C'est ce lieu » (« c'est moche »).** Appliquée, voir §10. **Complément §12 (icônes selon le transport, D92) proposé le 2026-11-05, à approuver.**
 - **Branche** : `phase-2/autosuggestion-lieux`
-- **Maquettes** : `design/accueil/02-formulaire-repli.png` (formulaire). La maquette `design/confirmation-lieu/03-confirmation-lieu.png` n'est plus suivie : l'écran disparaît (D90). Écart voulu, décrit en §4.
+- **Maquettes** : `design/accueil/02-formulaire-repli.png` (formulaire). La maquette `design/confirmation-lieu/03-confirmation-lieu.png` n'est plus suivie : l'écran disparaît (D91). Écart voulu, décrit en §4.
 - **Demande de Brainditech (2026-11-05)** : « lorsque je tape un endroit il faut que je saisisse également l'arrivée avant qu'il corrige la première adresse ; lorsque je reviens après validation du lieu, ça ne modifie pas la zone de texte, ça remet le texte initial alors que valider le lieu devrait justement rectifier ; je voudrais plutôt une autosuggestion pour éviter un aller-retour », puis « supprime la suggestion avec le c'est ce lieu, car c'est moche ».
-- **Décisions** : D89, D90 (acceptées le 2026-11-05) ; D78 révisée. **Invariants** : 2, 6, 8, 9, 10.
+- **Décisions** : D90, D91 (acceptées le 2026-11-05) ; D78 révisée. **Invariants** : 2, 6, 8, 9, 10.
 
 ## 1. But
 
@@ -21,10 +21,10 @@ Choisir le départ et l'arrivée **pendant qu'on les tape**, dans une liste de l
 
 ## 3. Décisions
 
-- **D89 — Lieux suggérés pendant la frappe (révise D78).** Dans un champ Départ ou Arrivée qui a le clavier, dès 3 caractères (espaces de bord retirés), 350 ms après la dernière touche, l'app appelle `GET /v1/lieux` avec `proche` = l'autre bout s'il est un lieu connu (lieu choisi, ou domicile lu sur le téléphone), sinon la position si l'accès est déjà accordé (sans le demander), sinon rien. Les 5 premiers candidats s'affichent sous le champ ; seule la réponse au dernier texte tapé est montrée. Un toucher sur un candidat le retient pour ce bout.
+- **D90 — Lieux suggérés pendant la frappe (révise D78).** Dans un champ Départ ou Arrivée qui a le clavier, dès 3 caractères (espaces de bord retirés), 350 ms après la dernière touche, l'app appelle `GET /v1/lieux` avec `proche` = l'autre bout s'il est un lieu connu (lieu choisi, ou domicile lu sur le téléphone), sinon la position si l'accès est déjà accordé (sans le demander), sinon rien. Les 5 premiers candidats s'affichent sous le champ ; seule la réponse au dernier texte tapé est montrée. Un toucher sur un candidat le retient pour ce bout.
   - Raison : un débutant voit tout de suite si le lieu est le bon, sans aller-retour, et peut choisir le départ avant d'avoir rempli l'arrivée.
   - Options écartées : chercher à chaque touche, sans attente (un appel par lettre, limite de débit vite atteinte) ; la route `/completion` de l'IGN en plus (elle ne connaît ni les arrêts ni les commerces, et ferait un second classement à côté de D60) ; une liste flottante au-dessus du clavier (cache le champ suivant et le bouton, plus dur à lire avec TalkBack).
-- **D90 — Un lieu retenu s'écrit dans son champ ; plus d'écran de Confirmation.** Un bout peut être un **lieu choisi** : nom, point, nature (adresse, lieu, arrêt), commune, code postal. Le champ montre alors le nom, et dessous sa ligne de détail. Modifier une lettre en refait un simple texte (le lieu est oublié). ⇅ l'échange comme les autres bouts. À « Chercher », un lieu choisi n'est plus cherché. Un texte tapé sans rien choisir est cherché à « Chercher » (D78) : un seul lieu ⇒ retenu et écrit dans le champ ; plusieurs ⇒ la liste s'ouvre sous ce champ avec « Choisissez le lieu dans la liste. » ; aucun ⇒ le message actuel.
+- **D91 — Un lieu retenu s'écrit dans son champ ; plus d'écran de Confirmation.** Un bout peut être un **lieu choisi** : nom, point, nature (adresse, lieu, arrêt), commune, code postal. Le champ montre alors le nom, et dessous sa ligne de détail. Modifier une lettre en refait un simple texte (le lieu est oublié). ⇅ l'échange comme les autres bouts. À « Chercher », un lieu choisi n'est plus cherché. Un texte tapé sans rien choisir est cherché à « Chercher » (D78) : un seul lieu ⇒ retenu et écrit dans le champ ; plusieurs ⇒ la liste s'ouvre sous ce champ avec « Choisissez le lieu dans la liste. » ; aucun ⇒ le message actuel.
   - Raison : ce qu'on voit dans le champ est ce qui sera cherché ; un écran de plus pour choisir parmi les mêmes candidats est un aller-retour (demande de Brainditech).
   - Options écartées : garder l'écran de Confirmation pour les textes ambigus (refusé par Brainditech) ; prendre d'office le premier candidat d'un texte ambigu (risque de partir du mauvais Joigny sans le voir) ; réécrire seulement le texte du champ (la recherche suivante repasserait par `/v1/lieux`) ; une étiquette non modifiable comme « ⌂ Domicile » (on ne peut plus corriger une lettre).
 
@@ -47,7 +47,7 @@ Arrivée  [ ⌂ Domicile                  ⌂  ◎ ]
 
 - La liste s'ouvre sous le champ qui a le clavier, dans la carte du formulaire (elle pousse les champs suivants vers le bas ; la liste du formulaire défile si besoin). Un seul champ à la fois.
 - Chaque ligne : icône selon la nature (arrêt, adresse, lieu), le nom, la ligne de `detailCandidat`. Hauteur 48 dp au moins. Rôle « bouton », lu « Gare d'Auxerre-Saint-Gervais, Arrêt, Auxerre, à 38 km ».
-- Toucher une ligne : le bout devient ce lieu choisi (D90), la liste se ferme, le clavier se ferme.
+- Toucher une ligne : le bout devient ce lieu choisi (D91), la liste se ferme, le clavier se ferme.
 - Pendant l'attente de la réponse : la liste précédente reste affichée (pas de clignotement) ; s'il n'y en a pas, une ligne « Recherche… ».
 - Aucun candidat : « Aucun lieu trouvé pour « … ». Essayez avec la commune. » (indication, pas une erreur).
 - Échec (réseau coupé, serveur arrêté, limite atteinte, délai dépassé, clé refusée) : « Suggestions indisponibles pour l'instant. » ; le texte reste cherchable à « Chercher », qui dira l'erreur comme aujourd'hui (et ouvre l'écran de la clé si elle est refusée).
@@ -67,7 +67,7 @@ Départ   [ Gare d'Auxerre-Saint-Gervais ⌂  ◎ ]
 ### 4.3 « Chercher »
 
 - Un lieu choisi est retenu tel quel, comme le domicile ou la position : pas d'appel à `/v1/lieux`.
-- Un texte non choisi suit D78 (le départ d'abord, `proche` = l'autre bout), puis D90 : un seul candidat ⇒ retenu **et écrit dans le champ** ; plusieurs ⇒ la liste s'ouvre sous ce champ (sans clavier) avec « Choisissez le lieu dans la liste. » en message, et la recherche s'arrête là ; aucun ⇒ message actuel.
+- Un texte non choisi suit D78 (le départ d'abord, `proche` = l'autre bout), puis D91 : un seul candidat ⇒ retenu **et écrit dans le champ** ; plusieurs ⇒ la liste s'ouvre sous ce champ (sans clavier) avec « Choisissez le lieu dans la liste. » en message, et la recherche s'arrête là ; aucun ⇒ message actuel.
 - Deux lieux choisis à moins de 50 m l'un de l'autre ⇒ « Le départ et l'arrivée sont le même lieu. » sous l'Arrivée (message existant).
 - L'écran `confirmation.tsx` et sa route `/confirmation` sont supprimés.
 
@@ -81,7 +81,7 @@ Départ   [ Gare d'Auxerre-Saint-Gervais ⌂  ◎ ]
 
 ## 5. Fichiers touchés
 
-`src/domaine/demande.ts`, `suggestions.ts` (nouveau), `resultat.ts` (+ tests), `src/recherche.tsx`, `src/composants/elements.tsx`, `src/composants/useSuggestionsLieu.ts` (nouveau), `src/app/(onglets)/(chercher)/formulaire.tsx`, `confirmation.tsx` (supprimé) ; `PLAN.md` (phase 2), `docs/ETAT.md`, `docs/decisions/0001-cadrage-v1.md` (D89, D90, renvoi dans D78). Aucune dépendance ajoutée, aucun module natif : un rechargement du development build suffit.
+`src/domaine/demande.ts`, `suggestions.ts` (nouveau), `resultat.ts` (+ tests), `src/recherche.tsx`, `src/composants/elements.tsx`, `src/composants/useSuggestionsLieu.ts` (nouveau), `src/app/(onglets)/(chercher)/formulaire.tsx`, `confirmation.tsx` (supprimé) ; `PLAN.md` (phase 2), `docs/ETAT.md`, `docs/decisions/0001-cadrage-v1.md` (D90, D91, renvoi dans D78). Aucune dépendance ajoutée, aucun module natif : un rechargement du development build suffit.
 
 ## 6. Sécurité, vie privée, débit
 
@@ -118,7 +118,7 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
 - `src/domaine/suggestions.ts` (nouveau) : `texteASuggerer`, `boutDuCandidat`, `candidatDuBout`, `etatSuggestions`, `enAttente`, `annonceSuggestions`, `Derniere`, `reporterLieu`, messages.
 - `src/domaine/resultat.ts` : `nomBout` d'un lieu choisi ; `sousTitreDemande` supprimé avec la Confirmation.
 - `src/recherche.tsx` : un lieu choisi est retenu sans réseau ; un texte à un seul lieu est retenu et remonté au formulaire (`SurLieuRetenu`) ; plusieurs ⇒ échec avec `candidats` ; `confirmer` supprimé.
-- `src/composants/useSuggestionsLieu.ts` (nouveau) : attente de 350 ms, `proche` de D89, dernière réponse seule. L'annulation par `AbortController` prévue en §4.4 n'a pas été faite : une réponse dépassée est ignorée (`Derniere`), ce qui suffit.
+- `src/composants/useSuggestionsLieu.ts` (nouveau) : attente de 350 ms, `proche` de D90, dernière réponse seule. L'annulation par `AbortController` prévue en §4.4 n'a pas été faite : une réponse dépassée est ignorée (`Derniere`), ce qui suffit.
 - `src/composants/elements.tsx` : `ChampLieu` (lieu choisi modifiable, ligne de détail, début du nom visible sans le clavier) et `ListeSuggestions`.
 - `formulaire.tsx` : suggestions des deux champs, liste imposée par « Chercher », ⇅ qui ne chevauche pas une liste ouverte ; `confirmation.tsx` supprimé.
 - Vérifié : `npm test` (224 tests, dont 15 pour `suggestions.ts`), `npx tsc --noEmit`, `npx expo lint` verts.
@@ -132,3 +132,42 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
 - Corrigé pendant l'essai : ligne de détail coupée (« à … ») ⇒ deux lignes ; nom long affiché par sa fin (« d'Auxerre-Saint-Gervais ») ⇒ par son début quand le champ n'a pas le clavier ; ligne de détail alignée sur le texte du champ.
 - **Critère 10 — en partie.** Le tunnel `adb reverse` coupé pendant la frappe n'a pas fait apparaître « Suggestions indisponibles » de façon sûre (connexion déjà ouverte gardée) ; le cas est couvert par les tests de `etatSuggestions`. Restent : serveur vraiment arrêté, TalkBack, capture côte à côte avec la maquette 02, par Brainditech.
 - **Critère 11** : à faire (comparaison avec Google Maps).
+
+## 12. Complément : une icône qui dit ce qu'est le lieu (proposé le 2026-11-05, à approuver)
+
+- **Demande de Brainditech (2026-11-05)** : « des icônes pour adresse et métro pour les métros ou gare ».
+- **Constaté** : la liste montre une icône par nature (`ICONE_NATURE`, `elements.tsx`) : `directions_transit` pour **tout** arrêt (métro, gare, simple arrêt de bus), `signpost` pour une adresse, `location_on` pour un lieu. On ne distingue donc pas Châtelet (métro) de « Rue de la Gare » (bus).
+- **Constaté contre le MOTIS local (v2.11.4, données nationales)** : `/api/v1/geocode` rend pour chaque arrêt la liste `modes` des transports qui le desservent. Exemples : Châtelet, Paris ⇒ `SUBWAY, BUS` ; Gare de Lyon, Paris ⇒ `REGIONAL_RAIL, SUBWAY, BUS` ; Auxerre Saint-Gervais ⇒ `REGIONAL_RAIL, BUS` ; DIJON Gare ⇒ `REGIONAL_RAIL, TRAM, BUS` ; Rue de la Gare, Pusignan ⇒ `BUS` ; Domer - Garibaldi, Lyon ⇒ `[]`. Aujourd'hui le serveur jette ce champ (`schemaMatch`, `serveur/src/lieux/motis-geocode.ts`).
+
+### D92 — Icône d'un arrêt selon le transport le plus lourd qui le dessert (proposée)
+
+- Le serveur garde `modes` des arrêts MOTIS et rend dans chaque candidat de `GET /v1/lieux` un champ **`transport`** : `"train"`, `"metro"`, `"tram"`, `"car"`, `"bus"`, `"bateau"`, ou absent (adresse, lieu, arrêt sans mode connu). Le plus lourd l'emporte, dans cet ordre : train (`RAIL`, `HIGHSPEED_RAIL`, `LONG_DISTANCE`, `NIGHT_RAIL`, `REGIONAL_FAST_RAIL`, `REGIONAL_RAIL`, `SUBURBAN`) > métro (`SUBWAY`) > tram (`TRAM`) > car (`COACH`) > bus (`BUS`, `ODM`) > bateau (`FERRY`). Un mode inconnu est ignoré (le schéma Zod ne refuse pas la réponse pour autant).
+- L'app choisit l'icône (Material Symbols, déjà utilisés par `expo-symbols`) :
+
+  | Candidat | Icône | Exemple |
+  |---|---|---|
+  | arrêt `train` | `train` | Auxerre Saint-Gervais, Gare de Lyon |
+  | arrêt `metro` | `subway` | Châtelet, Pré-Saint-Gervais |
+  | arrêt `tram` | `tram` | arrêt de tram seul |
+  | arrêt `car` ou `bus` | `directions_bus` | Rue de la Gare, Pusignan |
+  | arrêt `bateau` | `directions_boat` | |
+  | arrêt sans `transport` | `directions_transit` (comme aujourd'hui) | Domer - Garibaldi |
+  | adresse | `home_pin` (repère avec une maison) | 3 rue de la Gare, Joigny |
+  | lieu (commune, monument, commerce) | `location_on` (comme aujourd'hui) | Tribunal administratif, Dijon |
+
+- Le lecteur d'écran dit la nature avant le nom : « Gare, Auxerre Saint-Gervais, Auxerre, à 38 km » ; « Métro, Châtelet, Paris » ; « Arrêt de bus, … » ; « Adresse, … ». La ligne de détail écrite ne change pas.
+- Le lieu choisi garde son `transport` (bout « lieu choisi », `schemaBoutLieu`), pour que l'icône reste la même si la liste se rouvre.
+- Raison : un débutant reconnaît d'un coup d'œil la gare ou la station de métro parmi des homonymes, sans lire la ligne de détail.
+- Options écartées : une icône par mode, plusieurs côte à côte (illisible sur 48 dp, et Gare de Lyon en aurait trois) ; deviner le mode depuis le nom (« Gare », « Métro ») (faux pour « Rue de la Gare », arrêt de bus) ; le pictogramme officiel de chaque réseau (logos des opérateurs, droits et cohérence) ; `signpost` pour l'adresse (lu comme un panneau de direction, pas comme une adresse).
+
+### Ce qui est construit en plus
+
+- Serveur : `schemaMatch` lit `modes` (facultatif) ; `transportDesModes(modes)` (pur, testé) ; `Candidat.transport` facultatif ; la réponse de `/v1/lieux` le transmet (les candidats de l'IGN et d'OSM n'en ont pas). Aucune donnée de plus envoyée ni gardée (invariants 6 et 10).
+- App : `schemaCandidat` (`src/domaine/api.ts`) et `schemaBoutLieu` acceptent `transport` facultatif ; `iconeCandidat(candidat)` et `natureLue(candidat)` dans `src/domaine/suggestions.ts` (purs, testés) ; `ListeSuggestions` et le libellé lu s'en servent.
+- Aucune dépendance ni module natif ajoutés.
+
+### Critères d'acceptation en plus
+
+13. Tests serveur : `transportDesModes` : `REGIONAL_RAIL, SUBWAY, BUS` ⇒ `train` ; `SUBWAY, BUS` ⇒ `metro` ; `REGIONAL_RAIL, TRAM, BUS` ⇒ `train` ; `BUS` ⇒ `bus` ; `[]` ou absent ⇒ rien ; un mode inconnu seul ⇒ rien. Une réponse MOTIS enregistrée avec `modes` donne `transport` dans `/v1/lieux`.
+14. Tests app : `iconeCandidat` rend l'icône du tableau pour chaque ligne ; `natureLue` rend « Gare », « Métro », « Tram », « Arrêt de car », « Arrêt de bus », « Arrêt », « Adresse », « Lieu » ; un ancien candidat sans `transport` passe toujours le schéma.
+15. Sur le téléphone : « chatelet » ⇒ Châtelet, Paris avec l'icône métro ; « auxerre saint » ⇒ la gare avec l'icône train ; « 3 rue de la gare joigny » ⇒ icône adresse ; « rue de la gare » ⇒ arrêts de bus avec l'icône bus.

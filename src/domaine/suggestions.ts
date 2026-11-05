@@ -1,13 +1,13 @@
 import type { Candidat, ResultatApi } from "./api";
 import type { Bout, BoutLieu, CoteBout } from "./demande";
 
-// Lieux suggérés pendant la frappe (spec 18, D89, D90) : pur TypeScript, testé sous Node.
+// Lieux suggérés pendant la frappe (spec 18, D90, D91) : pur TypeScript, testé sous Node.
 
-/** Nombre de caractères tapés avant la première suggestion (D89). */
+/** Nombre de caractères tapés avant la première suggestion (D90). */
 export const SUGGESTION_MIN = 3;
-/** Attente après la dernière touche avant d'appeler `GET /v1/lieux` (D89). */
+/** Attente après la dernière touche avant d'appeler `GET /v1/lieux` (D90). */
 export const SUGGESTION_ATTENTE_MS = 350;
-/** Nombre de lieux montrés sous le champ (D89). */
+/** Nombre de lieux montrés sous le champ (D90). */
 export const SUGGESTIONS_MAX = 5;
 
 export const MESSAGES_SUGGESTIONS = {
@@ -24,7 +24,7 @@ export function texteASuggerer(bout: Bout): string | null {
   return t.length >= SUGGESTION_MIN ? t : null;
 }
 
-/** Candidat touché dans la liste ⇒ bout « lieu choisi » (D90). */
+/** Candidat touché dans la liste ⇒ bout « lieu choisi » (D91). */
 export function boutDuCandidat(c: Candidat): BoutLieu {
   return {
     type: "lieu",
@@ -78,7 +78,7 @@ export function annonceSuggestions(e: EtatSuggestions): string {
 }
 
 /**
- * Seule la réponse à la dernière demande compte (D89) : `nouvelle()` rend un numéro,
+ * Seule la réponse à la dernière demande compte (D90) : `nouvelle()` rend un numéro,
  * `estDerniere(n)` dit si aucune demande n'a été faite depuis.
  */
 export class Derniere {
@@ -97,7 +97,7 @@ export class Derniere {
 }
 
 /**
- * Lieu retenu à « Chercher » pour un texte (D90) : il s'écrit dans son champ, si ce champ montre toujours
+ * Lieu retenu à « Chercher » pour un texte (D91) : il s'écrit dans son champ, si ce champ montre toujours
  * le texte cherché (une lettre changée entre-temps ⇒ rien, ce qu'on a tapé depuis n'est jamais écrasé).
  */
 export function reporterLieu<T extends Record<CoteBout, Bout>>(champs: T, cote: CoteBout, texteCherche: string, lieu: BoutLieu): T {

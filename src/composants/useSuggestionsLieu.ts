@@ -16,7 +16,7 @@ import { lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
 
 /**
- * Point `proche` des suggestions (D89) : l'autre bout s'il est un lieu connu (lieu choisi, domicile enregistré),
+ * Point `proche` des suggestions (D90) : l'autre bout s'il est un lieu connu (lieu choisi, domicile enregistré),
  * sinon la position si l'accès est déjà accordé (sans le demander), sinon rien.
  */
 async function procheDe(autre: Bout, db: SQLiteDatabase): Promise<Point | undefined> {

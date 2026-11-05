@@ -24,7 +24,7 @@ export const LIEU_MIN_RECHERCHE = 2;
 /** Deux lieux choisis plus proches que ça sont « le même lieu » (spec 18, §4.3). */
 export const MEME_LIEU_METRES = 50;
 
-/** Lieu choisi dans les suggestions, ou retenu à « Chercher » (D90) : ce qu'on voit dans le champ est ce qui est cherché. */
+/** Lieu choisi dans les suggestions, ou retenu à « Chercher » (D91) : ce qu'on voit dans le champ est ce qui est cherché. */
 export const schemaBoutLieu = z.object({
   type: z.literal("lieu"),
   nom: z.string().min(1).max(LIEU_MAX),
@@ -37,7 +37,7 @@ export const schemaBoutLieu = z.object({
 
 /**
  * Un bout du trajet, départ ou arrivée (D77) : Domicile, Ma position, un texte à chercher
- * par `GET /v1/lieux`, ou un lieu déjà choisi (D90). `/v1/comprendre` produira la même forme.
+ * par `GET /v1/lieux`, ou un lieu déjà choisi (D91). `/v1/comprendre` produira la même forme.
  */
 export const schemaBout = z.discriminatedUnion("type", [
   z.object({ type: z.literal("domicile") }),
