@@ -78,6 +78,7 @@ Essayé le 2026-11-05 avec Brainditech, téléphone branché par USB, position s
 - **Recalcul réussi** : écart de 60 m détecté après 15 s, « Recalculer depuis ici » donne la nouvelle réponse (« Ma position → Gare de Joigny », 06:16), sans guidage resté ouvert derrière. Défaut trouvé : le Résultat revient défilé dans le vide, voir l'issue 0018.
 - **Marche** (simulée, 41 points tous les 8 m sur les 314 m jusqu'à l'arrêt Mairie) : consignes dans l'ordre (rue Victorien Sardou, rue Bouribault, rue de l'Hôtel Dieu), distance restante qui baisse, puis attente du bus « Bus le 12/11 à 06:27 », « Vous êtes à l'arrêt ». Une vraie marche dehors reste à faire, mais elle demande l'API sur le VPS (ici, l'API ne passe que par le câble USB).
 - **Voix** : toujours pas essayée. L'app installée (2026-11-05 03:18) ne contient pas le module natif `expo-speech` (absent des `classes*.dex` de l'APK) ; il faut un nouveau development build.
+- **Voix, essayée le 2026-11-05 vers 10:11** après un nouveau development build (`npx expo run:android` par Brainditech) : guidage simulé (`sim=0,50,0,06:18`, bandeau « Dans 90 m, Tournez à droite rue Bouribault »). `logcat` : demande de synthèse `fr-FR` reçue par Google TTS (`GoogleTTSServiceImpl`, voix embarquée), lecture d'environ 4 s sur le flux média. Brainditech a entendu la consigne (« rue Bouribault, tournez à droite ») : la voix marche.
 
 ## 7. Vu en passant, hors de la PR #20
 
