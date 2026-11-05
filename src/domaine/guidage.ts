@@ -12,6 +12,8 @@ import { formaterDistance, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVou
 export const ECART_METRES = 40;
 /** Durée de l'écart avant l'alerte (D75). */
 export const ECART_DUREE_MS = 15_000;
+/** Au-delà, l'écart est dit tout de suite : aucun saut de GPS ne fait 1 km (D95). */
+export const ECART_LOIN_METRES = 1_000;
 /** Annonces d'une manœuvre de marche : à 150 m, à 40 m, et au point de manœuvre. */
 export const SEUILS_ANNONCE = [150, 40, 10] as const;
 /** Fin d'une marche : à moins de 15 m du bout du tracé. */
@@ -384,7 +386,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
       if (proj && proj.ecart > ECART_METRES) {
         const depuis = etat.horsCheminDepuis ?? maintenant;
         etat = { ...etat, horsCheminDepuis: depuis };
-        if (maintenant - depuis >= ECART_DUREE_MS) {
+        if (maintenant - depuis >= ECART_DUREE_MS || proj.ecart > ECART_LOIN_METRES) {
           ecart = { metres: proj.ecart, vers: proj.point };
           dire(`${k}:ecart:${depuis}`, "Vous vous éloignez du chemin");
         }

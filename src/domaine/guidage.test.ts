@@ -562,3 +562,27 @@ describe("issue 0022 — loin du chemin au départ d'une marche : pas « Vous y 
     expect(s!.ecart?.metres).toBeGreaterThan(10_000);
   });
 });
+
+describe("D95 — loin du chemin : l'écart est dit tout de suite", () => {
+  // À 17 km, le guidage affichait 15 s « Dans 40 m — Tournez à droite » avant l'écart (attente de D75).
+  const k = 4;
+  it("à 17 km, dès la première position : écart signalé et annoncé", () => {
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: k }, positionSimulee(parcours, k, 0, 17_000), heure("10:30"));
+    expect(s.ecart?.metres).toBeGreaterThan(10_000);
+    expect(s.annonces).toContain("Vous vous éloignez du chemin");
+  });
+  it("à 1,5 km, dès la première position : écart signalé", () => {
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: k }, positionSimulee(parcours, k, 0, 1_500), heure("10:30"));
+    expect(s.ecart?.metres).toBeGreaterThan(1_000);
+  });
+  it("à 200 m : D75 inchangée, rien avant 15 s, l'écart après", () => {
+    const ici = positionSimulee(parcours, k, 0, 200);
+    let etat: EtatGuidage = { ...ETAT_INITIAL, etape: k };
+    for (let t = 0; t <= 16; t++) {
+      const s = situer(parcours, etat, ici, heure("10:30") + t * 1000);
+      etat = s.etat;
+      if (t < 15) expect(s.ecart).toBeNull();
+      else expect(s.ecart?.metres).toBeGreaterThan(150);
+    }
+  });
+});
