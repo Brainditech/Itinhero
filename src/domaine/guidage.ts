@@ -2,7 +2,7 @@ import type { Consigne, Etape, Point, Possibilite } from "./api";
 import { phraseConsigne } from "./consignes";
 import { cap, decoderTrace, distance, ligne, pointA, projeter, projeterEnAvancant, type Ligne } from "./geo";
 import { maintenantAParis } from "./demande";
-import { formaterDistance, libelleEtape, nomLieuEtape } from "./resultat";
+import { formaterDistance, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVousChercher } from "./resultat";
 
 // Guidage en direct (spec 12, §4.4) : pur TypeScript, sans Expo, testé sous Node.
 // La position et l'heure entrent ; l'écran à montrer et les phrases à dire sortent. Rien n'est gardé.
@@ -246,21 +246,8 @@ function nomFinMarche(parcours: Parcours, k: number): string {
   return suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);
 }
 
-/**
- * Véhicule qui vient vous prendre et vous dépose (taxi, transport à la demande sans arrêts) :
- * ni arrêt, ni « prochain arrêt ».
- */
-export function vientVousChercher(e: Etape): boolean {
-  return e.mode === "taxi" || (e.mode === "transport_a_la_demande" && !e.arrets?.length);
-}
-
-/**
- * Nom d'un lieu de montée ou de dépose. Pour un taxi, le serveur type par défaut le lieu en « arrêt » : il est dit
- * tel quel (« Domicile », jamais « arrêt Domicile ») ; une gare reste « gare de Laroche - Migennes ».
- */
-export function nomLieuVehicule(e: Etape, l: Etape["de"]): string {
-  return vientVousChercher(e) && l.type === "arret" ? l.nom : nomLieuEtape(l);
-}
+// `vientVousChercher` et `nomLieuVehicule` vivent dans `resultat.ts` (le détail et « Voir le chemin » s'en servent aussi).
+export { nomLieuVehicule, vientVousChercher };
 
 /** Lieu de montée dit à la personne : « à la gare », « à l'arrêt », « au point de rendez-vous » (taxi). */
 export function lieuMontee(e: Etape): { ici: string; loin: (distance: string) => string } {

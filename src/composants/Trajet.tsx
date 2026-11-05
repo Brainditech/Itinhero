@@ -127,7 +127,7 @@ function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
             <Text className="font-inter text-badge text-texte-secondaire">
               {phraseMarche(etape, suivante)}
             </Text>
-            <CheminAPied etape={etape} />
+            <CheminAPied etape={etape} suivante={suivante} />
           </>
         ) : (
           <>

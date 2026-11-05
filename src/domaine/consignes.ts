@@ -1,5 +1,5 @@
 import type { Consigne, Etape, Manoeuvre } from "./api";
-import { formaterDistance, nomLieuEtape } from "./resultat";
+import { formaterDistance, nomLieuEtape, nomLieuVehicule } from "./resultat";
 
 // Phrases des consignes de marche (spec 11, §4.2). Le nom de rue vient tel quel de MOTIS (OSM) :
 // aucun nom n'est inventé ; sans nom, la phrase dit « le chemin ».
@@ -83,7 +83,7 @@ export function libelleVoirChemin(n: number): string {
   return `Voir le chemin (${n} consigne${n > 1 ? "s" : ""})`;
 }
 
-/** Nom de la destination d'une marche, pour la phrase d'arrivée. */
-export function destinationMarche(e: Etape): string {
-  return nomLieuEtape(e.a);
+/** Nom de la destination d'une marche, pour la phrase d'arrivée ; avant un taxi, son lieu tel quel (D83). */
+export function destinationMarche(e: Etape, suivante?: Etape): string {
+  return suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);
 }

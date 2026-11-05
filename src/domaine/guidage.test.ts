@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { schemaPossibilite } from "./api";
+import { destinationMarche } from "./consignes";
 import { decoderTrace, distance, ligne, pointA, projeter } from "./geo";
 import {
   descendu,
@@ -379,6 +380,9 @@ describe("issue 0017 — taxi guidé comme un taxi, pas comme un bus", () => {
     expect(s.vue.type === "marche" && s.vue.destination).toBe(g.etape.de.nom);
     expect(phraseMarche(taxi.etapes[0]!.etape, g.etape)).toContain(`jusqu'à ${g.etape.de.nom},`);
     expect(phraseMarche(taxi.etapes[0]!.etape)).toContain(`jusqu'à l'arrêt ${g.etape.de.nom}`);
+    // « Voir le chemin » : la consigne d'arrivée dit le même lieu.
+    expect(destinationMarche(taxi.etapes[0]!.etape, g.etape)).toBe(g.etape.de.nom);
+    expect(destinationMarche(taxi.etapes[0]!.etape)).toBe(`arrêt ${g.etape.de.nom}`);
   });
   it("« Ensuite » à la descente d'un bus suivi d'une marche vers un taxi : pas « arrêt »", () => {
     // TER K7 (3), puis la marche (4) qui mène à un taxi (5) : le serveur type sa fin en « arrêt ».

@@ -52,6 +52,7 @@ Fausse piste écartée : l'écart au chemin semblait ne jamais se déclencher en
 - Relecture indépendante du correctif (même jour), 6 remarques vérifiées et corrigées : seuil « à venir » qui laissait « En avance de 10 h » la veille au soir (désormais : plus de 12 h, ou un autre jour à plus de 3 h) ; gare reconnue par son type et non par le début de son nom (« Paris Gare de Lyon ») ; transport à la demande sans arrêts guidé comme un taxi (`vientVousChercher`) ; lieu d'un taxi sans « arrêt » (`nomLieuVehicule`, « Montez dans le taxi à Domicile ») ; trajet à venir qui commence par un véhicule (« Taxi le 12/11 à 08:46 », carte du bas « Départ prévu le 12/11 à 08:46 » au lieu de « 7 j 03 h restantes ») ; commentaire mal placé.
 - Deuxième tour de relecture, 4 remarques corrigées : en attente d'un véhicule à venir, une seule heure, celle du véhicule avec sa propre date (le bandeau disait 08:30 et la carte du bas 08:25, l'heure de départ de chez soi) ; la marche qui mène à un taxi ne dit plus « arrêt » (guidage et détail) ; la règle « réservé, donc en retard et non passé » renommée pour ne plus se confondre avec `vientVousChercher`.
 - Troisième tour, 1 remarque corrigée : « Ensuite : … à pied jusqu'à … » à la descente suit la même règle que la marche vers un taxi.
+- Quatrième tour, 1 remarque corrigée : la consigne d'arrivée de « Voir le chemin » (`destinationMarche`) suit aussi cette règle ; `vientVousChercher` et `nomLieuVehicule` passent dans `resultat.ts`, à côté de `nomLieuEtape`.
 
 ## 4. Tests de régression
 
