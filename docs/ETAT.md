@@ -7,7 +7,7 @@
 
 - **Phase en cours** : 0 — Socle, avec les phases 1 et 2 bis avancées (D34, D54) ; spec 08 fusionnée (PR #4), issue 0007 fusionnée (PR #5), spec 09 fusionnée (PR #7), issue 0008 fusionnée (PR #8), spec 10 appliquée sur `app/branchee`. La spec 07 (Sentry) attend sur `phase-0/sentry`, repoussée par D54.
 - **Dernière case cochée** : Phase 4 · « Perdu pendant une marche : nouveau chemin à pied » (2026-11-05, spec 20, D96).
-- **Prochaine action** : tris (phase 3), critères 10 et 11 de la spec 18 ; la boussole de la spec 17 et le nouveau chemin à pied (spec 20) restent à essayer dehors.
+- **Prochaine action** : Brainditech relit et approuve la spec 21 (tris du Résultat, D97 proposée, branche `phase-3/tris`), puis Claude la code sur la même branche. En parallèle : critères 10 et 11 de la spec 18 ; la boussole de la spec 17 et le nouveau chemin à pied (spec 20) restent à essayer dehors.
 - **Action précédente** (D54) : Brainditech relit la PR de la spec 10 (l'app branchée, branche `app/branchee`), puis constate les critères 4 à 9 sur son téléphone : `EXPO_PUBLIC_API_URL=http://localhost:3000` dans le `.env`, `adb reverse tcp:3000 tcp:3000`, `npx expo prebuild --platform android --clean`, `npx expo run:android`, saisie de la clé de la spec 09, domicile, recherches comparées à Google Maps. En attente aussi : l'issue 0008 §7 (13 stations à corriger dans OSM ou à signaler à MOTIS), l'issue 0009 (Toulouse → aéroport) et la spec 09 §11.5 (Annuaire santé, compte data.grandlyon). Le MOTIS national tourne sur le PC (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api`) ; le stack des fixtures est arrêté.
 
 ## État par phase
@@ -111,6 +111,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-05 | Dépôt nettoyé : branche par défaut de GitHub remise sur `main` (elle était restée sur `phase-0/ci`, d'où les PR « Main » #3 à #28), 23 branches déjà fusionnées supprimées. Spec 20 rédigée (D96 proposée), à approuver | `docs/specs/20-nouveau-chemin-a-pied.md` |
 | 2026-11-05 | PR #31 (D95) et #32 (texte de la spec 20) fusionnées. Spec 20 approuvée (2 min, un seul bouton) et codée : `POST /v1/marche`, choix du nouveau chemin ou de la recherche complète, marche remplacée dans le guidage. 6 vieilles branches du PC rangées dans `refs/archive/` (rien de perdu, rien envoyé sur GitHub). Failles glob et minimatch laissées ouvertes : aucune version d'Expo 58 ne les corrige, outils du PC seulement | `serveur/src/routes/marche.test.ts`, `serveur/src/national/marche.national.test.ts`, `src/domaine/nouveau-chemin.test.ts` |
 | 2026-11-05 | PR #33 (spec 20) fusionnée. Critère 4 constaté par adb (Mairie de Joigny → gare de Sens) : train à portée ⇒ « Nouveau chemin », guidage ouvert, TER K7 gardé ; train plus à portée ⇒ « Le TER K7 de 07:10 n'est plus à portée : nouvelle recherche… » ; 17 km ⇒ « Aucun chemin à pied : nouvelle recherche… ». Case de la phase 4 cochée | `docs/specs/20-nouveau-chemin-a-pied.md` §6, captures `docs/screenshots/spec-20/` (non versionnées) |
+| 2026-11-05 | PR #34 (constats de la spec 20) fusionnée. Spec 21 rédigée (tris du Résultat : arrivée la plus tôt, moins de marche, sans réservation ; « Moins cher » avec les tarifs), D97 proposée, à approuver | `docs/specs/21-tris-du-resultat.md` |
 
 ## Trous ouverts
 
