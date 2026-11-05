@@ -286,6 +286,22 @@ export function directionEtape(e: Etape): string | null {
 }
 
 /**
+ * Véhicule qui vient vous prendre et vous dépose (taxi, transport à la demande sans arrêts) :
+ * ni arrêt, ni « prochain arrêt » (spec 12, D83).
+ */
+export function vientVousChercher(e: Etape): boolean {
+  return e.mode === "taxi" || (e.mode === "transport_a_la_demande" && !e.arrets?.length);
+}
+
+/**
+ * Nom d'un lieu de montée ou de dépose du véhicule `e`. Pour un taxi, le serveur type par défaut le lieu en « arrêt » :
+ * il est dit tel quel (« Domicile », jamais « arrêt Domicile ») ; une gare reste « gare de Laroche - Migennes ».
+ */
+export function nomLieuVehicule(e: Etape, l: LieuEtape): string {
+  return vientVousChercher(e) && l.type === "arret" ? l.nom : nomLieuEtape(l);
+}
+
+/**
  * « arrêt Mairie », « gare de Saint-Florentin - Vergigny », « station Godrans Les Halles » (issue 0010, F).
  * Un nom qui dit déjà ce qu'il est (« Dijon Gare », « Gare de Lyon ») n'est pas répété.
  */

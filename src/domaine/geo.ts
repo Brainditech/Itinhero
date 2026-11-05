@@ -68,16 +68,20 @@ export function pointA(l: Ligne, d: number): Point {
   return { lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t };
 }
 
-/** Projection d'un point sur la ligne : point le plus proche, son abscisse (m depuis le début) et l'écart (m). */
+/**
+ * Projection d'un point sur la ligne : point le plus proche, son abscisse (m depuis le début) et l'écart (m).
+ * `depuis` : ignore ce qui finit avant cette abscisse (une ligne de bus qui repasse au même endroit).
+ */
 export type Projection = { point: Point; abscisse: number; ecart: number };
 
-export function projeter(l: Ligne, p: Point): Projection {
+export function projeter(l: Ligne, p: Point, depuis = 0): Projection {
   if (l.points.length === 1) return { point: l.points[0]!, abscisse: 0, ecart: distance(l.points[0]!, p) };
   // Plan local (équirectangulaire) autour du point : assez juste à l'échelle d'une rue.
   const kx = Math.cos(rad(p.lat)) * rad(1) * RAYON_TERRE;
   const ky = rad(1) * RAYON_TERRE;
   let meilleure: Projection = { point: l.points[0]!, abscisse: 0, ecart: Infinity };
   for (let i = 1; i < l.points.length; i++) {
+    if (l.cumul[i]! < depuis) continue;
     const a = l.points[i - 1]!;
     const b = l.points[i]!;
     const ax = (a.lon - p.lon) * kx;
@@ -95,6 +99,22 @@ export function projeter(l: Ligne, p: Point): Projection {
       const point = { lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t };
       meilleure = { point, abscisse: l.cumul[i - 1]! + (l.cumul[i]! - l.cumul[i - 1]!) * t, ecart };
     }
+  }
+  return meilleure;
+}
+
+/**
+ * Projection qui avance : parmi les segments après `depuis`, le premier qui passe presque aussi près
+ * (à `tolerance` m) que le meilleur. Sur un aller-retour par la même rue, on reste sur l'aller.
+ */
+export function projeterEnAvancant(l: Ligne, p: Point, depuis: number, tolerance = 15): Projection {
+  const meilleure = projeter(l, p, depuis);
+  if (l.points.length < 2) return meilleure;
+  for (let i = 1; i < l.points.length; i++) {
+    if (l.cumul[i]! < depuis) continue;
+    const seg = ligne([l.points[i - 1]!, l.points[i]!]);
+    const pr = projeter(seg, p);
+    if (pr.ecart <= meilleure.ecart + tolerance) return { ...pr, abscisse: l.cumul[i - 1]! + pr.abscisse };
   }
   return meilleure;
 }

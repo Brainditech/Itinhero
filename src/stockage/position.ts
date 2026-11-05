@@ -11,6 +11,12 @@ export const MESSAGES_POSITION = {
   introuvable: "Position introuvable. Réessayez, ou choisissez Domicile.",
 } as const;
 
+/** « Recalculer depuis ici » (spec 12, §7) : sans position, pas de repli sur le domicile à proposer. */
+export const MESSAGES_POSITION_GUIDAGE = {
+  refusee: "Sans accès à votre position, le recalcul est impossible : autorisez la position d'Itinhero dans les réglages d'Android.",
+  introuvable: "Position introuvable : activez la localisation du téléphone, puis réessayez.",
+} as const;
+
 const DELAI_MS = 15_000;
 
 function avecDelai<T>(promesse: Promise<T>, ms: number): Promise<T | "delai"> {

@@ -314,6 +314,8 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests.
 - [ ] Carte MapLibre : arrêts, tracé de marche, tuiles OpenFreeMap, attribution OSM.
   Preuve : capture.
+- [ ] Guidage en direct de porte à porte : marche virage par virage, attente à l'arrêt, arrêts restants, descente, écart au chemin (D72 à D75, spec 12).
+  Preuve : tests du domaine (annonces, écart, descente), captures des 5 états comparées à `design/guidage/`, essai sur le terrain par Brainditech.
 - [ ] Annuaire `data/fiches/` validé. Avertissement ⚠ au-delà de 15 min de marche, avec un taxi pour cette étape.
   Preuve : tests (« aucun numéro connu »), au moins une fiche taxi validée.
 - [ ] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
@@ -465,7 +467,6 @@ Révisé le 2026-11-04 par D45 : « France entière », « trajet dans Paris apr
 - iPhone.
 - Grand public, publication sur un store, pages légales, comptes utilisateurs (l'app n'est pas publiée).
 - Guidage photo (y compris en sous-sol sans réseau).
-- Guidage pas-à-pas en cours de trajet.
 - Réglage de la marche maximale.
 
 ## 9. Risques ouverts

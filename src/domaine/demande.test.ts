@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   dateChoisie,
+  demandeRecalcul,
   formaterDate,
   heureChoisie,
   maintenantAParis,
@@ -202,5 +203,31 @@ describe("echangerBouts (⇅)", () => {
   it("deux échanges rendent l'état de départ, le reste du formulaire intact", () => {
     expect(echangerBouts(echangerBouts(MAQUETTE))).toEqual(MAQUETTE);
     expect(echangerBouts(MAQUETTE).date).toBe(MAQUETTE.date);
+  });
+});
+
+describe("demandeRecalcul (« Recalculer depuis ici », PR #20)", () => {
+  const demande = schemaDemande.parse({
+    depart: { type: "domicile" },
+    arrivee: { type: "texte", texte: "Tribunal administratif de Dijon" },
+    date: "2026-11-14",
+    heure: "08:14",
+    sens: "partir_a",
+    marge: 10,
+  });
+  // Samedi 14 novembre 2026, 09:05 à Paris : perdu 50 min après le départ prévu.
+  const perdu = new Date("2026-11-14T08:05:00Z");
+  it("en « partir à », cherche à l'heure actuelle, pas à l'heure d'origine passée", () => {
+    expect(demandeRecalcul(demande, perdu)).toEqual({ ...demande, depart: POSITION, heure: "09:05" });
+  });
+  it("en « partir à », une heure prévue encore à venir est gardée", () => {
+    expect(demandeRecalcul(demande, new Date("2026-11-14T07:00:00Z")).heure).toBe("08:14");
+  });
+  it("le lendemain de la date prévue, la date suit aussi", () => {
+    expect(demandeRecalcul(demande, new Date("2026-11-15T00:30:00Z"))).toMatchObject({ date: "2026-11-15", heure: "01:30" });
+  });
+  it("en « arriver avant », le rendez-vous et la marge ne bougent pas", () => {
+    const r = demandeRecalcul({ ...demande, sens: "arriver_avant", heure: "15:35" }, perdu);
+    expect(r).toEqual({ ...demande, sens: "arriver_avant", heure: "15:35", depart: POSITION });
   });
 });

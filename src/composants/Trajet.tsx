@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import type { AndroidSymbol } from "expo-symbols";
 
 import type { Etape, Possibilite } from "@/domaine/api";
+import { phraseMarche, phraseTrajetVehicule } from "@/domaine/guidage";
 import {
   aMarcheLongue,
   attenteApres,
   directionEtape,
-  formaterDistance,
   formaterAttente,
   formaterDuree,
   jetonMode,
@@ -16,7 +16,6 @@ import {
   joursEnPlus,
   libelleCorrespondances,
   libelleEtape,
-  nomLieuEtape,
   nuitDehors,
   phraseMontee,
   phraseReservation,
@@ -24,28 +23,13 @@ import {
   resumePossibilite,
 } from "@/domaine/resultat";
 import { CheminAPied } from "@/composants/CheminAPied";
+import { iconeMode } from "@/composants/icones-mode";
 import { Chevron } from "@/composants/Repli";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 // Carte d'itinéraire et frise (design system, « Carte d'itinéraire » ; maquette 04 ; D67).
 
-const ICONES: Record<string, AndroidSymbol> = {
-  marche: "directions_walk",
-  bus: "directions_bus",
-  car: "directions_bus",
-  transport_a_la_demande: "airport_shuttle",
-  tram: "tram",
-  metro: "subway",
-  train_banlieue: "train",
-  train: "train",
-  bateau: "directions_boat",
-  remontee: "funicular",
-  taxi: "local_taxi",
-};
-
-function icone(mode: string): AndroidSymbol {
-  return ICONES[mode] ?? "commute";
-}
+const icone = iconeMode;
 
 /** Bande des modes : un bloc plein par transport, la marche en pointillé (jamais un bloc). */
 export function Frise({ etapes }: { etapes: Etape[] }) {
@@ -118,7 +102,7 @@ function PrixNonPublie() {
 }
 
 /** Une étape dépliée : heure, arrêts, ligne, direction, et l'état « horaire prévu » (invariant 12). */
-function LigneEtape({ etape }: { etape: Etape }) {
+function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
   const marche = etape.mode === "marche";
   const couleur = couleurs[jetonMode(etape.mode)];
   const direction = directionEtape(etape);
@@ -140,14 +124,14 @@ function LigneEtape({ etape }: { etape: Etape }) {
         {marche ? (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
-              {`${etape.duree_minutes} min${etape.distance_metres != null ? `, ${formaterDistance(etape.distance_metres)}` : ""} jusqu'à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee}`}
+              {phraseMarche(etape, suivante)}
             </Text>
-            <CheminAPied etape={etape} />
+            <CheminAPied etape={etape} suivante={suivante} />
           </>
         ) : (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
-              {`De ${nomLieuEtape(etape.de)} à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee} (${formaterDuree(etape.duree_minutes)})`}
+              {phraseTrajetVehicule(etape, formaterDuree(etape.duree_minutes))}
             </Text>
             {etape.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{etape.exploitant}</Text> : null}
             {reservation ? (
@@ -189,11 +173,14 @@ function LigneAttente({ texte }: { texte: string }) {
 /** Carte d'une possibilité ; la toucher (ou son chevron, en haut à droite) déplie ou replie ses étapes. */
 export function CartePossibilite({
   possibilite,
+  index,
   destination,
   date,
   adresse,
 }: {
   possibilite: Possibilite;
+  /** Rang dans la réponse, pour ouvrir son guidage (spec 12). */
+  index: number;
   destination: string;
   /** Jour demandé (« 2026-11-12 »), pour dire « vendredi » quand l'arrivée est le lendemain (spec 15). */
   date: string;
@@ -252,7 +239,7 @@ export function CartePossibilite({
             const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${formaterAttente(attente)}` : null;
             return (
               <View key={i}>
-                <LigneEtape etape={e} />
+                <LigneEtape etape={e} suivante={p.etapes[i + 1]} />
                 {texte ? <LigneAttente texte={texte} /> : null}
               </View>
             );
@@ -267,6 +254,15 @@ export function CartePossibilite({
               {adresse ? <Text className="font-inter text-badge text-texte-secondaire">{adresse}</Text> : null}
             </View>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/guidage", params: { i: String(index) } })}
+            className="mt-4 min-h-14 flex-row items-center justify-center gap-2 rounded-bouton bg-fond active:bg-primaire-doux"
+            style={{ borderWidth: 1.5, borderColor: couleurs.primaire }}
+          >
+            <SymbolView name={{ android: "navigation", web: "navigation" }} size={22} tintColor={couleurs.primaire} />
+            <Text className="font-inter-semibold text-corps text-primaire">Démarrer le guidage</Text>
+          </Pressable>
           <View className="mt-4 flex-row items-center justify-center gap-2">
             <Text className="font-inter-medium text-badge text-primaire">Replier les étapes</Text>
             <Chevron ouvert />

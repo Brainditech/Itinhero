@@ -87,6 +87,19 @@ export function maintenantAParis(maintenant: Date): { date: string; heure: strin
 }
 
 /**
+ * Demande de « Recalculer depuis ici » (spec 12, §7) : départ à la position, même arrivée, même marge.
+ * En « partir à », l'heure prévue est souvent passée quand on s'est perdu : on cherche à partir de maintenant
+ * (heure de Paris), jamais avant. En « arriver avant », le rendez-vous ne bouge pas.
+ */
+export function demandeRecalcul(demande: Demande, maintenant: Date): Demande {
+  const ici = maintenantAParis(maintenant);
+  const suite: Demande = { ...demande, depart: { type: "position" } };
+  if (demande.sens !== "partir_a") return suite;
+  const passee = `${demande.date} ${demande.heure}` < `${ici.date} ${ici.heure}`;
+  return passee ? { ...suite, date: ici.date, heure: ici.heure } : suite;
+}
+
+/**
  * Valide le formulaire de repli (spec 02, décision 6). `maintenant` est passé en paramètre :
  * aucune horloge cachée, tests déterministes.
  */

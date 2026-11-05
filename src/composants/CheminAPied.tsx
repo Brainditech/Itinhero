@@ -13,12 +13,12 @@ import { couleurs } from "@/theme/jetons";
  * « Voir le chemin (N consignes) » d'une étape à pied (spec 11, §4.2) : la carte du tracé de MOTIS
  * (marche en pointillés) et la liste des consignes ; toucher une consigne centre la carte sur son point.
  */
-export function CheminAPied({ etape }: { etape: Etape }) {
+export function CheminAPied({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
   const consignes = consignesAMontrer(etape);
   const [ouvert, setOuvert] = useState(false);
   const [choisie, setChoisie] = useState<number | null>(null);
   if (consignes.length === 0) return null;
-  const destination = destinationMarche(etape);
+  const destination = destinationMarche(etape, suivante);
   return (
     <View className="gap-2">
       <Pressable
