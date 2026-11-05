@@ -165,8 +165,9 @@ export default function Guidage() {
   if (!situation) return <View className="flex-1 bg-surface" />;
 
   const arreter = () => {
-    taire();
-    router.back();
+    taire();    // Ouvert par un lien, sans Résultat derrière lui, le guidage doit quand même se fermer : retour au Résultat.
+    if (router.canGoBack()) router.back();
+    else router.replace("/resultat");
   };
   const recalculer = async () => {
     if (enRecalculRef.current) return;

@@ -15,6 +15,7 @@ import {
   minutesEnTexte,
   nomLieuVehicule,
   phraseMarche,
+  phraseTrajetVehicule,
   statutAVenir,
   phraseStatut,
   textesVehicule,
@@ -393,6 +394,13 @@ describe("issue 0017 — taxi guidé comme un taxi, pas comme un bus", () => {
     const gk = p.etapes[k]!;
     const s = situer(p, { ...ETAT_INITIAL, etape: k, aBord: true }, null, gk.arriveeMs - 60_000);
     expect(s.vue.type === "descente" && s.vue.ensuite).toMatch(/jusqu'à Place Darcy$/);
+  });
+  it("détail : « De l'arrêt … à l'arrêt … » avec ses articles ; un taxi dit ses lieux tels quels", () => {
+    const bus = POSSIBILITE.etapes[1]!;
+    expect(phraseTrajetVehicule(bus, "10 min")).toBe(`De l'arrêt ${bus.de.nom} à l'arrêt ${bus.a.nom}, arrivée ${bus.arrivee} (10 min)`);
+    expect(phraseTrajetVehicule(g.etape, "12 min")).toBe(`De ${g.etape.de.nom} à ${g.etape.a.nom}, arrivée ${g.etape.arrivee} (12 min)`);
+    const train = POSSIBILITE.etapes[3]!;
+    expect(phraseTrajetVehicule(train, "1 h")).toMatch(/^De la gare .+ à la gare /);
   });
   it("en attente : « Vous êtes au point de rendez-vous », pas « à l'arrêt »", () => {
     expect(lieuMontee(g.etape).ici).toBe("Vous êtes au point de rendez-vous");

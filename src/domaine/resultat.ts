@@ -286,10 +286,6 @@ export function directionEtape(e: Etape): string | null {
 }
 
 /**
- * « arrêt Mairie », « gare de Saint-Florentin - Vergigny », « station Godrans Les Halles » (issue 0010, F).
- * Un nom qui dit déjà ce qu'il est (« Dijon Gare », « Gare de Lyon ») n'est pas répété.
- */
-/**
  * Véhicule qui vient vous prendre et vous dépose (taxi, transport à la demande sans arrêts) :
  * ni arrêt, ni « prochain arrêt » (spec 12, D83).
  */
@@ -305,6 +301,10 @@ export function nomLieuVehicule(e: Etape, l: LieuEtape): string {
   return vientVousChercher(e) && l.type === "arret" ? l.nom : nomLieuEtape(l);
 }
 
+/**
+ * « arrêt Mairie », « gare de Saint-Florentin - Vergigny », « station Godrans Les Halles » (issue 0010, F).
+ * Un nom qui dit déjà ce qu'il est (« Dijon Gare », « Gare de Lyon ») n'est pas répété.
+ */
 export function nomLieuEtape(l: LieuEtape): string {
   const dit = (mot: RegExp) => mot.test(l.nom);
   switch (l.type) {

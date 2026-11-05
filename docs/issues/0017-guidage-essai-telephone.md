@@ -53,10 +53,12 @@ Fausse piste écartée : l'écart au chemin semblait ne jamais se déclencher en
 - Deuxième tour de relecture, 4 remarques corrigées : en attente d'un véhicule à venir, une seule heure, celle du véhicule avec sa propre date (le bandeau disait 08:30 et la carte du bas 08:25, l'heure de départ de chez soi) ; la marche qui mène à un taxi ne dit plus « arrêt » (guidage et détail) ; la règle « réservé, donc en retard et non passé » renommée pour ne plus se confondre avec `vientVousChercher`.
 - Troisième tour, 1 remarque corrigée : « Ensuite : … à pied jusqu'à … » à la descente suit la même règle que la marche vers un taxi.
 - Quatrième tour, 1 remarque corrigée : la consigne d'arrivée de « Voir le chemin » (`destinationMarche`) suit aussi cette règle ; `vientVousChercher` et `nomLieuVehicule` passent dans `resultat.ts`, à côté de `nomLieuEtape`.
+- Cinquième tour, 2 remarques corrigées : la ligne d'une étape en véhicule du détail prend ses articles (« De l'arrêt … à l'arrêt … », « De la gare … », et pour un taxi « De Domicile à … »), `phraseTrajetVehicule` ; documentation de `nomLieuEtape` remise à sa place.
+- Vu en revérifiant : « Arrêter le guidage » ne fermait pas un guidage sans écran derrière lui (ouvert par un lien) ; il revient alors au Résultat. Les deux erreurs « multiple navigation containers » vues pendant l'essai venaient de ma manipulation (activité fermée par « Retour », puis rouverte par un lien sur le même moteur JS), pas du code ; disparues après rechargement.
 
 ## 4. Tests de régression
 
-`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 17 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 169 tests verts ; lint et types sans erreur ; export Android réussi.
+`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 18 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 170 tests verts ; lint et types sans erreur ; export Android réussi.
 
 ## 5. Revérifié sur le téléphone
 

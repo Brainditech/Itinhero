@@ -518,6 +518,21 @@ export function phraseMarche(e: Etape, suivante?: Etape): string {
   return `${e.duree_minutes} min${metres} jusqu'${aLieu(fin)}, arrivée ${e.arrivee}`;
 }
 
+/** « de l'arrêt Mairie », « de la gare de Dijon », « de Domicile ». */
+export function deLieu(lieu: string): string {
+  // « à l'arrêt … », « à la gare … », « à … » ⇒ même article après « de ».
+  return `de${aLieu(lieu).slice(1)}`;
+}
+
+/**
+ * Ligne d'une étape en véhicule dans le détail : « De l'arrêt Brienon à l'arrêt Saint-Florentin, arrivée 06:37 (10 min) ».
+ * Pour un taxi, ses lieux tels quels (« De Domicile à la gare de Laroche - Migennes »).
+ */
+export function phraseTrajetVehicule(e: Etape, duree: string): string {
+  const de = deLieu(nomLieuVehicule(e, e.de));
+  return `${de.charAt(0).toUpperCase()}${de.slice(1)} ${aLieu(nomLieuVehicule(e, e.a))}, arrivée ${e.arrivee} (${duree})`;
+}
+
 /** « Jusqu'à l'arrêt Mairie », « Jusqu'à la gare de Dijon ». */
 export function jusqua(destination: string): string {
   return `Jusqu'${aLieu(destination)}`;

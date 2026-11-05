@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
 import type { Etape, Possibilite } from "@/domaine/api";
-import { phraseMarche } from "@/domaine/guidage";
+import { phraseMarche, phraseTrajetVehicule } from "@/domaine/guidage";
 import {
   aMarcheLongue,
   attenteApres,
@@ -16,7 +16,6 @@ import {
   joursEnPlus,
   libelleCorrespondances,
   libelleEtape,
-  nomLieuEtape,
   nuitDehors,
   phraseMontee,
   phraseReservation,
@@ -132,7 +131,7 @@ function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
         ) : (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
-              {`De ${nomLieuEtape(etape.de)} à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee} (${formaterDuree(etape.duree_minutes)})`}
+              {phraseTrajetVehicule(etape, formaterDuree(etape.duree_minutes))}
             </Text>
             {etape.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{etape.exploitant}</Text> : null}
             {reservation ? (
