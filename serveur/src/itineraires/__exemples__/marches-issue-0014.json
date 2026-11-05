@@ -1,0 +1,331 @@
+{
+ "_source": "MOTIS national v2.11.4 du PC, 2026-11-05, /api/v6/plan directModes=WALK detailedLegs=true (issue 0014)",
+ "roubaix": {
+  "de": {
+   "lat": 50.691598000000006,
+   "lon": 3.1742019999999997
+  },
+  "a": {
+   "lat": 50.69235,
+   "lon": 3.167587
+  },
+  "morceaux": [
+   {
+    "distance": 13,
+    "streetName": "",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "}d~t_B_ov`E??l@tG{@X",
+     "precision": 6,
+     "length": 4
+    }
+   },
+   {
+    "distance": 10,
+    "streetName": "",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "ke~t_Boev`E]pG",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 34,
+    "streetName": "Grand Place",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "if~t_B}|u`EHz@dBlZ",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 7,
+    "streetName": "Grand Place",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "yb~t_Bs_u`EVdE",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 7,
+    "streetName": "Grand Place",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "ab~t_Bmyt`ETvD",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 3,
+    "streetName": "Grand Place",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "ka~t_Bust`EFfA",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 6,
+    "streetName": "Grand Place",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "ca~t_Bmqt`EP|C",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 20,
+    "streetName": "Avenue Jean Lebas",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "q`~t_Bolt`EMPe@x@_DdK",
+     "precision": 6,
+     "length": 4
+    }
+   },
+   {
+    "distance": 7,
+    "streetName": "Avenue Jean Lebas",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "eg~t_B}}s`Em@xBOj@",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 2,
+    "streetName": "Avenue Jean Lebas",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "ci~t_Bwxs`ESt@",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 5,
+    "streetName": "Avenue Jean Lebas",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "wi~t_Baws`Eu@`C",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 161,
+    "streetName": "Avenue Jean Lebas",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "mk~t_B_ss`E_Ubu@wU`w@gCjI",
+     "precision": 6,
+     "length": 4
+    }
+   },
+   {
+    "distance": 27,
+    "streetName": "Rue de l'Hospice",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "m|_u_Bmzo`Ex@n@r@j@~AjAx@n@~C~B",
+     "precision": 6,
+     "length": 6
+    }
+   },
+   {
+    "distance": 122,
+    "streetName": "Rue de l'Espérance",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "eo_u_Buoo`E{Oln@mBnIeCbMeFbW",
+     "precision": 6,
+     "length": 5
+    }
+   }
+  ]
+ },
+ "marseille": {
+  "a": {
+   "lat": 43.293899,
+   "lon": 5.374233
+  },
+  "morceaux": [
+   {
+    "distance": 3,
+    "streetName": "Cours Jean Ballard",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "utmqqAap_gIn@Q",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 17,
+    "streetName": "Cours Jean Ballard",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "esmqqAsp_gIfHuB",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 18,
+    "streetName": "Cours Jean Ballard",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "}imqqAit_gIvHaC",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 13,
+    "streetName": "Cours Jean Ballard",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "e`mqqAkx_gI|EwA",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 6,
+    "streetName": "Rue Saint-Saëns",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "gylqqAc{_gIb@rC",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 15,
+    "streetName": "Rue Saint-Saëns",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "cxlqqAov_gItA|I",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 49,
+    "streetName": "",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "mulqqAqk_gIqA^qVzH",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 30,
+    "streetName": "",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "qomqqAu`_gIcBmKbF}A",
+     "precision": 6,
+     "length": 3
+    }
+   }
+  ]
+ },
+ "tonnerre": {
+  "a": {
+   "lat": 47.859379999999994,
+   "lon": 3.97355
+  },
+  "morceaux": [
+   {
+    "distance": 31,
+    "streetName": "",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "qy|gzAq_pqFsMoN",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 2,
+    "streetName": "Rue François Mitterrand",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "eh}gzAaopqFOf@",
+     "precision": 6,
+     "length": 2
+    }
+   },
+   {
+    "distance": 15,
+    "streetName": "Rue François Mitterrand",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "uh}gzAympqF}ArFk@dB",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 24,
+    "streetName": "Rue François Mitterrand",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "_m}gzA_cpqF_EvLk@bB",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 56,
+    "streetName": "Rue François Mitterrand",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "kt}gzAcroqFcDvJ}JxZ",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 7,
+    "streetName": "Rue François Mitterrand",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "me~gzAqjnqFOf@Sr@SbA",
+     "precision": 6,
+     "length": 4
+    }
+   },
+   {
+    "distance": 39,
+    "streetName": "Rue de la République",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "eg~gzAqenqFoBiBeOiI",
+     "precision": 6,
+     "length": 3
+    }
+   },
+   {
+    "distance": 10,
+    "streetName": "Rue de la République",
+    "relativeDirection": "CONTINUE",
+    "polyline": {
+     "points": "{z~gzAesnqFoDeB",
+     "precision": 6,
+     "length": 2
+    }
+   }
+  ]
+ }
+}

@@ -1,7 +1,7 @@
 # Spec 11 — Consignes de marche virage par virage et tracé du trajet
 
 - **Date** : 2026-11-04
-- **État** : **à approuver par Brainditech.**
+- **État** : **approuvée le 2026-11-05 par Brainditech (« implemente »), appliquée sur `phase-4/consignes-de-marche`.** Critères 4 (Google Maps) et 5 (sur le téléphone, par Brainditech) restent à constater.
 - **Branche prévue** : `phase-4/consignes-de-marche`
 - **Cases du PLAN** : phase 4 · « Gabarits de consignes et glossaire à la première occurrence » (consignes seulement, le glossaire reste à faire) ; phase 4 · « Carte MapLibre : arrêts, tracé de marche… » (tracé seulement).
 - **Prérequis** : issue 0010 corrigée (noms de lieux, adresse d'arrivée, attente), car les consignes s'appuient dessus.
@@ -88,6 +88,35 @@ Les tracés sont des coordonnées : ils ne sont jamais écrits dans un journal n
 
 Le guidage en direct qui suit la position (spec 12), la voix, les consignes hors réseau (phase 5, trajet enregistré), le glossaire.
 
+**Limites connues (issue 0014)** :
+
+- **Trottoirs sans nom** : OSM dessine certains trottoirs comme des chemins à part, sans nom (`footway=sidewalk`), et MOTIS ne donne pas la rue qu'ils longent. La consigne dit alors « sur le chemin » (Auxerre, avenue de la Tournelle ; Paris, quai Jacques-Chirac), avec parfois un virage au départ du trottoir que Google ne dit pas. Retrouver la rue longée demanderait une autre source, donc une décision à part.
+- **Virages à l'intérieur d'un morceau** : le sens n'est mesuré qu'entre deux morceaux de MOTIS. Un décrochement de passage piéton contenu dans un seul morceau (Roubaix, rue de l'Espérance → La Piscine) n'est vu que d'un côté.
+
 ## 10. Étapes de vérification
 
 `npm test` (racine et `serveur/`), `npx expo lint`, `npx tsc --noEmit` ; `npm run test:national` ; puis Brainditech refait la recherche Brienon → Dijon sur le téléphone et compare les consignes à Google Maps.
+
+## 11. Résultats (2026-11-05)
+
+- **Seuil ajouté à D71 en appliquant** : deux manœuvres à moins de 25 m l'une de l'autre n'en font qu'une, mesurée avant la première et après la seconde ; un virage à moins de 25 m du départ donne au départ sa rue et son cap. Sans lui, la marche gare de Dijon → tribunal donnait 14 consignes (zigzags de trottoir de 11 à 19 m, sans nom) ; avec, 8.
+- **Critère 1** (test `consignes.test.ts`) : gare de Dijon → tribunal, 8 consignes : « Partez vers l'est cour de la Gare Pierre Semard », « Prenez légèrement à gauche avenue Maréchal Foch », « Continuez place Darcy », « Tournez à droite place Darcy », trois virages « sur le chemin » (trottoirs sans nom dans OSM), « Tribunal administratif de Dijon est sur votre gauche ».
+- **Critère 2** : marche de Saint-Florentin : route de la Gare, D 43, N 77, avenue du 19 Mars 1962, rue de la Gare, place de la Gare, dans cet ordre.
+- **Critère 3** : vérifié sur toutes les marches de la réponse enregistrée.
+- **Critère 5, constaté par `adb` le 2026-11-05** (Domicile → tribunal administratif de Dijon, jeudi 12/11, arriver avant 10:00) : « Voir le chemin (8 consignes) » déplie la carte du tracé et la liste fléchée ; Brainditech a constaté le même jour que toucher une consigne centre la carte. **Critère 5 rempli.**
+- **Critère 6** : MOTIS national, Brienon → Dijon, trois essais : 1,15 à 1,23 s sans détail, 1,14 à 1,19 s avec (pas plus long) ; réponse de MOTIS 72 ko ⇒ 202 ko ; une possibilité de l'API 3,0 ko ⇒ 8,6 ko (tracés, consignes, arrêts et instants de la spec 12).
+- Flèches : symboles Material d'Android (`expo-symbols`, déjà utilisé partout dans l'app) au lieu de SVG dessinés : `react-native-svg` n'est pas installé, et aucun tiers n'est en cause (invariant 20).
+- **Critère 4, comparé le 2026-11-05** (MOTIS national, première possibilité de chaque scénario de la boucle, mêmes coordonnées dans Google Maps à pied) : **pas rempli tel quel**. Virages au même sens et sur la même rue là où les deux chemins sont les mêmes, mais quatre défauts reviennent :
+
+  | Marche | Concordance | Écarts |
+  |---|---|---|
+  | Roubaix Grand-Place → La Piscine (10 min) | rues et sens identiques (Jean-Lebas, gauche Hospice, droite Espérance, gauche, arrivée à droite) | « tout droit avenue Jean Lebas » ; Google : « à droite » (gauche de 7 m puis droite, fondus par le seuil de 25 m) |
+  | Saint-Florentin-Ville → gare (48 min) | même chemin à partir du faubourg du Pont : N 77, René-Vildey, rue de la Gare, gauche, arrivée à gauche | début par un autre chemin (Martineaux et escalier ; Google : D 61A) ; **la même route dite deux fois** (« N 77 » puis « tout droit avenue du 19 Mars 1962 ») ; rue de la Gare « légèrement à droite », Google « légèrement à gauche » |
+  | Trocadéro → tour Eiffel (9 min) | départ sud-ouest, pont d'Iéna, à droite après le pont | avant le pont : 2 virages sur des trottoirs sans nom (Google : 9 virages par la place de Varsovie) ; **quai Jacques-Chirac sans nom** (trottoir séparé dans OSM) ; arrivée à gauche, Google à droite (point d'arrivée différent) |
+  | Auxerre, rue Paul-Doumer → avenue Pierre-Scherrer (25 min) | avenue de la Tournelle, à droite avenue des Clairions | **« à droite » sur 583 m sans nom**, puis « légèrement à droite avenue de la Tournelle » ; Google : « légèrement à gauche avenue de la Tournelle » ; fin par un autre chemin (Google passe par des voies privées) |
+  | Saint-Charles → Vieux-Port, Marseille (22 min) | escalier de la gare, Canebière, à gauche cours Jean-Ballard | milieu par un autre chemin (Noailles ; Google : boulevard d'Athènes) ; « à gauche La Canebière » puis « à droite La Canebière » ; **« demi-tour » à 70 m de l'arrivée** |
+
+  Hors comparaison : Lyon Saint-Jean → Fourvière (Google évite les escaliers, 1,6 km contre 1 km). Le choix du chemin vient de MOTIS, pas des consignes.
+
+  Défauts à traiter (issue à ouvrir, analyse approuvée avant correction) : (1) **« demi-tour »** au milieu d'une marche, vu aussi à Paris (rue de Rivoli), Lyon et Monaco (rue nommée « C ») ; (2) **trottoirs sans nom** : la consigne perd le nom de la rue qu'ils longent et parfois le bon sens du virage ; (3) **même route dite deux fois** (numéro puis nom) ; (4) un virage de moins de 25 m fondu en « tout droit » là où Google dit « à droite ».
+- **Issue 0014 corrigée le 2026-11-05** (analyse approuvée) : plus de « demi-tour » fabriqué par la fusion de deux virages ; un bout court de rue reste sur sa rue avant une autre rue nommée (virage mesuré au coin) ; numéro et nom d'une même route en une consigne (« N 77 (avenue du 19 Mars 1962) »). Comparaison refaite : Tonnerre identique à Google (« à droite rue de la République »), Roubaix « légèrement à droite avenue Jean Lebas » (Google « à droite » après un décrochement que le tracé de MOTIS n'a pas), Marseille sans demi-tour. Détail dans `docs/issues/0014-consignes-ecarts-google-maps.md` §5. **Critère 4** : même sens et même rue là où les chemins sont les mêmes ; les écarts restants viennent du chemin choisi par MOTIS ou des limites connues (§9).

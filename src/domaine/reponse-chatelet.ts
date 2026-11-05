@@ -1,10 +1,12 @@
-import type { ReponseItineraires } from "./api";
+import type { z } from "zod";
+
+import { schemaReponseItineraires, type ReponseItineraires } from "./api";
 
 /**
  * Réponse de `/v1/itineraires` relevée sur le MOTIS national le 2026-11-04 (Châtelet → Pont de Rungis), réduite.
  * Relevée avant la marge de D68 : la montée est donc sans marge. Champs de l'issue 0010 ajoutés à la main.
  */
-export const REPONSE_CHATELET: ReponseItineraires = {
+const BRUTE: z.input<typeof schemaReponseItineraires> = {
   verdict: "possible",
   demande: { date: "2026-11-13", heure: "07:00", sens: "partir", marge: null, limite: null },
   arrivee: { nom: "Pont de Rungis", adresse: null },
@@ -80,3 +82,6 @@ export const REPONSE_CHATELET: ReponseItineraires = {
     },
   ],
 };
+
+/** Lue par le schéma de l'app : sans tracé ni consignes (relevée avant la spec 11), ils valent null. */
+export const REPONSE_CHATELET: ReponseItineraires = schemaReponseItineraires.parse(BRUTE);

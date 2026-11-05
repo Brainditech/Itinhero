@@ -23,7 +23,9 @@ describe("clientApi (spec 10, critère 2)", () => {
   it("itinéraires : 200 conforme ⇒ ok, avec la clé, en POST JSON", async () => {
     const fetch = repondre(200, REPONSE_CHATELET);
     const r = await clientApi({ urlApi: URL_API, cle: CLE, fetch }).itineraires(REQUETE);
-    expect(r).toEqual({ etat: "ok", donnees: REPONSE_CHATELET });
+    // Réponse enregistrée avant la spec 11 : sans tracé ni consignes, ils valent null.
+    expect(r).toMatchObject({ etat: "ok", donnees: REPONSE_CHATELET });
+    if (r.etat === "ok") expect(r.donnees.possibilites[0]!.etapes[0]).toMatchObject({ trace: null, consignes: null });
     const [url, init] = fetch.mock.calls[0]!;
     expect(url).toBe("http://localhost:3000/v1/itineraires");
     expect(init.method).toBe("POST");

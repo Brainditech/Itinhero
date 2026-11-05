@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { heureParis, instantParis, type HeureParis } from "../temps.js";
+import type { Morceau } from "./consignes.js";
 
 /**
  * Appel de `/api/v6/plan` de MOTIS v2.11.4 (D58, qui révise D44 et D57) :
@@ -59,7 +60,8 @@ export function construireUrlPlan(motisUrl: string, d: DemandeRecherche): URL {
   url.searchParams.set("arriveBy", d.sens === "partir" ? "false" : "true");
   url.searchParams.set("searchWindow", String(FENETRE_SECONDES));
   url.searchParams.set("numItineraries", String(NB_MINIMUM));
-  url.searchParams.set("detailedLegs", "false"); // ni tracé ni consignes de marche (phase 4)
+  // Tracé de chaque étape et morceaux de chaque marche (spec 11, D70) : sources des consignes et de la carte.
+  url.searchParams.set("detailedLegs", "true");
   url.searchParams.set("maxPreTransitTime", String(d.coutMarche?.depart ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("maxPostTransitTime", String(d.coutMarche?.arrivee ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("useRoutedTransfers", "true"); // obligatoire, spec 04 §11
@@ -82,6 +84,18 @@ const schemaLieu = z.object({
   lon: z.number(),
 });
 
+const schemaTrace = z.object({ points: z.string(), precision: z.number().int().min(1).max(7).default(6) });
+
+// Morceau de marche (`StepInstruction`, spec 11) : distance, rue, tracé, niveaux.
+const schemaMorceau = z.object({
+  distance: z.number().nonnegative(),
+  streetName: z.string().optional(),
+  relativeDirection: z.string().optional(),
+  polyline: schemaTrace,
+  fromLevel: z.number().optional(),
+  toLevel: z.number().optional(),
+});
+
 const schemaEtape = z.object({
   mode: z.string().min(1),
   from: schemaLieu,
@@ -96,6 +110,8 @@ const schemaEtape = z.object({
   // Vrai terminus de la course : le GTFS SNCF met le numéro du train dans `headsign` (issue 0010, A).
   tripTo: z.object({ name: z.string() }).optional(),
   agencyName: z.string().optional(),
+  legGeometry: schemaTrace.optional(),
+  steps: z.array(schemaMorceau).optional(),
 });
 
 const schemaItineraire = z.object({ legs: z.array(schemaEtape).min(1) });
@@ -123,6 +139,10 @@ export type Etape = {
   exploitant?: string;
   coordDe: Point;
   coordA: Point;
+  /** Tracé de l'étape, encodé (précision 6), tel que rendu par MOTIS. */
+  trace?: { points: string; precision: number };
+  /** Morceaux de la marche (spec 11). */
+  morceaux?: Morceau[];
 };
 
 export type Possibilite = { etapes: Etape[]; depart: Date; arrivee: Date };
@@ -151,6 +171,8 @@ export function lireReponsePlan(brut: unknown): Possibilite[] {
         exploitant: l.agencyName,
         coordDe: { lat: l.from.lat, lon: l.from.lon },
         coordA: { lat: l.to.lat, lon: l.to.lon },
+        trace: l.legGeometry,
+        morceaux: l.steps,
       };
     });
     return { etapes, depart: etapes[0]!.depart, arrivee: etapes[etapes.length - 1]!.arrivee };

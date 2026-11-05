@@ -44,6 +44,29 @@ const schemaLieuEtape = schemaPoint.extend({
 });
 export type LieuEtape = z.infer<typeof schemaLieuEtape>;
 
+// Consigne de marche (spec 11, D71) : manœuvre calculée par le serveur sur le tracé de MOTIS.
+export const schemaConsigne = schemaPoint.extend({
+  manoeuvre: z.enum([
+    "depart",
+    "tout_droit",
+    "legerement_gauche",
+    "gauche",
+    "demi_tour",
+    "legerement_droite",
+    "droite",
+    "escalier",
+    "ascenseur",
+    "arrivee",
+  ]),
+  rue: z.string().nullable(),
+  distance_metres: z.number().nonnegative(),
+  cap: z.enum(["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"]).optional(),
+  cote_arrivee: z.enum(["gauche", "droite", "devant"]).optional(),
+  niveau: z.enum(["monter", "descendre"]).optional(),
+});
+export type Consigne = z.infer<typeof schemaConsigne>;
+export type Manoeuvre = Consigne["manoeuvre"];
+
 export const schemaEtape = z.object({
   mode: z.string().min(1),
   mode_motis: z.string(),
@@ -63,6 +86,9 @@ export const schemaEtape = z.object({
   etat: z.literal("prevu"),
   // Invariant 4 : aucune étape sans source. Son absence rend toute la réponse non conforme.
   source: schemaSource,
+  // Spec 11 : tracé encodé (précision 6) et consignes de marche. Absents d'un serveur plus ancien ⇒ null.
+  trace: z.string().nullable().default(null),
+  consignes: z.array(schemaConsigne).nullable().default(null),
 });
 export type Etape = z.infer<typeof schemaEtape>;
 
