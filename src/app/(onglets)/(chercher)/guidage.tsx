@@ -269,20 +269,21 @@ function contenuBandeau(s: Situation): ContenuBandeau {
   if (v.type === "attente") {
     const direction = e.direction ? ` direction ${e.direction}` : "";
     if (v.rate) {
-      // Taxi et transport à la demande viennent vous chercher : ils sont en retard, pas « passés ».
-      const vientVousChercher = e.mode === "taxi" || e.mode === "transport_a_la_demande";
+      // Taxi et tout transport à la demande (même avec arrêts) sont réservés : en retard, pas « passés ». Règle plus
+      // large que `vientVousChercher` du domaine, qui ne décide que du vocabulaire des arrêts.
+      const reserve = e.mode === "taxi" || e.mode === "transport_a_la_demande";
       return {
         icone,
         titre: `${vehiculeCourt(e)} prévu à ${e.depart}`,
-        sousTitre: vientVousChercher ? `Le ${vehiculeMinuscule(e)} n'est pas encore là ?` : `Le ${vehiculeMinuscule(e)} est peut-être passé`,
-        bande: { icone: "refresh", texte: vientVousChercher ? "Sinon, recalculez depuis ici" : "Recalculez pour trouver le suivant" },
+        sousTitre: reserve ? `Le ${vehiculeMinuscule(e)} n'est pas encore là ?` : `Le ${vehiculeMinuscule(e)} est peut-être passé`,
+        bande: { icone: "refresh", texte: reserve ? "Sinon, recalculez depuis ici" : "Recalculez pour trouver le suivant" },
       };
     }
     return {
       icone,
       // Trajet à venir (D83) : « Taxi le 12/11 à 08:46 », pas « Taxi dans 7 j 01 h ».
       titre: s.aVenir
-        ? `${vehiculeCourt(e)} ${s.aVenir.date ? `le ${s.aVenir.date} ` : ""}à ${e.depart}`
+        ? `${vehiculeCourt(e)} ${s.aVenir.date ? `le ${s.aVenir.date} ` : ""}à ${s.aVenir.heure}`
         : v.minutes > 0
           ? `${vehiculeCourt(e)} dans ${minutesEnTexte(v.minutes)}`
           : `${vehiculeCourt(e)} à ${e.depart}`,

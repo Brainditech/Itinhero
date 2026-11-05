@@ -103,7 +103,7 @@ function PrixNonPublie() {
 }
 
 /** Une étape dépliée : heure, arrêts, ligne, direction, et l'état « horaire prévu » (invariant 12). */
-function LigneEtape({ etape }: { etape: Etape }) {
+function LigneEtape({ etape, suivante }: { etape: Etape; suivante?: Etape }) {
   const marche = etape.mode === "marche";
   const couleur = couleurs[jetonMode(etape.mode)];
   const direction = directionEtape(etape);
@@ -125,7 +125,7 @@ function LigneEtape({ etape }: { etape: Etape }) {
         {marche ? (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
-              {phraseMarche(etape)}
+              {phraseMarche(etape, suivante)}
             </Text>
             <CheminAPied etape={etape} />
           </>
@@ -240,7 +240,7 @@ export function CartePossibilite({
             const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${formaterAttente(attente)}` : null;
             return (
               <View key={i}>
-                <LigneEtape etape={e} />
+                <LigneEtape etape={e} suivante={p.etapes[i + 1]} />
                 {texte ? <LigneAttente texte={texte} /> : null}
               </View>
             );

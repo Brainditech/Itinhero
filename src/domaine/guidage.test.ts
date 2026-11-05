@@ -373,6 +373,13 @@ describe("issue 0017 — taxi guidé comme un taxi, pas comme un bus", () => {
     expect(s.annonces).toEqual([`Vous arrivez : ${g.etape.a.nom}`]);
     expect(situer(taxi, s.etat, positionSimulee(taxi, k, g.ligne.longueur - 400), g.arriveeMs - 50_000).annonces).toEqual([]);
   });
+  it("la marche qui mène au taxi ne dit pas « arrêt »", () => {
+    // La marche 0 de l'exemple fait 1 m : sans position, elle reste affichée.
+    const s = situer(taxi, ETAT_INITIAL, null, heure("08:14"));
+    expect(s.vue.type === "marche" && s.vue.destination).toBe(g.etape.de.nom);
+    expect(phraseMarche(taxi.etapes[0]!.etape, g.etape)).toContain(`jusqu'à ${g.etape.de.nom},`);
+    expect(phraseMarche(taxi.etapes[0]!.etape)).toContain(`jusqu'à l'arrêt ${g.etape.de.nom}`);
+  });
   it("en attente : « Vous êtes au point de rendez-vous », pas « à l'arrêt »", () => {
     expect(lieuMontee(g.etape).ici).toBe("Vous êtes au point de rendez-vous");
     expect(lieuMontee(g.etape).loin("300 m")).toBe("Le point de rendez-vous est à 300 m");
@@ -441,8 +448,14 @@ describe("issue 0017 — trajet d'un autre jour", () => {
     const t = Date.parse(POSSIBILITE.depart_utc) - 7 * 86_400_000;
     const s = situer(parcours, { ...ETAT_INITIAL, etape: 1 }, null, t);
     expect(s.vue.type).toBe("attente");
-    expect(s.aVenir && phraseStatut(s.aVenir)).toBe(`Départ prévu le 14/11 à ${POSSIBILITE.depart}`);
+    expect(s.aVenir && phraseStatut(s.aVenir)).toBe(`Départ prévu le 14/11 à ${POSSIBILITE.etapes[1]!.depart}`);
     expect(situer(parcours, { ...ETAT_INITIAL, etape: 1 }, null, heure("08:20")).aVenir).toBeNull();
+  });
+  it("en attente d'un véhicule à venir : l'heure du véhicule, pas celle du départ de chez soi", () => {
+    const t = Date.parse(POSSIBILITE.depart_utc) - 7 * 86_400_000;
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: 1 }, null, t);
+    expect(s.aVenir?.heure).toBe(POSSIBILITE.etapes[1]!.depart);
+    expect(POSSIBILITE.etapes[1]!.depart).not.toBe(POSSIBILITE.depart);
   });
   it("durées longues lisibles", () => {
     expect(minutesEnTexte(45)).toBe("45 min");

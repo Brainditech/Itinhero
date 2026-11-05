@@ -224,12 +224,26 @@ export const A_VENIR_AUTRE_JOUR_MS = 3 * 3_600_000;
  * Le statut dit alors quand il part (« le 12/11 à 06:17 »), pas une avance de plusieurs heures.
  */
 export function statutAVenir(p: Possibilite, maintenant: number): Extract<Statut, { type: "a_venir" }> | null {
-  const departMs = Date.parse(p.depart_utc);
+  return aVenirA(Date.parse(p.depart_utc), p.depart, maintenant);
+}
+
+/**
+ * Même règle pour un départ donné. En attente d'un véhicule, c'est l'heure du véhicule qui compte (et sa date :
+ * un bus de 00:02 après une sortie à 23:57 est le lendemain) ; une seule heure sur l'écran.
+ */
+function aVenirA(departMs: number, heure: string, maintenant: number): Extract<Statut, { type: "a_venir" }> | null {
   const ecart = departMs - maintenant;
   const jour = maintenantAParis(new Date(departMs)).date;
   const memeJour = jour === maintenantAParis(new Date(maintenant)).date;
   if (ecart < A_VENIR_MS && (memeJour || ecart < A_VENIR_AUTRE_JOUR_MS)) return null;
-  return { type: "a_venir", date: memeJour ? null : `${jour.slice(8, 10)}/${jour.slice(5, 7)}`, heure: p.depart };
+  return { type: "a_venir", date: memeJour ? null : `${jour.slice(8, 10)}/${jour.slice(5, 7)}`, heure };
+}
+
+/** Nom de la fin d'une marche : avant un taxi, le lieu de prise en charge tel quel (« Mairie », pas « arrêt Mairie »). */
+function nomFinMarche(parcours: Parcours, k: number): string {
+  const e = parcours.etapes[k]!.etape;
+  const suivante = parcours.etapes[k + 1]?.etape;
+  return suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);
 }
 
 /**
@@ -366,7 +380,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
       // L'arrivée demande d'être au bout du tracé et près de lui : loin à côté, c'est un écart.
       if (proj && restante < FIN_MARCHE_METRES && proj.ecart <= ECART_METRES) {
         const derniere = g.consignes[g.consignes.length - 1];
-        if (derniere) dire(`${k}:${derniere.index}:arrivee`, phraseConsigne(derniere.consigne, nomLieuEtape(e.a)));
+        if (derniere) dire(`${k}:${derniere.index}:arrivee`, phraseConsigne(derniere.consigne, nomFinMarche(parcours, k)));
         etat = { ...etat, etape: k + 1, aBord: false, horsCheminDepuis: null, abscisse: 0 };
         continue;
       }
@@ -382,7 +396,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
       } else if (etat.horsCheminDepuis !== null) {
         etat = { ...etat, horsCheminDepuis: null };
       }
-      const destination = nomLieuEtape(e.a);
+      const destination = nomFinMarche(parcours, k);
       const apres = g.consignes.filter((c) => c.consigne.manoeuvre !== "depart" && c.abscisse > abscisse + 3);
       const fin: ConsigneSituee = g.consignes[g.consignes.length - 1] ?? {
         consigne: { manoeuvre: "arrivee", rue: null, distance_metres: 0, lat: e.a.lat, lon: e.a.lon, cote_arrivee: "devant" },
@@ -457,7 +471,8 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
         annonces,
         vibrer,
         minutesRestantes,
-        aVenir,
+        // En attente, l'heure et la date du véhicule : celles que dit le bandeau.
+        aVenir: aVenir && aVenirA(g.departMs, e.depart, maintenant),
       };
     }
     const descente = g.arrets[g.arrets.length - 1]!;
@@ -510,9 +525,10 @@ export function aLieu(destination: string): string {
  * Ligne d'une marche dans le détail : « 5 min, 310 m jusqu'à l'arrêt Mairie, arrivée 06:22 ».
  * Une correspondance dans la même gare (0 m) ne dit pas « 0 m ».
  */
-export function phraseMarche(e: Etape): string {
+export function phraseMarche(e: Etape, suivante?: Etape): string {
   const metres = e.distance_metres ? `, ${formaterDistance(e.distance_metres)}` : "";
-  return `${e.duree_minutes} min${metres} jusqu'${aLieu(nomLieuEtape(e.a))}, arrivée ${e.arrivee}`;
+  const fin = suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);
+  return `${e.duree_minutes} min${metres} jusqu'${aLieu(fin)}, arrivée ${e.arrivee}`;
 }
 
 /** « Jusqu'à l'arrêt Mairie », « Jusqu'à la gare de Dijon ». */
