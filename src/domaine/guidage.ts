@@ -503,7 +503,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
 export function aLieu(destination: string): string {
   // « Gare de Joigny » (nom d'un lieu choisi) se dit comme « gare de Joigny » : « à la gare de Joigny ».
   const m = /^(arrêt|gare|station) /i.exec(destination);
-  if (!m) return `à ${destination}`;
+  if (!m) return contracter("à", destination);
   const nom = destination.charAt(0).toLowerCase() + destination.slice(1);
   return m[1]!.toLowerCase() === "arrêt" ? `à l'${nom}` : `à la ${nom}`;
 }
@@ -520,8 +520,21 @@ export function phraseMarche(e: Etape, suivante?: Etape): string {
 
 /** « de l'arrêt Mairie », « de la gare de Dijon », « de Domicile ». */
 export function deLieu(lieu: string): string {
-  // « à l'arrêt … », « à la gare … », « à … » ⇒ même article après « de ».
-  return `de${aLieu(lieu).slice(1)}`;
+  // « à l'arrêt … », « à la gare … » ⇒ même article après « de » ; un nom dit tel quel se contracte à part.
+  const a = aLieu(lieu);
+  return /^à (l'|la )/.test(a) ? `de${a.slice(1)}` : contracter("de", lieu);
+}
+
+/** « à Le Creusot » ⇒ « au Creusot », « de Auxerre » ⇒ « d'Auxerre », « de Les Ulis » ⇒ « des Ulis ».
+ * Pas d'élision devant « h » : trop de noms de lieux ont un h aspiré (« de Hazebrouck »). */
+function contracter(prep: "à" | "de", nom: string): string {
+  const art = /^(Le|Les) (.+)$/.exec(nom);
+  if (art) {
+    const les = art[1] === "Les";
+    return `${prep === "à" ? (les ? "aux" : "au") : les ? "des" : "du"} ${art[2]}`;
+  }
+  if (prep === "de" && /^[aeiouyàâäéèêëîïôöûü]/i.test(nom)) return `d'${nom}`;
+  return `${prep} ${nom}`;
 }
 
 /**

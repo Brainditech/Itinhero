@@ -55,10 +55,11 @@ Fausse piste écartée : l'écart au chemin semblait ne jamais se déclencher en
 - Quatrième tour, 1 remarque corrigée : la consigne d'arrivée de « Voir le chemin » (`destinationMarche`) suit aussi cette règle ; `vientVousChercher` et `nomLieuVehicule` passent dans `resultat.ts`, à côté de `nomLieuEtape`.
 - Cinquième tour, 2 remarques corrigées : la ligne d'une étape en véhicule du détail prend ses articles (« De l'arrêt … à l'arrêt … », « De la gare … », et pour un taxi « De Domicile à … »), `phraseTrajetVehicule` ; documentation de `nomLieuEtape` remise à sa place.
 - Vu en revérifiant : « Arrêter le guidage » ne fermait pas un guidage sans écran derrière lui (ouvert par un lien) ; il revient alors au Résultat. Les deux erreurs « multiple navigation containers » vues pendant l'essai venaient de ma manipulation (activité fermée par « Retour », puis rouverte par un lien sur le même moteur JS), pas du code ; disparues après rechargement.
+- Sixième tour, 2 remarques corrigées : élision et article contracté pour un nom dit tel quel (« d'Auxerre centre », « du Creusot », « Jusqu'aux Ulis » ; pas d'élision devant « h », souvent aspiré dans les noms de lieux) ; commentaire remis sur sa ligne.
 
 ## 4. Tests de régression
 
-`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 18 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 170 tests verts ; lint et types sans erreur ; export Android réussi.
+`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 19 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 171 tests verts ; lint et types sans erreur ; export Android réussi.
 
 ## 5. Revérifié sur le téléphone
 

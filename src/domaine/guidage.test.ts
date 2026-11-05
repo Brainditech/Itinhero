@@ -11,6 +11,7 @@ import {
   instantDuTrajet,
   jusqua,
   aLieu,
+  deLieu,
   lieuMontee,
   minutesEnTexte,
   nomLieuVehicule,
@@ -436,6 +437,18 @@ describe("issue 0017 — gare, arrêt, article", () => {
     const tadLigne = { ...tad, arrets: bus.arrets };
     expect(bus.arrets?.length).toBeGreaterThan(0);
     expect(titreDescente(tadLigne)).toBe("Descendez au prochain arrêt");
+  });
+  it("nom dit tel quel : élision et article contracté", () => {
+    expect(deLieu("Auxerre centre")).toBe("d'Auxerre centre");
+    expect(deLieu("Domicile")).toBe("de Domicile");
+    expect(deLieu("Hazebrouck")).toBe("de Hazebrouck");
+    expect(deLieu("Le Creusot")).toBe("du Creusot");
+    expect(deLieu("Les Ulis")).toBe("des Ulis");
+    expect(deLieu("arrêt Mairie")).toBe("de l'arrêt Mairie");
+    expect(deLieu("gare de Dijon")).toBe("de la gare de Dijon");
+    expect(aLieu("Le Creusot")).toBe("au Creusot");
+    expect(jusqua("Les Ulis")).toBe("Jusqu'aux Ulis");
+    expect(aLieu("Auxerre")).toBe("à Auxerre");
   });
   it("« Gare de Joigny », nom d'un lieu choisi, prend son article", () => {
     expect(aLieu("Gare de Joigny")).toBe("à la gare de Joigny");
