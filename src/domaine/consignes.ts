@@ -8,10 +8,15 @@ import { formaterDistance, nomLieuEtape } from "./resultat";
 const TYPES_DE_VOIE =
   /^(rue|ruelle|avenue|boulevard|place|placette|chemin|route|allée|impasse|quai|cours|cour|square|passage|promenade|faubourg|voie|sentier|esplanade|parvis|rond-point|pont|montée|côte|venelle|traverse|mail|galerie|parking|jardin|parc)(\s|$)/i;
 
-/** « Rue Guillaume Tell » ⇒ « rue Guillaume Tell » ; « N 77 » ⇒ « la N 77 » ; autre ⇒ tel quel. */
+/**
+ * « Rue Guillaume Tell » ⇒ « rue Guillaume Tell » ; « N 77 » ⇒ « la N 77 » ; autre ⇒ tel quel.
+ * Numéro et nom d'une même route (issue 0014) : « N 77 (Avenue du 19 Mars 1962) » ⇒ « la N 77 (avenue du 19 Mars 1962) ».
+ */
 export function designationRue(rue: string): string {
+  const deux = /^(.+) \((.+)\)$/.exec(rue);
+  if (deux) return `${designationRue(deux[1]!)} (${designationRue(deux[2]!)})`;
   if (TYPES_DE_VOIE.test(rue)) return rue.charAt(0).toLowerCase() + rue.slice(1);
-  if (/^[ADNMC] ?\d/.test(rue)) return `la ${rue}`;
+  if (/^(RN|RD|[ADNMC]) ?\d/.test(rue)) return `la ${rue}`;
   return rue;
 }
 
