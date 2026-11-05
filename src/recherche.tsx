@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { messageEchec, type Candidat, type Point, type ReponseItineraires } from "@/domaine/api";
-import { demandeRecalcul, versRequeteItineraires, type Bout, type BoutLieu, type CoteBout, type Demande } from "@/domaine/demande";
+import { demandeRecalcul, versRequeteItineraires, type Bout, type BoutLieu, type CoteBout, type Demande, type Trajet } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
 import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS } from "@/domaine/suggestions";
 import { useClient, useSession } from "@/session";
@@ -153,14 +153,16 @@ export function useDeroulerRecherche() {
    * « Recalculer depuis ici » (spec 12, §7) : départ à la position lue maintenant, même arrivée (déjà trouvée,
    * sans nouvelle confirmation), même rendez-vous et même marge ; en « partir à », à partir de maintenant.
    * Le guidage en cours se ferme : on revient au Résultat, qui montre la nouvelle réponse.
+   * Pendant un retour (spec 19, D94) : vers le départ de l'aller, sans nouveau retour.
    */
-  async function recalculer(r: Recherche): Promise<EchecRecherche | null> {
-    const demande = demandeRecalcul(r.demande, new Date());
+  async function recalculer(r: Recherche, trajet: Trajet = "aller"): Promise<EchecRecherche | null> {
+    const demande = demandeRecalcul(r.demande, new Date(), trajet);
     const lue = await lirePosition();
     // Dans le guidage, pas de choix « Domicile » : le message dit seulement quoi faire pour la position.
     if (lue.etat !== "ok") return { champ: null, message: MESSAGES_POSITION_GUIDAGE[lue.etat] };
     const depart = lieuChoisi(demande.depart, lue.point);
-    return avancer({ demande, depart: { lieu: depart }, arrivee: r.arrivee, reponse: null }, "revenir");
+    const arrivee = trajet === "retour" ? r.depart : r.arrivee;
+    return avancer({ demande, depart: { lieu: depart }, arrivee, reponse: null }, "revenir");
   }
 
   return { demarrer, recalculer };

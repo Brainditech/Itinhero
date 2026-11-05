@@ -60,6 +60,8 @@ export const schemaDemande = z.object({
   heure: z.string().regex(HEURE),
   sens: z.enum(["arriver_avant", "partir_a"]),
   marge: z.number().int().min(0).max(MARGE_MAX),
+  /** Fin du rendez-vous, le même jour (spec 19, D94) : le retour se cherche à partir de cette heure. */
+  retour: z.string().regex(HEURE).nullish(),
 });
 
 export type Demande = z.infer<typeof schemaDemande>;
@@ -73,9 +75,11 @@ export type ChampsFormulaire = {
   heure: string; // HH:MM, choisie au sélecteur
   sens: Sens;
   marge: string;
+  /** Fin du rendez-vous HH:MM choisie au sélecteur, ou null : pas de retour (spec 19). */
+  retour: string | null;
 };
 
-export type ErreursFormulaire = Partial<Record<CoteBout | "date" | "heure" | "marge", string>>;
+export type ErreursFormulaire = Partial<Record<CoteBout | "date" | "heure" | "marge" | "retour", string>>;
 
 export type ResultatFormulaire = { ok: true; demande: Demande } | { ok: false; erreurs: ErreursFormulaire };
 
@@ -90,6 +94,8 @@ export const MESSAGES = {
   heurePassee: "Cette heure est passée.",
   heureInvalide: "Choisissez une heure.",
   marge: `La marge va de 0 à ${MARGE_MAX} minutes.`,
+  retourAvant: (heure: string) => `La fin du rendez-vous est après ${heure}.`,
+  retourInvalide: "Choisissez une heure de fin.",
 } as const;
 
 /** Date et heure de `maintenant` lues à Paris (R11), quel que soit le fuseau de l'appareil. */
@@ -112,12 +118,37 @@ export function maintenantAParis(maintenant: Date): { date: string; heure: strin
  * En « partir à », l'heure prévue est souvent passée quand on s'est perdu : on cherche à partir de maintenant
  * (heure de Paris), jamais avant. En « arriver avant », le rendez-vous ne bouge pas.
  */
-export function demandeRecalcul(demande: Demande, maintenant: Date): Demande {
+export function demandeRecalcul(demande: Demande, maintenant: Date, trajet: Trajet = "aller"): Demande {
   const ici = maintenantAParis(maintenant);
+  if (trajet === "retour") return demandeRecalculRetour(demande, ici);
   const suite: Demande = { ...demande, depart: { type: "position" } };
   if (demande.sens !== "partir_a") return suite;
   const passee = `${demande.date} ${demande.heure}` < `${ici.date} ${ici.heure}`;
-  return passee ? { ...suite, date: ici.date, heure: ici.heure } : suite;
+  if (!passee) return suite;
+  const decalee = { ...suite, date: ici.date, heure: ici.heure };
+  // Le retour reste cherché s'il est encore après la nouvelle heure de départ (même jour), sinon il tombe.
+  const retourGarde = suite.retour == null || (ici.date === demande.date && suite.retour > ici.heure);
+  return retourGarde ? decalee : { ...decalee, retour: null };
+}
+
+/** L'aller, ou le retour planifié à partir de la fin du rendez-vous (spec 19). */
+export type Trajet = "aller" | "retour";
+
+/**
+ * « Recalculer depuis ici » pendant un retour (spec 19, D94) : depuis la position vers le départ de l'aller,
+ * en « partir à » la fin du rendez-vous ou maintenant (le plus tard), sans nouveau retour.
+ */
+function demandeRecalculRetour(demande: Demande, ici: { date: string; heure: string }): Demande {
+  const fin = { date: demande.date, heure: demande.retour ?? demande.heure };
+  const passee = `${fin.date} ${fin.heure}` < `${ici.date} ${ici.heure}`;
+  return {
+    depart: { type: "position" },
+    arrivee: demande.depart,
+    ...(passee ? ici : fin),
+    sens: "partir_a",
+    marge: demande.marge,
+    retour: null,
+  };
 }
 
 /**
@@ -154,8 +185,22 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
     else erreurs.marge = MESSAGES.marge;
   }
 
+  // Fin du rendez-vous (spec 19) : facultative, le même jour, après l'heure de l'aller.
+  if (champs.retour !== null) {
+    if (!HEURE.test(champs.retour)) erreurs.retour = MESSAGES.retourInvalide;
+    else if (HEURE.test(champs.heure) && champs.retour <= champs.heure) erreurs.retour = MESSAGES.retourAvant(champs.heure);
+  }
+
   if (Object.keys(erreurs).length > 0) return { ok: false, erreurs };
-  const demande = schemaDemande.parse({ depart, arrivee, date: champs.date, heure: champs.heure, sens: champs.sens, marge });
+  const demande = schemaDemande.parse({
+    depart,
+    arrivee,
+    date: champs.date,
+    heure: champs.heure,
+    sens: champs.sens,
+    marge,
+    retour: champs.retour,
+  });
   return { ok: true, demande };
 }
 
@@ -197,6 +242,7 @@ export function versRequeteItineraires(
     sens: demande.sens === "arriver_avant" ? ("arriver" as const) : ("partir" as const),
     marge: demande.marge,
     ...(noms ? { noms } : {}),
+    ...(demande.retour != null ? { fin_rdv: demande.retour } : {}),
   };
 }
 

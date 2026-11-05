@@ -218,3 +218,81 @@ describe("possibilités rendues inutiles par une autre", () => {
     expect(retirerDomines([a, c])).toEqual([a]);
   });
 });
+
+describe("POST /v1/itineraires, retour planifié (spec 19, D94)", () => {
+  /** Moteur qui garde toutes les demandes reçues (aller, retour, taxis, correspondances). */
+  function moteurTemoin() {
+    const demandes: DemandeRecherche[] = [];
+    return {
+      demandes,
+      moteur: {
+        plan: async (d: DemandeRecherche) => {
+          demandes.push(d);
+          return exemple();
+        },
+        geocoder: () => Promise.reject(new Error("inutile")),
+      },
+    };
+  }
+  const NOMS = { depart: "Domicile", arrivee: "Cité judiciaire" };
+
+  it.each([
+    ["mal formé", "9:00"],
+    ["égal à l'heure de l'aller", "08:00"],
+    ["avant l'heure de l'aller", "07:30"],
+  ])("fin du rendez-vous %s ⇒ 400 sur fin_rdv", async (_cas, fin) => {
+    const r = await poster(appTest({ moteur: moteurPlan(exemple) }), { ...CORPS, fin_rdv: fin });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().champs).toEqual(["fin_rdv"]);
+  });
+
+  it("en « arriver », la fin compte après l'heure du rendez-vous, pas après la limite", async () => {
+    const r = await poster(appTest({ moteur: moteurPlan(exemple) }), { ...CORPS, sens: "arriver", heure: "11:00", fin_rdv: "10:55" });
+    expect(r.json().champs).toEqual(["fin_rdv"]);
+  });
+
+  it("sans fin du rendez-vous ⇒ retour null, aucune demande inversée", async () => {
+    const t = moteurTemoin();
+    const r = await poster(appTest({ moteur: t.moteur }), CORPS);
+    expect(r.json().retour).toBeNull();
+    expect(t.demandes.every((d) => d.depart.lat === CORPS.depart.lat)).toBe(true);
+  });
+
+  it("avec fin 09:00 ⇒ seconde recherche aux points inversés, « partir à » 09:00, noms inversés", async () => {
+    const t = moteurTemoin();
+    const r = await poster(appTest({ moteur: t.moteur }), { ...CORPS, sens: "arriver", heure: "08:30", noms: NOMS, fin_rdv: "09:00" });
+    expect(r.statusCode, r.body).toBe(200);
+    const inverses = t.demandes.filter((d) => d.depart.lat === CORPS.arrivee.lat && d.arrivee.lat === CORPS.depart.lat);
+    expect(inverses.find((d) => d.taxi === undefined)).toMatchObject({ sens: "partir", depuisMinutes: 9 * 60, jour: CORPS.date });
+    // Le retour a aussi ses recherches avec taxi (D80).
+    expect(inverses.filter((d) => d.taxi).map((d) => d.taxi).sort()).toEqual(["debut", "fin"]);
+
+    const { retour } = r.json();
+    expect(retour.demande).toEqual({ date: "2026-11-12", heure: "09:00", sens: "partir", marge: null, limite: null });
+    expect(retour.arrivee.nom).toBe("Domicile");
+    expect(retour.verdict).toBe("possible");
+    expect(retour.possibilites.map((p: { depart: string }) => p.depart)).toEqual(["09:19"]);
+    expect(retour.possibilites[0].etapes[0].de.nom).toBe("Cité judiciaire");
+    for (const p of retour.possibilites) for (const e of p.etapes) expect(e.source).toBeDefined();
+    // L'aller ne change pas.
+    expect(r.json().demande).toMatchObject({ sens: "arriver", heure: "08:30" });
+  });
+
+  it("aucun retour après la fin ⇒ verdict du retour « impossible », l'aller reste possible", async () => {
+    const r = await poster(appTest({ moteur: moteurPlan(exemple) }), { ...CORPS, fin_rdv: "21:00" });
+    expect(r.json().verdict).toBe("possible");
+    expect(r.json().retour).toMatchObject({ verdict: "impossible", possibilites: [] });
+  });
+
+  it("MOTIS en panne pour le retour seulement ⇒ 503", async () => {
+    const moteur = {
+      plan: async (d: DemandeRecherche) => {
+        if (d.depart.lat === CORPS.arrivee.lat && d.taxi === undefined) throw new Error("panne");
+        return exemple();
+      },
+      geocoder: () => Promise.reject(new Error("inutile")),
+    };
+    const r = await poster(appTest({ moteur }), { ...CORPS, fin_rdv: "12:00" });
+    expect(r.statusCode).toBe(503);
+  });
+});

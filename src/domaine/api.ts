@@ -123,7 +123,8 @@ export const schemaPossibilite = z.object({
 });
 export type Possibilite = z.infer<typeof schemaPossibilite>;
 
-export const schemaReponseItineraires = z
+/** Un sens du voyage : l'aller, ou le retour planifié (spec 19), de même forme. */
+const schemaReponseSens = z
   .object({
     verdict: z.enum(["possible", "impossible"]),
     demande: z.object({
@@ -139,6 +140,12 @@ export const schemaReponseItineraires = z
   })
   // « Possible » sans aucune possibilité montrée serait un verdict appuyé sur rien (spec 09 §4.5).
   .refine((r) => r.verdict === "impossible" || r.possibilites.length > 0);
+export type ReponseSens = z.infer<typeof schemaReponseSens>;
+
+export const schemaReponseItineraires = schemaReponseSens.and(
+  // Retour à partir de la fin du rendez-vous (spec 19, D94) ; null sans fin de rendez-vous.
+  z.object({ retour: schemaReponseSens.nullish() }),
+);
 export type ReponseItineraires = z.infer<typeof schemaReponseItineraires>;
 
 export type RequeteItineraires = {
@@ -150,6 +157,8 @@ export type RequeteItineraires = {
   marge: number;
   /** Noms du départ et de l'arrivée, affichés à la place de « Départ » et « Arrivée » (issue 0010, C). */
   noms?: { depart?: string; arrivee?: string };
+  /** Fin du rendez-vous, le même jour : le serveur cherche aussi le retour (spec 19). */
+  fin_rdv?: string;
 };
 
 // ——— Résultat d'un appel ———

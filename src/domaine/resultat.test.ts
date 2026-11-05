@@ -24,6 +24,8 @@ import {
   nomBout,
   NOM_MAX,
   quandDemande,
+  possibiliteDe,
+  trajetDuParametre,
   adresseBout,
   adresseArrivee,
   phraseVotreTrajet,
@@ -460,5 +462,51 @@ describe("taxi comme étape (spec 16)", () => {
   it("le verdict préfère un trajet sans taxi quand il n'impose pas de nuit", () => {
     const soir = { ...chatelet, depart: "19:00", arrivee: "20:10", duree_minutes: 70 };
     expect(phraseVerdict({ ...RETOUR_DIJON, possibilites: [soirTaxi, soir] }).heureDepart).toBe("19:00");
+  });
+});
+
+describe("retour planifié (spec 19, D94)", () => {
+  const RETOUR = {
+    ...ARRIVER,
+    demande: { date: "2026-11-12", heure: "16:00", sens: "partir" as const, marge: null, limite: null },
+    possibilites: [{ ...chatelet, depart: "16:12", arrivee: "17:05" }],
+  };
+  const AVEC_RETOUR: ReponseItineraires = { ...ARRIVER, retour: RETOUR };
+
+  it("versRequeteItineraires : fin_rdv envoyé seulement avec une fin de rendez-vous", () => {
+    const d = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
+    const p = { lat: 47.8, lon: 3.6 };
+    expect(versRequeteItineraires({ ...d, retour: "16:00" }, p, p).fin_rdv).toBe("16:00");
+    expect(versRequeteItineraires({ ...d, retour: null }, p, p)).not.toHaveProperty("fin_rdv");
+    expect(versRequeteItineraires(d, p, p)).not.toHaveProperty("fin_rdv");
+  });
+
+  it("quandDemande dit le retour", () => {
+    const d = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-12", heure: "10:00", sens: "arriver_avant" as const, marge: 10, retour: "16:00" };
+    expect(quandDemande(d)).toBe("Jeudi 12/11 · arriver avant 10:00 · marge 10 min · retour après 16:00");
+  });
+
+  it("verdict du retour : possible, départ et arrivée", () => {
+    expect(phraseVerdict(RETOUR, "retour")).toMatchObject({ etat: "possible", heureDepart: "16:12", detail: "Arrivée prévue à 17:05." });
+  });
+
+  it("aucun retour ⇒ « Impossible », « Aucun retour ce jour-là après 16:00. »", () => {
+    expect(phraseVerdict({ ...RETOUR, verdict: "impossible", possibilites: [] }, "retour")).toEqual({
+      possible: false,
+      etat: "impossible",
+      titre: "Impossible",
+      heureDepart: null,
+      detail: "Aucun retour ce jour-là après 16:00.",
+    });
+  });
+
+  it("possibiliteDe : l'aller ou le retour selon le paramètre `t`", () => {
+    expect(possibiliteDe(AVEC_RETOUR, "aller", 0)?.depart).toBe("06:27");
+    expect(possibiliteDe(AVEC_RETOUR, "retour", 0)?.depart).toBe("16:12");
+    expect(possibiliteDe(ARRIVER, "retour", 0)).toBeUndefined();
+    expect(possibiliteDe(null, "aller", 0)).toBeUndefined();
+    expect(trajetDuParametre("retour")).toBe("retour");
+    expect(trajetDuParametre(undefined)).toBe("aller");
+    expect(trajetDuParametre("autre")).toBe("aller");
   });
 });

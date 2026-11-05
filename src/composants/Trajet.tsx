@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
 import type { Etape, Possibilite } from "@/domaine/api";
+import type { Trajet } from "@/domaine/demande";
 import { phraseMarche, phraseTrajetVehicule } from "@/domaine/guidage";
 import {
   aMarcheLongue,
@@ -185,6 +186,7 @@ function LigneAttente({ texte }: { texte: string }) {
 export function CartePossibilite({
   possibilite,
   index,
+  trajet = "aller",
   destination,
   date,
   adresse,
@@ -192,6 +194,8 @@ export function CartePossibilite({
   possibilite: Possibilite;
   /** Rang dans la réponse, pour ouvrir son guidage (spec 12). */
   index: number;
+  /** Aller ou retour planifié (spec 19) : dit aux étapes et au guidage où trouver la possibilité. */
+  trajet?: Trajet;
   destination: string;
   /** Jour demandé (« 2026-11-12 »), pour dire « vendredi » quand l'arrivée est le lendemain (spec 15). */
   date: string;
@@ -253,7 +257,7 @@ export function CartePossibilite({
                 <LigneEtape
                   etape={e}
                   suivante={p.etapes[i + 1]}
-                  ouvrir={() => router.push({ pathname: "/etape", params: { i: String(index), e: String(i) } })}
+                  ouvrir={() => router.push({ pathname: "/etape", params: { i: String(index), e: String(i), t: trajet } })}
                 />
                 {texte ? <LigneAttente texte={texte} /> : null}
               </View>
@@ -271,7 +275,7 @@ export function CartePossibilite({
           </View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push({ pathname: "/guidage", params: { i: String(index) } })}
+            onPress={() => router.push({ pathname: "/guidage", params: { i: String(index), t: trajet } })}
             className="mt-4 min-h-14 flex-row items-center justify-center gap-2 rounded-bouton bg-fond active:bg-primaire-doux"
             style={{ borderWidth: 1.5, borderColor: couleurs.primaire }}
           >

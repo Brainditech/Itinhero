@@ -39,7 +39,7 @@ import {
   type Situation,
   type Statut,
 } from "@/domaine/guidage";
-import { formaterDistance, jetonMode } from "@/domaine/resultat";
+import { formaterDistance, jetonMode, possibiliteDe, trajetDuParametre } from "@/domaine/resultat";
 import { useDeroulerRecherche, useRecherche } from "@/recherche";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 import { dire, taire, vibrer } from "@/voix";
@@ -103,11 +103,13 @@ const SANS_POSITION_MS = 10_000;
 export default function Guidage() {
   useKeepAwake();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ i?: string; e?: string; sim?: string }>();
+  const params = useLocalSearchParams<{ i?: string; e?: string; t?: string; sim?: string }>();
   const { recherche } = useRecherche();
   const { recalculer: rechercherDepuisIci } = useDeroulerRecherche();
   // Le trajet guidé est figé à l'ouverture : la réponse d'un recalcul ne le remplace pas pendant que l'écran se ferme.
-  const [possibilite] = useState(() => recherche?.reponse?.possibilites[Number(params.i ?? 0)]);
+  // `t=retour` : une possibilité du retour planifié (spec 19).
+  const [trajet] = useState(() => trajetDuParametre(params.t));
+  const [possibilite] = useState(() => possibiliteDe(recherche?.reponse, trajet, Number(params.i ?? 0)));
   const parcours = useMemo(() => (possibilite ? preparer(possibilite) : null), [possibilite]);
   const sim = __DEV__ ? (params.sim ?? null) : null;
   // « Me guider » d'une fenêtre d'étape (spec 17, D86) : le guidage part de cette étape.
@@ -179,7 +181,7 @@ export default function Guidage() {
     setRecalcul("Recherche en cours…");
     // Même rendez-vous, même marge, depuis la position (spec 12 §7) ; en « partir à », à partir de maintenant.
     // Réussi, le guidage se ferme et le Résultat montre la nouvelle réponse : un seul guidage à la fois.
-    const echec = await rechercherDepuisIci(recherche);
+    const echec = await rechercherDepuisIci(recherche, trajet);
     enRecalculRef.current = false;
     setRecalcul(echec ? echec.message : null);
   };

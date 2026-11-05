@@ -1,5 +1,5 @@
-import type { Candidat, Etape, LieuEtape, Possibilite, ReponseItineraires } from "./api";
-import type { Bout, Demande } from "./demande";
+import type { Candidat, Etape, LieuEtape, Possibilite, ReponseItineraires, ReponseSens } from "./api";
+import type { Bout, Demande, Trajet } from "./demande";
 import { natureLue } from "./suggestions";
 
 // Ce qu'affichent le formulaire et le Résultat (spec 10, §4.1). Tout vient de la réponse de l'API :
@@ -34,7 +34,19 @@ export function quandDemande(demande: Demande): string {
   } else {
     morceaux.push(`partir à ${demande.heure}`);
   }
+  if (demande.retour != null) morceaux.push(`retour après ${demande.retour}`);
   return morceaux.join(" · ");
+}
+
+/** La possibilité `i` de l'aller ou du retour (spec 19), ou undefined si elle n'existe pas. */
+export function possibiliteDe(r: ReponseItineraires | null | undefined, trajet: Trajet, i: number): Possibilite | undefined {
+  const sens = trajet === "retour" ? r?.retour : r;
+  return sens?.possibilites[i];
+}
+
+/** Paramètre `t` d'une route (étape, guidage) ⇒ le trajet ; tout autre valeur est l'aller. */
+export function trajetDuParametre(t: string | undefined): Trajet {
+  return t === "retour" ? "retour" : "aller";
 }
 
 // ——— Récapitulatif « Votre trajet » (spec 14) ———
@@ -126,11 +138,20 @@ export type PhraseVerdict = { possible: boolean; etat: EtatVerdict; titre: strin
  * sinon sur la première. Une nuit dehors n'est jamais « Possible » en vert (D79) ; une arrivée le lendemain
  * est toujours dite.
  */
-export function phraseVerdict(r: ReponseItineraires): PhraseVerdict {
+export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller"): PhraseVerdict {
   // D80 : un trajet sans nuit et sans taxi d'abord, puis sans nuit avec taxi, puis le premier.
   const choisie =
     r.possibilites.find((p) => !nuitDehors(p) && !avecTaxi(p)) ?? r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
   if (r.verdict === "impossible" || !choisie) {
+    if (trajet === "retour") {
+      return {
+        possible: false,
+        etat: "impossible",
+        titre: "Impossible",
+        heureDepart: null,
+        detail: `Aucun retour ce jour-là après ${r.demande.heure}.`,
+      };
+    }
     const quand = r.demande.sens === "arriver" ? `pour arriver avant ${r.demande.limite ?? r.demande.heure}` : `au départ de ${r.demande.heure}`;
     return {
       possible: false,

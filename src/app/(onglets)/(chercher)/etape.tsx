@@ -23,7 +23,15 @@ import {
   type PositionPanneau,
 } from "@/domaine/etape";
 import { jusqua, phraseMarche, phraseTrajetVehicule, vehiculeMinuscule } from "@/domaine/guidage";
-import { formaterDuree, jetonMode, phraseReservation, phraseTaxi, vientVousChercher } from "@/domaine/resultat";
+import {
+  formaterDuree,
+  jetonMode,
+  phraseReservation,
+  phraseTaxi,
+  possibiliteDe,
+  trajetDuParametre,
+  vientVousChercher,
+} from "@/domaine/resultat";
 import { useRecherche } from "@/recherche";
 import { useClient } from "@/session";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -233,10 +241,11 @@ function ListeVehicule({
 export default function FenetreEtape() {
   const insets = useSafeAreaInsets();
   const { height: hauteurEcran } = useWindowDimensions();
-  const params = useLocalSearchParams<{ i?: string; e?: string }>();
+  const params = useLocalSearchParams<{ i?: string; e?: string; t?: string }>();
   const { recherche } = useRecherche();
   // Figée à l'ouverture, comme le guidage : une nouvelle réponse ne change pas la fenêtre ouverte.
-  const [possibilite] = useState(() => recherche?.reponse?.possibilites[Number(params.i ?? 0)]);
+  // `t=retour` : une étape du retour planifié (spec 19).
+  const [possibilite] = useState(() => possibiliteDe(recherche?.reponse, trajetDuParametre(params.t), Number(params.i ?? 0)));
   const rang = Number(params.e ?? 0);
   const etape = possibilite?.etapes[rang];
 
@@ -322,7 +331,7 @@ export default function FenetreEtape() {
     setChoisi(null);
     setCourse({ etat: "repos" });
   };
-  const guider = () => router.push({ pathname: "/guidage", params: { i: String(params.i ?? 0), e: String(rang) } });
+  const guider = () => router.push({ pathname: "/guidage", params: { i: String(params.i ?? 0), e: String(rang), t: trajetDuParametre(params.t) } });
   const translation = Animated.subtract(h.depliee, visible);
   const boutonsY = Animated.multiply(visible, -1);
 
