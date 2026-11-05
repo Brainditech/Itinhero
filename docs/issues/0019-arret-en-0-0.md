@@ -1,7 +1,7 @@
 # Issue 0019 — Arrêt « JOIGNY-3 RUE DE LA GARE » proposé « à 5348 km »
 
 - **Date** : 2026-11-05
-- **État** : **analyse à approuver** par Brainditech. Cause vérifiée sur MOTIS ; aucune correction écrite.
+- **État** : **analyse approuvée** par Brainditech le 2026-11-05, option « 0,0 seulement ». Cause vérifiée sur MOTIS ; aucune correction écrite.
 - **Branche** : `issue/0018-0019-essai-recalcul` (analyse seulement).
 
 ## 1. Reproduction
@@ -25,7 +25,7 @@ L'arrêt `UT89:ST:06391` du jeu `r83931` est placé à 0,0 dans son GTFS (golfe 
 
 Écarter côté serveur, dans `lireReponseGeocode`, les candidats à 0,0 exactement, qui sont la valeur par défaut d'une coordonnée manquante. À trancher par Brainditech :
 
-- **0,0 seulement** (proposé) : simple, et aucune vraie adresse française n'est à 0,0.
+- **0,0 seulement** (proposé, **retenu par Brainditech le 2026-11-05**) : simple, et aucune vraie adresse française n'est à 0,0.
 - **Hors de la France** (métropole et outre-mer) : plus large, mais le projet calcule « dans toute la France » et devrait garder les gares frontalières.
 
 Le même arrêt peut aussi servir dans un itinéraire MOTIS. Il faudra vérifier si un trajet peut y passer, et l'écarter aussi à l'import des horaires si c'est le cas (à signaler au producteur du jeu `r83931`).

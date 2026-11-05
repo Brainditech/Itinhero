@@ -1,7 +1,7 @@
 # Issue 0018 — Résultat vide après « Recalculer depuis ici »
 
 - **Date** : 2026-11-05
-- **État** : **analyse à approuver** par Brainditech. Cause racine probable, pas encore prouvée par un test ; aucune correction écrite.
+- **État** : **analyse approuvée** par Brainditech le 2026-11-05. Cause racine probable, à prouver (relevé du décalage de défilement) avant la correction ; aucune correction écrite.
 - **Branche** : `issue/0018-0019-essai-recalcul` (analyse seulement).
 
 ## 1. Reproduction
