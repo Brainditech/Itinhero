@@ -297,8 +297,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (spec 15, D79) : `src/domaine/resultat.test.ts` (« Possible » avec rendez-vous et marge dans la phrase ; nuit dehors jamais en vert ; arrivée le lendemain dite « vendredi 06:32 » ; attente « 7 h 51 »), 2026-11-04 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : « Nuit dehors », orange).
 - [ ] Tris : arrivée la plus tôt, moins cher, moins de marche, sans réservation.
   Preuve : tests.
-- [ ] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
+- [x] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
   Preuve : test Joigny aller et retour (fin du rendez-vous donnée ⇒ retour du même jour, ou « impossible » dit clairement).
+  Fait (spec 19, D94) : `serveur/src/routes/itineraires.test.ts`, `joigny-retour.national.test.ts` (fin 11:30 ⇒ retour du jour ; fin 22:30 ⇒ jamais le lendemain), tests de l'app, 2026-11-05 ; constaté sur le téléphone par adb (Domicile → Gifi Joigny 2, fin 16:00 ⇒ retour « Possible · Départ 16:23 » ; fin 23:30 ⇒ « Aucun retour ce jour-là après 23:30. »), issue 0021 corrigée.
 - [x] Taxi comme étape au début et à la fin (D48) : heure de prise en charge et heure limite pour appeler.
   Preuve : tests (heure de prise en charge = départ de l'étape suivante − durée de route − attente ; sans fiche ⇒ « délai non connu »).
   Fait (spec 16, D80) : `serveur/src/itineraires/taxi.test.ts` (taxi au début : prise en charge 06:58 = train 07:15 − marge 5 − route 12) et `src/domaine/resultat.test.ts` (« Délai pour appeler non connu », aucun numéro), 2026-11-05 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : arrivée 18:07 avec un taxi au lieu du vendredi 06:32).

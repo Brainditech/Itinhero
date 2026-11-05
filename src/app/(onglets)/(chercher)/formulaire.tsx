@@ -148,7 +148,11 @@ export default function Formulaire() {
       onValueChange: (_evenement, choisie) => {
         if (!choisie) return;
         if (mode === "date") changer("date", dateChoisie(choisie));
-        else if (mode === "retour") changer("retour", heureChoisie(choisie));
+        else if (mode === "retour") {
+          changer("retour", heureChoisie(choisie));
+          // Dernier champ, souvent à moitié sous « Chercher » : il remonte en entier avec son « Sans retour » (issue 0021).
+          setTimeout(() => defilement.current?.scrollToEnd({ animated: true }), 0);
+        }
         else changer("heure", heureChoisie(choisie));
       },
     });
@@ -282,19 +286,14 @@ export default function Formulaire() {
                 />
               ) : null}
               {/* Spec 19 (D94) : facultative ; donnée, le retour est cherché à partir de cette heure, le même jour. */}
-              <View>
-                <ChampTouchable
-                  libelle="Fin du rendez-vous (retour)"
-                  valeur={champs.retour ?? "Aucune, pas de retour"}
-                  onPress={() => ouvrirSelecteur("retour")}
-                  erreur={erreurs.retour}
-                />
-                {champs.retour !== null ? (
-                  <View className="items-start">
-                    <Lien libelle="Sans retour" onPress={() => changer("retour", null)} />
-                  </View>
-                ) : null}
-              </View>
+              {/* « Sans retour » dans le champ (issue 0021) : sous le champ, il passait sous « Chercher ». */}
+              <ChampTouchable
+                libelle="Fin du rendez-vous (retour)"
+                valeur={champs.retour ?? "Aucune, pas de retour"}
+                onPress={() => ouvrirSelecteur("retour")}
+                erreur={erreurs.retour}
+                effacer={champs.retour !== null ? { libelle: "Sans retour", onPress: () => changer("retour", null) } : undefined}
+              />
             </View>
           </CarteFlottante>
           {erreurRecherche ? <CarteErreur message={erreurRecherche} onReessayer={chercher} /> : null}

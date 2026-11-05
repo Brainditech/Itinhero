@@ -428,24 +428,39 @@ export function ChampTouchable({
   valeur,
   onPress,
   erreur,
+  effacer,
 }: {
   libelle: string;
   valeur: string;
   onPress: () => void;
   erreur?: string;
+  /** Bouton texte dans le champ, à droite (« Sans retour », issue 0021) : il reste à côté de la valeur. */
+  effacer?: { libelle: string; onPress: () => void };
 }) {
   const id = useId();
   return (
     <Champ libelle={libelle} idLibelle={id} erreur={erreur}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${libelle} : ${valeur}`}
-        accessibilityHint="Ouvre le sélecteur"
-        onPress={onPress}
-        className={classeCadre(false, erreur)}
-      >
-        <Text className="font-inter text-corps text-texte">{valeur}</Text>
-      </Pressable>
+      <View className={classeCadre(false, erreur, effacer ? "pl-4 pr-1" : "px-4")}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${libelle} : ${valeur}`}
+          accessibilityHint="Ouvre le sélecteur"
+          onPress={onPress}
+          className="min-h-12 flex-1 justify-center"
+        >
+          <Text className="font-inter text-corps text-texte">{valeur}</Text>
+        </Pressable>
+        {effacer ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={effacer.libelle}
+            onPress={effacer.onPress}
+            className="min-h-12 min-w-12 items-center justify-center rounded-bouton px-3 active:bg-primaire-doux"
+          >
+            <Text className="font-inter-medium text-badge text-primaire">{effacer.libelle}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </Champ>
   );
 }

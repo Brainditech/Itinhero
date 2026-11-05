@@ -101,8 +101,9 @@ function Sens({
 }
 
 function BlocVerdict({ reponse, trajet }: { reponse: ReponseSens; trajet: Trajet }) {
-  const [verdictOuvert, setVerdictOuvert] = useState(false);
   const verdict = phraseVerdict(reponse, trajet);
+  // Replié au départ (spec 14), sauf « Impossible » : aucune carte dessous ne dit pourquoi (issue 0021).
+  const [verdictOuvert, setVerdictOuvert] = useState(() => verdict.etat === "impossible");
   // Vert seulement pour « Possible » ; une nuit dehors est en orange avec le triangle (spec 15, D79).
   const teinte = verdict.etat === "possible" ? couleurs.possible : verdict.etat === "nuit" ? couleurs.avertissement : couleurs.erreur;
   const iconeVerdict = verdict.etat === "possible" ? "check_circle" : verdict.etat === "nuit" ? "warning" : "cancel";
