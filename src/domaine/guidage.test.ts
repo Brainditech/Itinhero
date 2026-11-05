@@ -15,6 +15,7 @@ import {
   lieuMontee,
   minutesEnTexte,
   nomLieuVehicule,
+  phraseAnnonce,
   phraseMarche,
   phraseTrajetVehicule,
   statutAVenir,
@@ -437,6 +438,12 @@ describe("issue 0017 — gare, arrêt, article", () => {
     const tadLigne = { ...tad, arrets: bus.arrets };
     expect(bus.arrets?.length).toBeGreaterThan(0);
     expect(titreDescente(tadLigne)).toBe("Descendez au prochain arrêt");
+  });
+  it("annonce d'arrivée dite à voix haute : avec l'article", () => {
+    const c = { manoeuvre: "arrivee" as const, rue: null, distance_metres: 0, lat: 0, lon: 0, cote_arrivee: "devant" as const };
+    expect(phraseAnnonce(c, 150, "arrêt Mairie")).toBe("Dans 150 m, arrivée à l'arrêt Mairie");
+    expect(phraseAnnonce(c, 150, "gare de Joigny")).toBe("Dans 150 m, arrivée à la gare de Joigny");
+    expect(phraseAnnonce(c, 40, "Le Creusot")).toBe("Dans 40 m, arrivée au Creusot");
   });
   it("nom dit tel quel : élision et article contracté", () => {
     expect(deLieu("Auxerre centre")).toBe("d'Auxerre centre");

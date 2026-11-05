@@ -325,7 +325,7 @@ function phraseEnsuite(parcours: Parcours, k: number): string {
 export function phraseAnnonce(c: Consigne, metres: number, destination: string): string {
   const p = phraseConsigne(c, destination);
   if (metres <= SEUILS_ANNONCE[2]) return p;
-  if (c.manoeuvre === "arrivee") return `Dans ${formaterDistance(metres)}, arrivée à ${destination}`;
+  if (c.manoeuvre === "arrivee") return `Dans ${formaterDistance(metres)}, arrivée ${aLieu(destination)}`;
   return `Dans ${formaterDistance(metres)}, ${p.charAt(0).toLowerCase()}${p.slice(1)}`;
 }
 
