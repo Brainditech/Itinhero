@@ -73,9 +73,15 @@ Mêmes liens profonds après correction : taxi « En taxi / Jusqu'à la gare de 
 - Voix : le build installé n'a pas `expo-speech` ; nouveau development build nécessaire.
 - Marche réelle avec le GPS (critère 6 de la spec 12).
 
+Essayé le 2026-11-05 avec Brainditech, téléphone branché par USB, position simulée par Appium Settings v8.2.1 piloté par `adb` :
+
+- **Recalcul réussi** : écart de 60 m détecté après 15 s, « Recalculer depuis ici » donne la nouvelle réponse (« Ma position → Gare de Joigny », 06:16), sans guidage resté ouvert derrière. Défaut trouvé : le Résultat revient défilé dans le vide, voir l'issue 0018.
+- **Marche** (simulée, 41 points tous les 8 m sur les 314 m jusqu'à l'arrêt Mairie) : consignes dans l'ordre (rue Victorien Sardou, rue Bouribault, rue de l'Hôtel Dieu), distance restante qui baisse, puis attente du bus « Bus le 12/11 à 06:27 », « Vous êtes à l'arrêt ». Une vraie marche dehors reste à faire, mais elle demande l'API sur le VPS (ici, l'API ne passe que par le câble USB).
+- **Voix** : toujours pas essayée. L'app installée (2026-11-05 03:18) ne contient pas le module natif `expo-speech` (absent des `classes*.dex` de l'APK) ; il faut un nouveau development build.
+
 ## 7. Vu en passant, hors de la PR #20
 
 - Réglages, domicile « parking brienon sur armaçon » : six candidats identiques « Parking, Brienon-sur-Armançon, 89210 », impossibles à distinguer.
-- Confirmation du lieu « gare de Joigny » : un arrêt « JOIGNY-3 RUE DE LA GARE » affiché « à 5348 km » (coordonnées fausses dans un GTFS).
+- Confirmation du lieu « gare de Joigny » : un arrêt « JOIGNY-3 RUE DE LA GARE » affiché « à 5348 km » (coordonnées fausses dans un GTFS) : arrêt placé à 0,0, voir l'issue 0019.
 - Accueil : « La compréhension de phrase est indisponible » (le serveur ne comprend pas la phrase ; à vérifier côté configuration).
 - À chaque ouverture du guidage avec la localisation coupée, Android redemande d'activer la précision de la localisation (fenêtre du système).
