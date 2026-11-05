@@ -1,4 +1,5 @@
 import type { Manifest } from "../manifest.js";
+import { calculerConsignes, decoderTrace, encoderTrace, type Consigne } from "./consignes.js";
 import { heureParis } from "../temps.js";
 import type { IndexHoraires, ReservationEtape } from "./horaires-gtfs.js";
 import type { Etape, Possibilite } from "./motis-plan.js";
@@ -95,6 +96,10 @@ export type EtapeAffichee = {
   distance_metres: number | null;
   etat: "prevu";
   source: SourceEtape;
+  /** Tracé de l'étape (spec 11), encodé en précision 6 ; null si MOTIS n'en a pas donné. */
+  trace: string | null;
+  /** Consignes de marche (spec 11, D71) ; null pour une étape en véhicule. */
+  consignes: Consigne[] | null;
 };
 
 /**
@@ -231,7 +236,15 @@ function etapeAffichee(e: Etape, source: SourceEtape, ctx: Contexte, avanceMs: n
     distance_metres: e.distanceMetres === undefined ? null : Math.round(e.distanceMetres),
     etat: "prevu", // aucun GTFS-RT branché (invariant 12)
     source,
+    trace: traceEnPrecision6(e.trace),
+    consignes: e.mode === "WALK" ? calculerConsignes(e.morceaux ?? [], e.coordA) : null,
   };
+}
+
+/** Le tracé est toujours rendu en précision 6 (celle de MOTIS v2.11.4), quelle que soit celle reçue. */
+function traceEnPrecision6(t: Etape["trace"]): string | null {
+  if (!t) return null;
+  return t.precision === 6 ? t.points : encoderTrace(decoderTrace(t.points, t.precision), 6);
 }
 
 /** Une marche ou un taxi qui mène à un arrêt (ou en part) prend le type de lieu de l'étape en commun voisine. */

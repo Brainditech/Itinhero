@@ -23,6 +23,7 @@ import {
   phraseTaxi,
   resumePossibilite,
 } from "@/domaine/resultat";
+import { CheminAPied } from "@/composants/CheminAPied";
 import { Chevron } from "@/composants/Repli";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
@@ -137,9 +138,12 @@ function LigneEtape({ etape }: { etape: Etape }) {
           {direction ? <Text className="font-inter text-texte-secondaire">{` ${direction}`}</Text> : null}
         </Text>
         {marche ? (
-          <Text className="font-inter text-badge text-texte-secondaire">
-            {`${etape.duree_minutes} min${etape.distance_metres != null ? `, ${formaterDistance(etape.distance_metres)}` : ""} jusqu'à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee}`}
-          </Text>
+          <>
+            <Text className="font-inter text-badge text-texte-secondaire">
+              {`${etape.duree_minutes} min${etape.distance_metres != null ? `, ${formaterDistance(etape.distance_metres)}` : ""} jusqu'à ${nomLieuEtape(etape.a)}, arrivée ${etape.arrivee}`}
+            </Text>
+            <CheminAPied etape={etape} />
+          </>
         ) : (
           <>
             <Text className="font-inter text-badge text-texte-secondaire">
