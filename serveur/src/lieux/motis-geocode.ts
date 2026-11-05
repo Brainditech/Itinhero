@@ -54,8 +54,17 @@ function codePostal(zip: string | undefined): string | null {
   return /^\d{5}$/.test(zip) ? zip : null;
 }
 
+/**
+ * 0,0 exactement est la valeur d'une coordonnée manquante, pas un lieu (issue 0019 : arrêt
+ * UT89:ST:06391 du jeu r83931 placé là dans son GTFS, proposé « à 5348 km »). Seul 0,0 est
+ * écarté, pas tout ce qui est hors de France, pour garder les gares frontalières (décision du 2026-11-05).
+ */
+function sansPosition(m: { lat: number; lon: number }): boolean {
+  return m.lat === 0 && m.lon === 0;
+}
+
 export function lireReponseGeocode(brut: unknown): Candidat[] {
-  return schemaReponseGeocode.parse(brut).map((m) => ({
+  return schemaReponseGeocode.parse(brut).filter((m) => !sansPosition(m)).map((m) => ({
     nom: m.name,
     type: TYPES[m.type],
     commune: m.areas.find((a) => a.default)?.name ?? null,

@@ -1,7 +1,7 @@
 # Issue 0019 — Arrêt « JOIGNY-3 RUE DE LA GARE » proposé « à 5348 km »
 
 - **Date** : 2026-11-05
-- **État** : **analyse approuvée** par Brainditech le 2026-11-05, option « 0,0 seulement ». Cause vérifiée sur MOTIS ; aucune correction écrite.
+- **État** : **corrigé côté serveur** (branche `issue/0019-arret-en-0-0`), revérification sur le téléphone à faire. Analyse approuvée par Brainditech le 2026-11-05, option « 0,0 seulement ».
 - **Branche** : `issue/0018-0019-essai-recalcul` (analyse seulement).
 
 ## 1. Reproduction
@@ -33,3 +33,9 @@ Le même arrêt peut aussi servir dans un itinéraire MOTIS. Il faudra vérifier
 ## 4. Test de régression prévu
 
 `serveur/src/lieux/motis-geocode.test.ts` (nouveau) : une réponse MOTIS avec un `STOP` à 0,0 et un autre normal ⇒ seul le second ressort. Le test doit échouer sur le code actuel.
+
+## 5. Correction (2026-11-05)
+
+- `lireReponseGeocode` écarte les candidats à 0,0 exactement (`sansPosition`), avant la conversion ; un lieu dont une seule coordonnée vaut 0 est gardé.
+- Test `serveur/src/lieux/motis-geocode.test.ts` : échoue sur le code d'avant (« JOIGNY-3 RUE DE LA GARE » ressortait), passe après. `npm test` du serveur : 197 tests verts ; app : lint, types, 172 tests verts.
+- Reste à faire : revérifier sur le téléphone que « Quel lieu ? » ne propose plus l'arrêt (serveur reconstruit) ; vérifier à part si un itinéraire MOTIS peut passer par cet arrêt (§3, dernier paragraphe).
