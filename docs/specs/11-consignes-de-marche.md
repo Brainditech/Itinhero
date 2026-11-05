@@ -98,8 +98,20 @@ Le guidage en direct qui suit la position (spec 12), la voix, les consignes hors
 - **Critère 1** (test `consignes.test.ts`) : gare de Dijon → tribunal, 8 consignes : « Partez vers l'est cour de la Gare Pierre Semard », « Prenez légèrement à gauche avenue Maréchal Foch », « Continuez place Darcy », « Tournez à droite place Darcy », trois virages « sur le chemin » (trottoirs sans nom dans OSM), « Tribunal administratif de Dijon est sur votre gauche ».
 - **Critère 2** : marche de Saint-Florentin : route de la Gare, D 43, N 77, avenue du 19 Mars 1962, rue de la Gare, place de la Gare, dans cet ordre.
 - **Critère 3** : vérifié sur toutes les marches de la réponse enregistrée.
-- **Critère 5, constaté par `adb` le 2026-11-05** (Domicile → tribunal administratif de Dijon, jeudi 12/11, arriver avant 10:00) : « Voir le chemin (8 consignes) » déplie la carte du tracé et la liste fléchée ; à revoir par Brainditech (toucher une consigne centre la carte).
+- **Critère 5, constaté par `adb` le 2026-11-05** (Domicile → tribunal administratif de Dijon, jeudi 12/11, arriver avant 10:00) : « Voir le chemin (8 consignes) » déplie la carte du tracé et la liste fléchée ; Brainditech a constaté le même jour que toucher une consigne centre la carte. **Critère 5 rempli.**
 - **Critère 6** : MOTIS national, Brienon → Dijon, trois essais : 1,15 à 1,23 s sans détail, 1,14 à 1,19 s avec (pas plus long) ; réponse de MOTIS 72 ko ⇒ 202 ko ; une possibilité de l'API 3,0 ko ⇒ 8,6 ko (tracés, consignes, arrêts et instants de la spec 12).
 - Flèches : symboles Material d'Android (`expo-symbols`, déjà utilisé partout dans l'app) au lieu de SVG dessinés : `react-native-svg` n'est pas installé, et aucun tiers n'est en cause (invariant 20).
-- **Reste** : critère 4 (5 marches comparées à Google Maps).
+- **Critère 4, comparé le 2026-11-05** (MOTIS national, première possibilité de chaque scénario de la boucle, mêmes coordonnées dans Google Maps à pied) : **pas rempli tel quel**. Virages au même sens et sur la même rue là où les deux chemins sont les mêmes, mais quatre défauts reviennent :
+
+  | Marche | Concordance | Écarts |
+  |---|---|---|
+  | Roubaix Grand-Place → La Piscine (10 min) | rues et sens identiques (Jean-Lebas, gauche Hospice, droite Espérance, gauche, arrivée à droite) | « tout droit avenue Jean Lebas » ; Google : « à droite » (gauche de 7 m puis droite, fondus par le seuil de 25 m) |
+  | Saint-Florentin-Ville → gare (48 min) | même chemin à partir du faubourg du Pont : N 77, René-Vildey, rue de la Gare, gauche, arrivée à gauche | début par un autre chemin (Martineaux et escalier ; Google : D 61A) ; **la même route dite deux fois** (« N 77 » puis « tout droit avenue du 19 Mars 1962 ») ; rue de la Gare « légèrement à droite », Google « légèrement à gauche » |
+  | Trocadéro → tour Eiffel (9 min) | départ sud-ouest, pont d'Iéna, à droite après le pont | avant le pont : 2 virages sur des trottoirs sans nom (Google : 9 virages par la place de Varsovie) ; **quai Jacques-Chirac sans nom** (trottoir séparé dans OSM) ; arrivée à gauche, Google à droite (point d'arrivée différent) |
+  | Auxerre, rue Paul-Doumer → avenue Pierre-Scherrer (25 min) | avenue de la Tournelle, à droite avenue des Clairions | **« à droite » sur 583 m sans nom**, puis « légèrement à droite avenue de la Tournelle » ; Google : « légèrement à gauche avenue de la Tournelle » ; fin par un autre chemin (Google passe par des voies privées) |
+  | Saint-Charles → Vieux-Port, Marseille (22 min) | escalier de la gare, Canebière, à gauche cours Jean-Ballard | milieu par un autre chemin (Noailles ; Google : boulevard d'Athènes) ; « à gauche La Canebière » puis « à droite La Canebière » ; **« demi-tour » à 70 m de l'arrivée** |
+
+  Hors comparaison : Lyon Saint-Jean → Fourvière (Google évite les escaliers, 1,6 km contre 1 km). Le choix du chemin vient de MOTIS, pas des consignes.
+
+  Défauts à traiter (issue à ouvrir, analyse approuvée avant correction) : (1) **« demi-tour »** au milieu d'une marche, vu aussi à Paris (rue de Rivoli), Lyon et Monaco (rue nommée « C ») ; (2) **trottoirs sans nom** : la consigne perd le nom de la rue qu'ils longent et parfois le bon sens du virage ; (3) **même route dite deux fois** (numéro puis nom) ; (4) un virage de moins de 25 m fondu en « tout droit » là où Google dit « à droite ».
 
