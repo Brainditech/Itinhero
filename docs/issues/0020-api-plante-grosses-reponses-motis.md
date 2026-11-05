@@ -60,4 +60,4 @@ Options écartées :
 - **Avant / après contre le vrai MOTIS** (image `node:22.23.4-alpine3.24`, réseau `itinhero-national_default`, les 3 recherches du trajet du §1 : sans taxi, taxi au début, taxi à la fin) : avec `fetch`, `AssertionError` dès le premier tour (une seule recherche avec taxi suffit) ; avec `lireMotis` compilé, 10 tours sur 10 (13, 22 et 13 itinéraires).
 - **Dans le conteneur de l'API reconstruit** (`docker compose -p itinhero-national … up -d --build --no-deps api`) : `moteurMotis(…).plan` sur les 3 recherches, 5 tours ⇒ 16, 28 et 13 itinéraires à chaque tour, `RestartCount` 0.
 - IGN par `node:https` : recherche « basilique saint-denis » (6 résultats) et adresse inverse (1 résultat) lues.
-- Reste : refaire la recherche du §1 sur le téléphone (Brainditech).
+- **Sur le téléphone (2026-11-05, 14:07, par Claude via `adb`, capture hors dépôt, D38)** : Saint-Michel-sur-Orge (arrêt) → Basilique de Saint-Denis, jeudi 12/11 arriver avant 10:00 ⇒ Résultat « Possible », départ 07:49, 07:49 → 09:03 (RER C, métro 14, métro 13) et 07:49 → 09:10 (RER C, métro 13) ; `RestartCount` de l’API resté à 0, aucune erreur dans ses journaux.
