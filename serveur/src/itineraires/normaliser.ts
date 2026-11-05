@@ -105,6 +105,8 @@ export type EtapeAffichee = {
   arrivee_utc: string;
   /** Arrêts desservis entre la montée et la descente, avec leur heure prévue (spec 12) ; null pour une marche. */
   arrets: { nom: string; lat: number; lon: number; passage: string | null }[] | null;
+  /** Identifiant MOTIS de la course, pour `GET /v1/course` (tous ses arrêts, spec 17, D87) ; null sans course. */
+  course: string | null;
 };
 
 /**
@@ -253,6 +255,7 @@ function etapeAffichee(e: Etape, source: SourceEtape, ctx: Contexte, avanceMs: n
           passage: a.passage ? heureParis(a.passage).hhmm : null,
         }))
       : null,
+    course: e.tripId && lireTripId(e.tripId) ? e.tripId : null,
   };
 }
 

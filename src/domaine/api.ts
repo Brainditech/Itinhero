@@ -93,8 +93,15 @@ export const schemaEtape = z.object({
   depart_utc: z.string().nullable().default(null),
   arrivee_utc: z.string().nullable().default(null),
   arrets: z.array(schemaPoint.extend({ nom: z.string(), passage: HEURE.nullable() })).nullable().default(null),
+  // Spec 17 (D87) : identifiant de la course, pour `GET /v1/course`. Absent d'un serveur plus ancien ⇒ null.
+  course: z.string().nullable().default(null),
 });
 export type Etape = z.infer<typeof schemaEtape>;
+
+// `GET /v1/course` (spec 17, D87) : tous les arrêts d'une course, dans l'ordre de passage.
+const schemaArretCourse = schemaPoint.extend({ nom: z.string(), passage: HEURE.nullable() });
+export type ArretCourse = z.infer<typeof schemaArretCourse>;
+const schemaReponseCourse = z.object({ arrets: z.array(schemaArretCourse) });
 
 export const schemaPossibilite = z.object({
   depart: HEURE,
@@ -212,6 +219,9 @@ export function clientApi({
       const params = new URLSearchParams({ q });
       if (proche) params.set("proche", formaterPoint(proche));
       return appeler(`/v1/lieux?${params.toString()}`, schemaReponseLieux.transform((r) => r.candidats));
+    },
+    course(id: string): Promise<ResultatApi<ArretCourse[]>> {
+      return appeler(`/v1/course?${new URLSearchParams({ id }).toString()}`, schemaReponseCourse.transform((r) => r.arrets));
     },
     itineraires(requete: RequeteItineraires): Promise<ResultatApi<ReponseItineraires>> {
       return appeler("/v1/itineraires", schemaReponseItineraires, {

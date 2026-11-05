@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Linking, PanResponder, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { Animated, Linking, PanResponder, Pressable, ScrollView, Text, useWindowDimensions, View, type ScrollViewInstance } from "react-native";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { AndroidSymbol } from "expo-symbols";
@@ -9,19 +9,22 @@ import { CarteEtape } from "@/composants/CarteEtape";
 import { CARTE } from "@/composants/carte-module";
 import { Fleche } from "@/composants/Fleches";
 import { iconeMode } from "@/composants/icones-mode";
-import type { Etape, Point } from "@/domaine/api";
+import { messageEchec, type Etape, type Point } from "@/domaine/api";
 import { destinationMarche, distanceConsigne, phraseConsigne } from "@/domaine/consignes";
 import {
+  arretsDeLaCourse,
   arretsDuTrajet,
+  type ArretDeLaCourse,
   enteteEtape,
   hauteursPanneau,
   positionLachee,
   positionSuivante,
   type PositionPanneau,
 } from "@/domaine/etape";
-import { jusqua, phraseMarche, phraseTrajetVehicule } from "@/domaine/guidage";
+import { jusqua, phraseMarche, phraseTrajetVehicule, vehiculeMinuscule } from "@/domaine/guidage";
 import { formaterDuree, jetonMode, phraseReservation, phraseTaxi, vientVousChercher } from "@/domaine/resultat";
 import { useRecherche } from "@/recherche";
+import { useClient } from "@/session";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /**
@@ -51,21 +54,6 @@ function BoutonRond({
       style={{ boxShadow: "0px 3px 10px rgba(20, 22, 31, 0.22)" }}
     >
       <SymbolView name={{ android: icone, web: icone }} size={26} tintColor={plein ? couleurs.fond : couleurs.texte} />
-    </Pressable>
-  );
-}
-
-/** Petit bouton d'icône du panneau (48 dp). */
-function BoutonPanneau({ icone, libelle, onPress }: { icone: AndroidSymbol; libelle: string; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={libelle}
-      onPress={onPress}
-      hitSlop={4}
-      className="h-12 w-12 items-center justify-center rounded-full bg-primaire-doux"
-    >
-      <SymbolView name={{ android: icone, web: icone }} size={24} tintColor={couleurs.primaire} />
     </Pressable>
   );
 }
@@ -102,13 +90,44 @@ function ListeMarche({ etape, suivante, choisi, choisir }: { etape: Etape; suiva
   );
 }
 
-/** Frise des arrêts du trajet, de la montée à la descente, avec leur heure (spec 17, §4.2). */
-function ListeVehicule({ etape, choisi, choisir }: { etape: Etape; choisi: number | null; choisir: (i: number, p: Point) => void }) {
+/** État des arrêts de toute la course (D87) : demandés au serveur seulement quand on touche « Voir tous les arrêts ». */
+export type EtatCourse =
+  | { etat: "repos" }
+  | { etat: "chargement" }
+  | { etat: "ok"; arrets: ArretDeLaCourse[] }
+  | { etat: "echec"; message: string };
+
+/**
+ * Frise des arrêts (spec 17, §4.2) : ceux du trajet, de la montée à la descente, avec leur heure ;
+ * « Voir tous les arrêts du TER P5 » ajoute en gris ceux d'avant la montée et d'après la descente (D87).
+ */
+function ListeVehicule({
+  etape,
+  choisi,
+  choisir,
+  course,
+  voirCourse,
+  masquerCourse,
+  reperer,
+}: {
+  etape: Etape;
+  choisi: number | null;
+  choisir: (i: number, p: Point) => void;
+  course: EtatCourse;
+  voirCourse: () => void;
+  masquerCourse: () => void;
+  /** Position de la ligne de montée dans la liste, pour y faire défiler quand toute la course s'affiche. */
+  reperer: (y: number) => void;
+}) {
   const couleur = couleurs[jetonMode(etape.mode)];
-  const arrets = arretsDuTrajet(etape);
+  const gris = couleurs["bordure-carte"];
+  const duTrajet = arretsDuTrajet(etape);
+  const arrets: ArretDeLaCourse[] = course.etat === "ok" ? course.arrets : duTrajet;
   const reservation = phraseReservation(etape) ?? phraseTaxi(etape);
   const taxi = vientVousChercher(etape);
-  const descente = arrets.find((a) => a.role === "descente");
+  const descente = duTrajet.find((a) => a.role === "descente");
+  const m = arrets.findIndex((a) => a.role === "montee");
+  const d = arrets.findIndex((a) => a.role === "descente");
   return (
     <View className="gap-3">
       {taxi ? (
@@ -116,9 +135,11 @@ function ListeVehicule({ etape, choisi, choisir }: { etape: Etape; choisi: numbe
       ) : (
         <View>
           {arrets.map((a, i) => {
-            const bout = a.role !== "intermediaire";
-            const premier = i === 0;
-            const dernier = i === arrets.length - 1;
+            const bout = a.role === "montee" || a.role === "descente";
+            const dehors = a.role === "avant" || a.role === "apres";
+            // Trait du haut et du bas : en couleur entre la montée et la descente, en gris ailleurs sur la course.
+            const haut = i === 0 ? "transparent" : i > m && i <= d ? couleur : gris;
+            const bas = i === arrets.length - 1 ? "transparent" : i >= m && i < d ? couleur : gris;
             return (
               <Pressable
                 key={i}
@@ -126,6 +147,7 @@ function ListeVehicule({ etape, choisi, choisir }: { etape: Etape; choisi: numbe
                 accessibilityLabel={`${a.heure ?? ""} ${a.nom}${a.role === "montee" ? ", montée" : a.role === "descente" ? ", descente" : ""}`}
                 accessibilityHint="Centre la carte sur cet arrêt"
                 onPress={() => choisir(i, a)}
+                onLayout={a.role === "montee" ? (e) => reperer(e.nativeEvent.layout.y) : undefined}
                 className={`min-h-12 flex-row items-stretch gap-3 rounded-champ px-2 ${i === choisi ? "bg-primaire-doux" : ""}`}
               >
                 <Text
@@ -135,7 +157,7 @@ function ListeVehicule({ etape, choisi, choisir }: { etape: Etape; choisi: numbe
                   {a.heure ?? ""}
                 </Text>
                 <View className="w-5 items-center">
-                  <View className="w-1 flex-1" style={{ backgroundColor: premier ? "transparent" : couleur }} />
+                  <View className="w-1 flex-1" style={{ backgroundColor: haut }} />
                   <View
                     style={{
                       width: bout ? 18 : 12,
@@ -143,20 +165,45 @@ function ListeVehicule({ etape, choisi, choisir }: { etape: Etape; choisi: numbe
                       borderRadius: 9,
                       backgroundColor: couleurs.fond,
                       borderWidth: bout ? 4 : 3,
-                      borderColor: couleur,
+                      borderColor: dehors ? gris : couleur,
                     }}
                   />
-                  <View className="w-1 flex-1" style={{ backgroundColor: dernier ? "transparent" : couleur }} />
+                  <View className="w-1 flex-1" style={{ backgroundColor: bas }} />
                 </View>
-                <Text className={`flex-1 py-3 ${bout ? "font-inter-semibold text-secondaire text-texte" : "font-inter text-badge text-texte"}`}>
+                <Text
+                  className={`flex-1 py-3 ${bout ? "font-inter-semibold text-secondaire text-texte" : `font-inter text-badge ${dehors ? "text-texte-secondaire" : "text-texte"}`}`}
+                >
                   {a.nom}
                 </Text>
               </Pressable>
             );
           })}
-          {arrets.length === 2 && descente ? (
+          {course.etat !== "ok" && duTrajet.length === 2 && descente ? (
             <Text className="mt-1 font-inter text-badge text-texte-secondaire">{`Sans arrêt j${jusqua(descente.nom).slice(1)}`}</Text>
           ) : null}
+          {etape.course ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={course.etat === "ok" ? masquerCourse : voirCourse}
+              disabled={course.etat === "chargement"}
+              hitSlop={8}
+              className="mt-2 min-h-12 flex-row items-center gap-2 self-start"
+            >
+              <SymbolView
+                name={{ android: course.etat === "ok" ? "unfold_less" : "unfold_more", web: course.etat === "ok" ? "unfold_less" : "unfold_more" }}
+                size={20}
+                tintColor={couleurs.primaire}
+              />
+              <Text className="font-inter-semibold text-secondaire text-primaire">
+                {course.etat === "chargement"
+                  ? "Recherche des arrêts…"
+                  : course.etat === "ok"
+                    ? "Montrer seulement mon trajet"
+                    : `Voir tous les arrêts du ${vehiculeMinuscule(etape)}`}
+              </Text>
+            </Pressable>
+          ) : null}
+          {course.etat === "echec" ? <Text className="font-inter text-badge text-erreur">{course.message}</Text> : null}
         </View>
       )}
       {etape.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{etape.exploitant}</Text> : null}
@@ -195,6 +242,9 @@ export default function FenetreEtape() {
   const h = useMemo(() => hauteursPanneau(hauteurEcran, hauteurEntete + insets.bottom), [hauteurEcran, hauteurEntete, insets.bottom]);
   const [position, setPosition] = useState<PositionPanneau>("milieu");
   const [choisi, setChoisi] = useState<{ i: number; point: Point } | null>(null);
+  const client = useClient();
+  const [course, setCourse] = useState<EtatCourse>({ etat: "repos" });
+  const defilement = useRef<ScrollViewInstance>(null);
   const [recentrer, setRecentrer] = useState(0);
 
   // Hauteur visible du panneau, animée ; le panneau fait toujours la hauteur dépliée et glisse vers le bas.
@@ -252,6 +302,24 @@ export default function FenetreEtape() {
     if (router.canGoBack()) router.back();
     else router.replace("/resultat");
   };
+  // Tous les arrêts de la course (D87), demandés au serveur à la demande seulement.
+  const voirCourse = async () => {
+    if (!etape.course) return;
+    setCourse({ etat: "chargement" });
+    const r = await client.course(etape.course);
+    if (r.etat !== "ok") {
+      const message = r.etat === "cle_refusee" ? "La clé de l'appareil est refusée." : messageEchec(r);
+      setCourse({ etat: "echec", message: `Arrêts indisponibles. ${message}` });
+      return;
+    }
+    const arrets = arretsDeLaCourse(etape, r.donnees);
+    setChoisi(null);
+    setCourse(arrets ? { etat: "ok", arrets } : { etat: "echec", message: "Les arrêts de cette course ne correspondent pas au trajet." });
+  };
+  const masquerCourse = () => {
+    setChoisi(null);
+    setCourse({ etat: "repos" });
+  };
   const guider = () => router.push({ pathname: "/guidage", params: { i: String(params.i ?? 0), e: String(rang) } });
   const translation = Animated.subtract(h.depliee, visible);
   const boutonsY = Animated.multiply(visible, -1);
@@ -266,6 +334,7 @@ export default function FenetreEtape() {
         margeBas={h[position === "depliee" ? "milieu" : position]}
         margeHaut={insets.top + 56}
         recentrer={recentrer}
+        course={course.etat === "ok" ? course.arrets : null}
       />
       <View className="absolute left-4" style={{ top: insets.top + 12 }}>
         <BoutonRond icone="arrow_back" libelle="Retour au trajet" onPress={fermer} />
@@ -307,6 +376,12 @@ export default function FenetreEtape() {
             accessibilityRole="button"
             accessibilityLabel="Poignée du panneau"
             accessibilityHint="Change la taille du panneau"
+            // Sans les deux chevrons (on glisse le panneau), TalkBack garde ces deux gestes (D85).
+            accessibilityActions={[
+              { name: "repliee", label: "Agrandir la carte" },
+              { name: "depliee", label: "Déplier les étapes" },
+            ]}
+            onAccessibilityAction={(e) => allerA(e.nativeEvent.actionName as PositionPanneau)}
             onPress={() => allerA(positionSuivante(position))}
             className="h-8 items-center justify-center"
           >
@@ -325,16 +400,11 @@ export default function FenetreEtape() {
                 {entete.horaire}
               </Text>
             </View>
-            {position !== "repliee" ? (
-              <BoutonPanneau icone="expand_more" libelle="Agrandir la carte" onPress={() => allerA("repliee")} />
-            ) : null}
-            {position !== "depliee" ? (
-              <BoutonPanneau icone="expand_less" libelle="Déplier les étapes" onPress={() => allerA("depliee")} />
-            ) : null}
           </View>
           <View className="h-px bg-bordure-carte" />
         </View>
         <ScrollView
+          ref={defilement}
           className="flex-1"
           // Replié, seul l'en-tête se voit : la liste ne dépasse pas sous la barre de navigation.
           style={{ opacity: position === "repliee" ? 0 : 1 }}
@@ -344,7 +414,18 @@ export default function FenetreEtape() {
           {marche ? (
             <ListeMarche etape={etape} suivante={suivante} choisi={choisi?.i ?? null} choisir={choisir} />
           ) : (
-            <ListeVehicule etape={etape} choisi={choisi?.i ?? null} choisir={choisir} />
+            <ListeVehicule
+              etape={etape}
+              choisi={choisi?.i ?? null}
+              choisir={choisir}
+              course={course}
+              voirCourse={voirCourse}
+              masquerCourse={masquerCourse}
+              reperer={(y) => {
+                // Toute la course : la liste s'ouvre sur l'arrêt d'avant la montée, pas sur le premier de la ligne.
+                if (course.etat === "ok") defilement.current?.scrollTo({ y: Math.max(0, y - 40), animated: true });
+              }}
+            />
           )}
         </ScrollView>
       </Animated.View>

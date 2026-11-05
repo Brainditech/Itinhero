@@ -8,7 +8,7 @@ import type { CameraRef } from "@maplibre/maplibre-react-native";
 import { CARTE } from "@/composants/carte-module";
 import { iconeMode } from "@/composants/icones-mode";
 import type { Point, Possibilite } from "@/domaine/api";
-import { arretsDuTrajet, finMarche, pointsEtape } from "@/domaine/etape";
+import { arretsDuTrajet, finMarche, pointsEtape, type ArretDeLaCourse } from "@/domaine/etape";
 import { boite } from "@/domaine/geo";
 import { jetonMode, nomLieuEtape } from "@/domaine/resultat";
 import { couleurs } from "@/theme/jetons";
@@ -61,6 +61,7 @@ export function CarteEtape({
   margeBas,
   margeHaut,
   recentrer,
+  course,
 }: {
   possibilite: Possibilite;
   /** Rang de l'étape montrée. */
@@ -72,12 +73,16 @@ export function CarteEtape({
   margeHaut: number;
   /** Change à chaque « Recentrer ». */
   recentrer: number;
+  /** Tous les arrêts de la course (D87), quand on les a demandés : ceux d'avant et d'après en gris. */
+  course: ArretDeLaCourse[] | null;
 }) {
   const etape = possibilite.etapes[rang]!;
   const suivante = possibilite.etapes[rang + 1];
   const marche = etape.mode === "marche";
   const couleur = marche ? couleurs.primaire : couleurs[jetonMode(etape.mode)];
   const points = useMemo(() => pointsEtape(etape), [etape]);
+  // La carte cadre l'étape, même avec toute la course : vue de loin, les noms de la montée et de la descente
+  // se chevauchent (essai du 2026-11-05) ; les autres arrêts restent autour, en gris.
   const cadre = useMemo(() => (points.length > 0 ? boite(points) : null), [points]);
   const camera = useRef<CameraRef>(null);
 
@@ -101,9 +106,11 @@ export function CarteEtape({
       .filter((e, i) => i !== rang)
       .flatMap((e) => arretsDuTrajet(e).filter((a) => a.role !== "intermediaire"))
       .map((a) => point(a, {}));
-    const intermediaires = arretsDuTrajet(etape)
+    const intermediaires = (course ?? arretsDuTrajet(etape))
       .filter((a) => a.role === "intermediaire")
       .map((a) => point(a, {}));
+    // Arrêts de la course hors du trajet, avec leur nom en petit (la carte se lit sans la liste).
+    const horsTrajet = (course ?? []).filter((a) => a.role === "avant" || a.role === "apres").map((a) => point(a, { nom: a.nom }));
     const consignes = (marche ? (etape.consignes ?? []) : [])
       .filter((c) => c.manoeuvre !== "depart" && c.manoeuvre !== "arrivee")
       .map((c) => point(c, {}));
@@ -112,8 +119,9 @@ export function CarteEtape({
       etape: { type: "FeatureCollection" as const, features: points.length >= 2 ? [ligne(points, {})] : [] },
       autresArrets: { type: "FeatureCollection" as const, features: autresArrets },
       arrets: { type: "FeatureCollection" as const, features: [...intermediaires, ...consignes] },
+      horsTrajet: { type: "FeatureCollection" as const, features: horsTrajet },
     };
-  }, [possibilite, rang, etape, points, marche]);
+  }, [possibilite, rang, etape, points, marche, course]);
 
   // Départ et arrivée de l'étape, marqués avec leur nom.
   const reperes = useMemo((): Etiquette[] => {
@@ -182,6 +190,13 @@ export function CarteEtape({
             type="line"
             layout={{ "line-cap": "round", "line-join": "round" }}
             paint={marche ? { "line-color": couleur, "line-width": 6, ...pointilles } : { "line-color": couleur, "line-width": 6 }}
+          />
+        </C.GeoJSONSource>
+        <C.GeoJSONSource id="etape-hors-trajet" data={geo.horsTrajet}>
+          <C.Layer
+            id="etape-hors-trajet-rond"
+            type="circle"
+            paint={{ "circle-radius": 5, "circle-color": couleurs.fond, "circle-stroke-color": GRIS_CONTEXTE, "circle-stroke-width": 2.5 }}
           />
         </C.GeoJSONSource>
         <C.GeoJSONSource id="etape-arrets" data={geo.arrets}>

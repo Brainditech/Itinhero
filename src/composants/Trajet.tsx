@@ -115,7 +115,8 @@ function LigneEtape({ etape, suivante, ouvrir }: { etape: Etape; suivante?: Etap
       accessibilityLabel={`${etape.depart}, ${marche ? `Marche, ${phraseMarche(etape, suivante)}` : `${libelleEtape(etape)}${direction ? ` ${direction}` : ""}`}`}
       accessibilityHint="Ouvre la carte de cette étape"
       onPress={ouvrir}
-      className="flex-row gap-3 rounded-champ active:bg-primaire-doux"
+      // Pas de surbrillance au toucher : elle clignotait à chaque défilement du Résultat (retour de Brainditech).
+      className="flex-row gap-3"
     >
       <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
         {etape.depart}

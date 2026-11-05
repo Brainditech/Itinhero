@@ -1,5 +1,5 @@
-import type { Etape, Point } from "./api";
-import { decoderTrace } from "./geo";
+import type { ArretCourse, Etape, Point } from "./api";
+import { decoderTrace, distance } from "./geo";
 import { directionEtape, formaterDistance, formaterDuree, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVousChercher } from "./resultat";
 
 // Fenêtre d'une étape (spec 17) : en-tête, arrêts du trajet, positions du panneau du bas.
@@ -84,4 +84,47 @@ export function positionLachee(visible: number, vy: number, h: Record<PositionPa
     return [...ordre].reverse().find((p) => h[p] < visible - 1) ?? "repliee";
   }
   return ordre.reduce((a, b) => (Math.abs(h[b] - visible) < Math.abs(h[a] - visible) ? b : a));
+}
+
+export type ArretDeLaCourse = Point & {
+  nom: string;
+  heure: string | null;
+  /** Avant la montée, sur le trajet (montée, intermédiaire, descente), ou après la descente. */
+  role: "avant" | ArretTrajet["role"] | "apres";
+};
+
+/** Un arrêt de la course est celui de l'étape s'il est à moins de 300 m (quais d'une même gare). */
+const MEME_ARRET_METRES = 300;
+
+/**
+ * Tous les arrêts de la course (spec 17, D87), avec la montée et la descente de l'étape repérées :
+ * la montée est l'arrêt le plus proche du départ de l'étape, la descente le plus proche de son arrivée, après elle.
+ * Sans montée ou descente reconnue (course d'un autre jour, arrêts manquants) ⇒ null : on garde les arrêts de l'étape.
+ */
+export function arretsDeLaCourse(e: Etape, course: ArretCourse[]): ArretDeLaCourse[] | null {
+  const plusProche = (cible: Point, depuis: number) => {
+    let meilleur = -1;
+    let d = MEME_ARRET_METRES;
+    course.forEach((a, i) => {
+      if (i < depuis) return;
+      const x = distance(a, cible);
+      if (x <= d) {
+        d = x;
+        meilleur = i;
+      }
+    });
+    return meilleur;
+  };
+  const m = plusProche(e.de, 0);
+  if (m < 0) return null;
+  const d = plusProche(e.a, m + 1);
+  if (d < 0) return null;
+  return course.map((a, i) => ({
+    lat: a.lat,
+    lon: a.lon,
+    // La montée et la descente gardent le nom et l'heure de l'étape : les mêmes que dans le Résultat.
+    nom: i === m ? nomLieuVehicule(e, e.de) : i === d ? nomLieuVehicule(e, e.a) : a.nom,
+    heure: i === m ? e.depart : i === d ? e.arrivee : a.passage,
+    role: i < m ? "avant" : i === m ? "montee" : i < d ? "intermediaire" : i === d ? "descente" : "apres",
+  }));
 }

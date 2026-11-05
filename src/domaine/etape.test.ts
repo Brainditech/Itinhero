@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Etape } from "./api";
 import { REPONSE_CHATELET } from "./reponse-chatelet";
-import { arretsDuTrajet, enteteEtape, hauteursPanneau, pointsEtape, positionLachee, positionSuivante } from "./etape";
+import { arretsDeLaCourse, arretsDuTrajet, enteteEtape, hauteursPanneau, pointsEtape, positionLachee, positionSuivante } from "./etape";
 
 const chatelet = REPONSE_CHATELET.possibilites[0]!;
 const marche = chatelet.etapes[0]!;
@@ -89,5 +89,44 @@ describe("panneau du bas (D85)", () => {
     expect(positionLachee(350, 1200, h)).toBe("repliee");
     expect(positionLachee(680, -1200, h)).toBe("depliee");
     expect(positionLachee(120, 1200, h)).toBe("repliee");
+  });
+});
+
+describe("arretsDeLaCourse (spec 17, D87)", () => {
+  // Course enregistrée : TER P25 Auxerre → Montereau, jeudi 12/11 (serveur/src/itineraires/__exemples__).
+  const course = [
+    { nom: "Auxerre Saint-Gervais", lat: 47.7929, lon: 3.5798, passage: "08:33" },
+    { nom: "Monéteau - Gurgy", lat: 47.8508, lon: 3.5799, passage: "08:38" },
+    { nom: "Laroche - Migennes", lat: 47.961, lon: 3.5132, passage: "08:54" },
+    { nom: "Joigny", lat: 47.9739, lon: 3.393, passage: "09:17" },
+    { nom: "Sens", lat: 48.1979, lon: 3.2678, passage: "09:40" },
+  ];
+  const ter: Etape = {
+    ...bus,
+    mode: "train",
+    de: { nom: "Laroche - Migennes", type: "gare", arret: "x", lat: 47.96108, lon: 3.51268 },
+    a: { nom: "Joigny", type: "gare", arret: "y", lat: 47.97366, lon: 3.39367 },
+    depart: "09:10",
+    arrivee: "09:17",
+    arrets: [],
+  };
+  it("les arrêts avant la montée et après la descente, repérés ; la montée et la descente gardent l'heure de l'étape", () => {
+    const r = arretsDeLaCourse(ter, course)!;
+    expect(r.map((a) => a.role)).toEqual(["avant", "avant", "montee", "descente", "apres"]);
+    expect(r[2]).toMatchObject({ nom: "gare de Laroche - Migennes", heure: "09:10" });
+    expect(r[3]).toMatchObject({ nom: "gare de Joigny", heure: "09:17" });
+    expect(r[4]).toMatchObject({ nom: "Sens", heure: "09:40" });
+  });
+  it("arrêts intermédiaires entre la montée et la descente", () => {
+    const r = arretsDeLaCourse({ ...ter, de: { ...ter.de, lat: 47.7929, lon: 3.5798 } }, course)!;
+    expect(r.map((a) => a.role)).toEqual(["montee", "intermediaire", "intermediaire", "descente", "apres"]);
+  });
+  it("montée ou descente introuvable (à plus de 300 m) ⇒ null", () => {
+    expect(arretsDeLaCourse({ ...ter, a: { ...ter.a, lat: 45, lon: 5 } }, course)).toBeNull();
+    expect(arretsDeLaCourse(ter, [])).toBeNull();
+  });
+  it("la descente est cherchée après la montée", () => {
+    // Montée à Joigny, descente à Laroche : sens inverse de la course ⇒ null.
+    expect(arretsDeLaCourse({ ...ter, de: ter.a, a: ter.de }, course)).toBeNull();
   });
 });
