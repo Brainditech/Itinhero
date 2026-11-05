@@ -2,17 +2,15 @@ import { construireUrlCourse } from "./itineraires/motis-course.js";
 import { construireUrlPlan, lireMotis, type DemandeRecherche, type Point } from "./itineraires/motis-plan.js";
 import { planComplet, type AppelsMotis, type Cote } from "./itineraires/marche-couteuse.js";
 import { construireUrlGeocode } from "./lieux/motis-geocode.js";
+import { lireHttp } from "./itineraires/motis-http.js";
 /** Accès à MOTIS (seul l'API Itinhero l'appelle, invariant 2). */
 export type SondeMotis = () => Promise<boolean>;
 
-/** Vrai si MOTIS répond 200 à `/api/v1/health` avant `delaiMs`. */
+/** Vrai si MOTIS répond 200 à `/api/v1/health` avant `delaiMs` (sans `fetch`, issue 0020). */
 export function sondeMotis(motisUrl: string, delaiMs = 2000): SondeMotis {
   return async () => {
     try {
-      const reponse = await fetch(new URL("/api/v1/health", motisUrl), {
-        signal: AbortSignal.timeout(delaiMs),
-      });
-      return reponse.status === 200;
+      return (await lireHttp(new URL("/api/v1/health", motisUrl), delaiMs)).statut === 200;
     } catch {
       return false;
     }

@@ -9,7 +9,7 @@ export const unstable_settings = {
   anchor: "index",
 };
 
-// Pile de l'onglet Chercher (spec 02, décision 1) : Accueil, formulaire, puis Confirmation, Résultat, Détail.
+// Pile de l'onglet Chercher (spec 02, décision 1) : Accueil, formulaire, puis Résultat, Détail (plus de Confirmation, D91).
 // L'onglet reste actif, et le retour d'Android revient à l'écran précédent.
 // La recherche en cours est partagée par les écrans de la pile (spec 10).
 export default function ChercherLayout() {

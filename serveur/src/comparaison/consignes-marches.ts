@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { calculerConsignes, type Consigne, type Morceau } from "../itineraires/consignes.js";
+import { lireMotis } from "../itineraires/motis-plan.js";
 import type { PossibiliteAffichee } from "../itineraires/normaliser.js";
 import { appNationale, MOTIS_URL } from "../national/app-nationale.js";
 
@@ -45,8 +46,8 @@ async function marcheSeule(de: { lat: number; lon: number }, a: { lat: number; l
   url.searchParams.set("directModes", "WALK");
   url.searchParams.set("transitModes", "");
   url.searchParams.set("detailedLegs", "true");
-  const r = await fetch(url);
-  const j = (await r.json()) as { direct?: { legs: { steps?: Morceau[] }[] }[] };
+  // Sans `fetch` : il fait planter le processus sur les réponses de MOTIS (issue 0020).
+  const j = (await lireMotis(url, 60_000)) as { direct?: { legs: { steps?: Morceau[] }[] }[] };
   return j.direct?.[0]?.legs.flatMap((l) => l.steps ?? []) ?? [];
 }
 

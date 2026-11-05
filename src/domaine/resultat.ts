@@ -1,7 +1,8 @@
 import type { Candidat, Etape, LieuEtape, Possibilite, ReponseItineraires } from "./api";
 import type { Bout, Demande } from "./demande";
+import { natureLue } from "./suggestions";
 
-// Ce qu'affichent la Confirmation et le Résultat (spec 10, §4.1). Tout vient de la réponse de l'API :
+// Ce qu'affichent le formulaire et le Résultat (spec 10, §4.1). Tout vient de la réponse de l'API :
 // l'app ne calcule aucune heure (invariant 3 par extension : rien d'inventé côté client).
 
 const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
@@ -17,24 +18,12 @@ export function jourCourt(date: string): string {
 /** Longueur maximale d'un nom envoyé à l'API (`noms.depart`, `noms.arrivee`, issue 0010 C). */
 export const NOM_MAX = 120;
 
-/** Nom d'un bout pour l'API et l'écran : « Domicile », « Ma position », ou le nom du lieu choisi (spec 13, §4.4). */
+/** Nom d'un bout pour l'API et l'écran : « Domicile », « Ma position », ou le nom du lieu choisi (spec 13, §4.4 ; D91). */
 export function nomBout(bout: Bout, choisi: { nom: string } | null): string {
   if (bout.type === "domicile") return "Domicile";
   if (bout.type === "position") return "Ma position";
+  if (bout.type === "lieu") return bout.nom.slice(0, NOM_MAX);
   return (choisi?.nom ?? bout.texte).slice(0, NOM_MAX);
-}
-
-/**
- * Sous-titre de la Confirmation : « Jeudi 12/11 · arriver avant 10:00 · marge 10 min · depuis Domicile ».
- * Départ tapé : le nom du lieu choisi, ou « un lieu à confirmer » tant qu'il ne l'est pas (spec 13, §4.3).
- */
-export function sousTitreDemande(demande: Demande, departChoisi: { nom: string } | null = null): string {
-  const morceaux = [quandDemande(demande)];
-  const depart = demande.depart;
-  if (depart.type === "domicile") morceaux.push("depuis Domicile");
-  else if (depart.type === "position") morceaux.push("depuis ma position");
-  else morceaux.push(departChoisi ? `depuis ${departChoisi.nom}` : "depuis un lieu à confirmer");
-  return morceaux.join(" · ");
 }
 
 /** « Jeudi 12/11 · arriver avant 10:00 · marge 10 min » ou « Jeudi 05/11 · partir à 17:00 » (spec 14, §4.3). */
@@ -98,10 +87,24 @@ export function phraseVotreTrajet(depart: BoutRecap, arrivee: BoutRecap, demande
   return `Votre trajet : de ${lieu(depart)}, à ${lieu(arrivee)}. ${quandDemande(demande).replaceAll(" · ", ", ")}.`;
 }
 
-/** Deuxième ligne d'un candidat : commune et code postal, puis la distance si le serveur la donne. */
+/** Nom comparé sans accents, casse, tirets ni apostrophes. */
+const simple = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+/**
+ * Deuxième ligne d'un candidat : ce qu'il est (« Gare », « Métro », « Adresse »… D92), commune et code postal,
+ * puis la distance si le serveur la donne.
+ */
 export function detailCandidat(c: Candidat): string {
-  const lieu = [c.commune, c.code_postal].filter((v): v is string => !!v).join(", ");
-  const nature = c.type === "arret" ? "Arrêt" : c.type === "adresse" ? "Adresse" : "";
+  // La commune n'est pas redite sous un lieu qui porte son nom (« Saint-Michel-sur-Orge » ⇒ « 91240 »).
+  const commune = c.commune && simple(c.commune) !== simple(c.nom) ? c.commune : null;
+  const lieu = [commune, c.code_postal].filter((v): v is string => !!v).join(", ");
+  const nature = natureLue(c);
   const morceaux = [nature && lieu ? `${nature}, ${lieu}` : nature || lieu];
   if (c.distance_metres != null) morceaux.push(`à ${formaterDistance(c.distance_metres)}`);
   return morceaux.filter((m) => m !== "").join(" · ");

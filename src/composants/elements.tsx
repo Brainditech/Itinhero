@@ -2,7 +2,10 @@ import { useId, useState, type ReactNode } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
+import type { Candidat } from "@/domaine/api";
 import type { Bout } from "@/domaine/demande";
+import { detailCandidat } from "@/domaine/resultat";
+import { annonceSuggestions, iconeCandidat, MESSAGES_SUGGESTIONS, type EtatSuggestions, type IconeLieu } from "@/domaine/suggestions";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /** Mot « Itinhero » en haut à gauche de chaque écran. */
@@ -228,8 +231,9 @@ const CHOIX_BOUT = [
 ] as const satisfies readonly { type: Bout["type"]; icone: AndroidSymbol; libelle: string }[];
 
 /**
- * Champ Départ ou Arrivée (spec 13, §4.1) : texte tapé au clavier, ou Domicile / Ma position choisis par les
- * icônes de droite. Un choix s'affiche en étiquette ; la toucher l'efface et ouvre le clavier.
+ * Champ Départ ou Arrivée (spec 13, §4.1 ; spec 18) : texte tapé au clavier, lieu choisi dans les suggestions,
+ * ou Domicile / Ma position choisis par les icônes de droite. Domicile et position s'affichent en étiquette ;
+ * la toucher l'efface et ouvre le clavier. Un lieu choisi montre son nom (modifiable) et sa ligne de détail.
  */
 export function ChampLieu({
   libelle,
@@ -238,6 +242,10 @@ export function ChampLieu({
   onChange,
   erreur,
   longueurMax,
+  detail,
+  suggestions = { etat: "ferme" },
+  onChoisir,
+  onActif,
 }: {
   libelle: string;
   /** « départ », « arrivée » : lu par TalkBack (« Mettre Domicile en départ »). */
@@ -246,69 +254,157 @@ export function ChampLieu({
   onChange: (bout: Bout) => void;
   erreur?: string;
   longueurMax: number;
+  /** Ligne sous le champ d'un lieu choisi (« Arrêt, Auxerre, 89000 »). */
+  detail?: string;
+  suggestions?: EtatSuggestions;
+  onChoisir?: (c: Candidat) => void;
+  /** Le champ prend ou perd le clavier. */
+  onActif?: (actif: boolean) => void;
 }) {
   const id = useId();
   const [actif, setActif] = useState(false);
   // Le clavier ne s'ouvre seul qu'après avoir touché une étiquette, jamais à l'ouverture de l'écran.
   const [focaliser, setFocaliser] = useState(false);
   const choix = CHOIX_BOUT.find((c) => c.type === bout.type);
+  const tape = bout.type === "texte" ? bout.texte : bout.type === "lieu" ? bout.nom : null;
   return (
-    <Champ libelle={libelle} idLibelle={id} erreur={erreur}>
-      <View className={classeCadre(actif, erreur, "pl-4 pr-1")}>
-        {bout.type === "texte" ? (
-          <TextInput
-            accessibilityLabelledBy={id}
-            value={bout.texte}
-            onChangeText={(texte) => onChange({ type: "texte", texte })}
-            onFocus={() => {
-              setActif(true);
-              setFocaliser(false); // une seule fois : ⇅ ou un retour au texte n'ouvrent pas le clavier
-            }}
-            onBlur={() => setActif(false)}
-            autoFocus={focaliser}
-            maxLength={longueurMax}
-            className="flex-1 py-3 font-inter text-corps text-texte"
-            cursorColor={couleurs.primaire}
-            selectionColor={couleurs["primaire-doux"]}
-          />
-        ) : (
+    <View className="gap-2">
+      <Champ libelle={libelle} idLibelle={id} erreur={erreur}>
+        <View className={classeCadre(actif, erreur, "pl-4 pr-1")}>
+          {tape !== null ? (
+            <TextInput
+              accessibilityLabelledBy={id}
+              value={tape}
+              // Une lettre changée dans un lieu choisi en refait un texte : le lieu est oublié (D91).
+              onChangeText={(texte) => onChange({ type: "texte", texte })}
+              onFocus={() => {
+                setActif(true);
+                onActif?.(true);
+                setFocaliser(false); // une seule fois : ⇅ ou un retour au texte n'ouvrent pas le clavier
+              }}
+              onBlur={() => {
+                setActif(false);
+                onActif?.(false);
+              }}
+              autoFocus={focaliser}
+              // Sans le clavier, un nom long se lit par son début (« Gare d'Auxerre-… »), pas par sa fin.
+              selection={actif ? undefined : { start: 0 }}
+              maxLength={longueurMax}
+              className="flex-1 py-3 font-inter text-corps text-texte"
+              cursorColor={couleurs.primaire}
+              selectionColor={couleurs["primaire-doux"]}
+            />
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${libelle} : ${choix?.libelle ?? ""}`}
+              accessibilityHint="Efface et ouvre le clavier"
+              onPress={() => {
+                setFocaliser(true);
+                onChange({ type: "texte", texte: "" });
+              }}
+              className="min-h-12 flex-1 flex-row items-center"
+            >
+              <View className="flex-row items-center gap-2 rounded-full bg-primaire-doux px-3 py-1">
+                {choix ? <SymbolView name={{ android: choix.icone, web: choix.icone }} size={18} tintColor={couleurs.primaire} /> : null}
+                <Text className="font-inter-medium text-corps text-primaire">{choix?.libelle}</Text>
+              </View>
+            </Pressable>
+          )}
+          {CHOIX_BOUT.map((c) => {
+            const choisi = bout.type === c.type;
+            return (
+              <Pressable
+                key={c.type}
+                accessibilityRole="button"
+                accessibilityLabel={`Mettre ${c.libelle} en ${nomCourt}`}
+                accessibilityState={{ selected: choisi }}
+                onPress={() => onChange({ type: c.type })}
+                className="h-12 w-12 items-center justify-center rounded-full active:bg-primaire-doux"
+              >
+                <SymbolView
+                  name={{ android: c.icone, web: c.icone }}
+                  size={24}
+                  tintColor={choisi ? couleurs.primaire : couleurs["texte-secondaire"]}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+        {bout.type === "lieu" && detail ? (
+          // pl : aligné sur le texte du champ (bordure + marge interne du cadre).
+          <Text className="pl-[22px] pr-4 font-inter text-secondaire text-texte-secondaire">{detail}</Text>
+        ) : null}
+      </Champ>
+      <ListeSuggestions suggestions={suggestions} onChoisir={(c) => onChoisir?.(c)} />
+    </View>
+  );
+}
+
+/** Ce qu'est le lieu d'un coup d'œil, dans un rond : gare, « M » du métro, bus, adresse… (D92). Le libellé lu est sur la ligne. */
+function IconeDuLieu({ icone }: { icone: IconeLieu }) {
+  return (
+    <View
+      importantForAccessibility="no-hide-descendants"
+      className="h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primaire-doux"
+    >
+      {icone === "M" ? (
+        <Text className="font-inter-bold text-corps text-primaire">M</Text>
+      ) : (
+        <SymbolView name={{ android: icone, web: icone }} size={22} tintColor={couleurs.primaire} />
+      )}
+    </View>
+  );
+}
+
+/** Liste des lieux suggérés sous un champ (spec 18, §4.1). */
+function ListeSuggestions({ suggestions, onChoisir }: { suggestions: EtatSuggestions; onChoisir: (c: Candidat) => void }) {
+  if (suggestions.etat === "ferme") return null;
+  const candidats = suggestions.etat === "ok" || suggestions.etat === "attente" ? suggestions.candidats : [];
+  const message =
+    suggestions.etat === "vide"
+      ? MESSAGES_SUGGESTIONS.aucun(suggestions.texte)
+      : suggestions.etat === "echec"
+        ? MESSAGES_SUGGESTIONS.indisponibles
+        : suggestions.etat === "attente" && candidats.length === 0
+          ? MESSAGES_SUGGESTIONS.attente
+          : null;
+  const annonce = annonceSuggestions(suggestions);
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={annonce || undefined}
+      className="overflow-hidden rounded-champ border border-bordure-carte bg-fond"
+    >
+      {message ? (
+        <Text className="px-4 py-3 font-inter text-secondaire text-texte-secondaire">{message}</Text>
+      ) : null}
+      {candidats.map((c, i) => {
+        const detail = detailCandidat(c);
+        return (
           <Pressable
+            key={`${c.nom}-${c.lat}-${c.lon}`}
             accessibilityRole="button"
-            accessibilityLabel={`${libelle} : ${choix?.libelle ?? ""}`}
-            accessibilityHint="Efface et ouvre le clavier"
-            onPress={() => {
-              setFocaliser(true);
-              onChange({ type: "texte", texte: "" });
-            }}
-            className="min-h-12 flex-1 flex-row items-center"
+            accessibilityLabel={[c.nom, detail.replaceAll(" · ", ", ")].filter(Boolean).join(", ")}
+            onPress={() => onChoisir(c)}
+            className={`min-h-12 flex-row items-center gap-3 px-4 py-2 active:bg-primaire-doux ${i > 0 ? "border-t border-bordure-carte" : ""}`}
           >
-            <View className="flex-row items-center gap-2 rounded-full bg-primaire-doux px-3 py-1">
-              {choix ? <SymbolView name={{ android: choix.icone, web: choix.icone }} size={18} tintColor={couleurs.primaire} /> : null}
-              <Text className="font-inter-medium text-corps text-primaire">{choix?.libelle}</Text>
+            {/* Ce qu'est le lieu d'un coup d'œil : gare, métro, bus, adresse… (D92). */}
+            <IconeDuLieu icone={iconeCandidat(c)} />
+            <View className="flex-1">
+              <Text className="font-inter-medium text-corps text-texte" numberOfLines={2}>
+                {c.nom}
+              </Text>
+              {detail ? (
+                <Text className="font-inter text-secondaire text-texte-secondaire" numberOfLines={3}>
+                  {detail}
+                </Text>
+              ) : null}
             </View>
           </Pressable>
-        )}
-        {CHOIX_BOUT.map((c) => {
-          const choisi = bout.type === c.type;
-          return (
-            <Pressable
-              key={c.type}
-              accessibilityRole="button"
-              accessibilityLabel={`Mettre ${c.libelle} en ${nomCourt}`}
-              accessibilityState={{ selected: choisi }}
-              onPress={() => onChange({ type: c.type })}
-              className="h-12 w-12 items-center justify-center rounded-full active:bg-primaire-doux"
-            >
-              <SymbolView
-                name={{ android: c.icone, web: c.icone }}
-                size={24}
-                tintColor={choisi ? couleurs.primaire : couleurs["texte-secondaire"]}
-              />
-            </Pressable>
-          );
-        })}
-      </View>
-    </Champ>
+        );
+      })}
+    </View>
   );
 }
 

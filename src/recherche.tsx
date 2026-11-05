@@ -3,20 +3,21 @@ import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { messageEchec, type Candidat, type Point, type ReponseItineraires } from "@/domaine/api";
-import { demandeRecalcul, versRequeteItineraires, type Bout, type CoteBout, type Demande } from "@/domaine/demande";
+import { demandeRecalcul, versRequeteItineraires, type Bout, type BoutLieu, type CoteBout, type Demande } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
+import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS } from "@/domaine/suggestions";
 import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
 
-// Recherche en cours dans la pile de l'onglet Chercher : Formulaire ⇒ Confirmation(s) ⇒ Résultat.
+// Recherche en cours dans la pile de l'onglet Chercher : Formulaire ⇒ Résultat (plus de Confirmation, D91).
 // En mémoire seulement : rien n'est gardé ni envoyé ailleurs qu'à l'API (invariant 6).
 
 /** Un bout trouvé : son point, le nom envoyé à l'API et affiché, et son adresse connue sur le téléphone (spec 14). */
 export type LieuChoisi = { point: Point; nom: string; adresse: string | null };
 
-/** Pour chaque bout (spec 13, §4.4) : le lieu retenu (null tant qu'il est à chercher ou à confirmer) et ses candidats. */
-export type EtatBout = { lieu: LieuChoisi | null; candidats: Candidat[] };
+/** Pour chaque bout (spec 13, §4.4) : le lieu retenu, null tant qu'il est à chercher. */
+export type EtatBout = { lieu: LieuChoisi | null };
 
 export type Recherche = {
   demande: Demande;
@@ -25,8 +26,14 @@ export type Recherche = {
   reponse: ReponseItineraires | null;
 };
 
-/** Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null). */
-export type EchecRecherche = { champ: CoteBout | null; message: string };
+/**
+ * Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null).
+ * `candidats` : texte ambigu, la liste s'ouvre sous son champ pour choisir (D91).
+ */
+export type EchecRecherche = { champ: CoteBout | null; message: string; candidats?: Candidat[] };
+
+/** Texte tapé retenu à « Chercher » (un seul lieu trouvé) : le formulaire l'écrit dans son champ (D91). */
+export type SurLieuRetenu = (cote: CoteBout, texteCherche: string, lieu: BoutLieu) => void;
 
 export const DOMICILE_ABSENT = "Indiquez votre domicile dans Réglages.";
 
@@ -61,7 +68,8 @@ export function useRecherche(): ContexteValeur {
  * Déroule la recherche dans l'ordre de D78 :
  * 1. `demarrer` lit les bouts sans texte (domicile, position) ;
  * 2. `avancer` cherche chaque texte par `GET /v1/lieux`, le départ d'abord, près de l'autre bout s'il est connu,
- *    sinon près de la position si l'accès est déjà accordé ; plusieurs candidats ⇒ Confirmation de ce bout ;
+ *    sinon près de la position si l'accès est déjà accordé ; un seul lieu ⇒ retenu, et écrit dans son champ ;
+ *    plusieurs ⇒ la liste s'ouvre sous ce champ (D91) ;
  * 3. les deux bouts connus ⇒ `POST /v1/itineraires`, puis le Résultat.
  * Rend l'échec à montrer, ou null (écran suivant ouvert, ou clé refusée : l'écran de la clé s'ouvre).
  */
@@ -75,7 +83,11 @@ export function useDeroulerRecherche() {
    * `revenir` : le Résultat déjà ouvert sous l'écran courant reprend la nouvelle réponse, et tout ce qui est
    * au-dessus de lui (le guidage) se ferme, au lieu d'un nouveau Résultat empilé par-dessus.
    */
-  async function avancer(r: Recherche, ouvrir: "pousser" | "revenir" = "pousser"): Promise<EchecRecherche | null> {
+  async function avancer(
+    r: Recherche,
+    ouvrir: "pousser" | "revenir" = "pousser",
+    surLieuRetenu?: SurLieuRetenu,
+  ): Promise<EchecRecherche | null> {
     let courante = r;
     for (const cote of COTES) {
       const bout = courante.demande[cote];
@@ -88,17 +100,12 @@ export function useDeroulerRecherche() {
       }
       if (res.etat !== "ok") return { champ: null, message: messageEchec(res) };
       const candidats = res.donnees.slice(0, 5);
-      if (candidats.length === 0) {
-        return { champ: cote, message: `Aucun lieu trouvé pour « ${bout.texte} ». Essayez avec la commune.` };
-      }
-      // Un seul candidat : rien à confirmer (phase 2, « confirmation quand il y a plusieurs candidats »).
-      if (candidats.length === 1) {
-        courante = { ...courante, [cote]: { lieu: lieuChoisi(bout, candidats[0]!), candidats } };
-        continue;
-      }
-      setRecherche({ ...courante, [cote]: { lieu: null, candidats }, reponse: null });
-      router.push({ pathname: "/confirmation", params: { bout: cote } });
-      return null;
+      if (candidats.length === 0) return { champ: cote, message: MESSAGES_SUGGESTIONS.aucun(bout.texte) };
+      // Plusieurs lieux : on choisit dans la liste, sous le champ (D91), jamais d'office.
+      if (candidats.length > 1) return { champ: cote, message: MESSAGES_SUGGESTIONS.choisir, candidats };
+      const lieu = boutDuCandidat(candidats[0]!);
+      surLieuRetenu?.(cote, bout.texte, lieu);
+      courante = { ...courante, [cote]: { lieu: lieuChoisi(lieu, candidats[0]!) } };
     }
 
     const depart = courante.depart.lieu;
@@ -127,17 +134,19 @@ export function useDeroulerRecherche() {
       const lue = await lirePosition();
       return lue.etat === "ok" ? lieuChoisi(bout, lue.point) : { champ: cote, message: MESSAGES_POSITION[lue.etat] };
     }
+    // Lieu choisi dans les suggestions : retenu tel quel, sans réseau (spec 18, §4.3).
+    if (bout.type === "lieu") return lieuChoisi(bout, candidatDuBout(bout));
     return null;
   }
 
-  async function demarrer(demande: Demande): Promise<EchecRecherche | null> {
-    const r: Recherche = { demande, depart: { lieu: null, candidats: [] }, arrivee: { lieu: null, candidats: [] }, reponse: null };
+  async function demarrer(demande: Demande, surLieuRetenu?: SurLieuRetenu): Promise<EchecRecherche | null> {
+    const r: Recherche = { demande, depart: { lieu: null }, arrivee: { lieu: null }, reponse: null };
     for (const cote of COTES) {
       const fixe = await lieuFixe(cote, demande[cote]);
       if (fixe && "message" in fixe) return fixe;
-      r[cote] = { lieu: fixe, candidats: [] };
+      r[cote] = { lieu: fixe };
     }
-    return avancer(r);
+    return avancer(r, "pousser", surLieuRetenu);
   }
 
   /**
@@ -151,15 +160,8 @@ export function useDeroulerRecherche() {
     // Dans le guidage, pas de choix « Domicile » : le message dit seulement quoi faire pour la position.
     if (lue.etat !== "ok") return { champ: null, message: MESSAGES_POSITION_GUIDAGE[lue.etat] };
     const depart = lieuChoisi(demande.depart, lue.point);
-    return avancer({ demande, depart: { lieu: depart, candidats: [] }, arrivee: r.arrivee, reponse: null }, "revenir");
+    return avancer({ demande, depart: { lieu: depart }, arrivee: r.arrivee, reponse: null }, "revenir");
   }
 
-  /** Candidat confirmé pour un bout : un départ qui change oblige à rechercher une arrivée tapée près de lui. */
-  function confirmer(r: Recherche, cote: CoteBout, candidat: Candidat): Promise<EchecRecherche | null> {
-    const suite: Recherche = { ...r, [cote]: { ...r[cote], lieu: lieuChoisi(r.demande[cote], candidat) }, reponse: null };
-    if (cote === "depart" && r.demande.arrivee.type === "texte") suite.arrivee = { lieu: null, candidats: [] };
-    return avancer(suite);
-  }
-
-  return { demarrer, confirmer, recalculer };
+  return { demarrer, recalculer };
 }

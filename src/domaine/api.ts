@@ -10,12 +10,19 @@ export type Point = { lat: number; lon: number };
 
 const schemaPoint = z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) });
 
+/** Transport le plus lourd qui dessert un arrêt ou une gare (D92), donné par `GET /v1/lieux`. */
+export const TRANSPORTS = ["train", "metro", "tram", "car", "bus", "bateau"] as const;
+export type Transport = (typeof TRANSPORTS)[number];
+/** Facultatif ; une valeur inconnue (serveur plus récent) est oubliée, le candidat reste valable. */
+export const schemaTransport = z.enum(TRANSPORTS).optional().catch(undefined);
+
 export const schemaCandidat = schemaPoint.extend({
   nom: z.string().min(1),
   type: z.enum(["adresse", "lieu", "arret"]),
   commune: z.string().nullish(),
   code_postal: z.string().nullish(),
   distance_metres: z.number().nonnegative().nullish(),
+  transport: schemaTransport,
 });
 export type Candidat = z.infer<typeof schemaCandidat>;
 
