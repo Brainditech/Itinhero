@@ -1,7 +1,7 @@
 # Spec 12 — Guidage en direct sur la carte, de porte à porte
 
 - **Date** : 2026-11-04
-- **État** : **à approuver par Brainditech**, en deux temps : D72 (entrée dans la v1) et les décisions de §3 d'abord, puis la maquette de l'écran de guidage avant tout code.
+- **État** : **approuvée le 2026-11-05 par Brainditech (« implemente »)** : D72 à D75 et les cinq maquettes de `design/guidage/`. D76 (carte hors réseau) reste à trancher. Appliquée sur `phase-4/guidage-en-direct`, empilée sur la spec 11.
 - **Branche prévue** : `phase-4/guidage-en-direct`
 - **Prérequis** : issue 0010 et spec 11 fusionnées (le guidage lit les consignes et le tracé de la spec 11).
 
@@ -73,3 +73,37 @@ La position n'est ni envoyée au serveur pendant le guidage, ni gardée après. 
 ## 8. Ce qui n'est pas fait ici
 
 Guidage photo et guidage en sous-sol (hors v1) ; guidage écran éteint (D73) ; temps réel des véhicules (phase 7) : l'avance et le retard sont mesurés par rapport à l'horaire prévu, jamais au passage réel du véhicule.
+
+## 9. Résultats (2026-11-05)
+
+### Ce qui est construit
+
+- Serveur : chaque étape porte `depart_utc`, `arrivee_utc` et, en véhicule, `arrets` (arrêts intermédiaires de MOTIS avec leur heure prévue).
+- `src/domaine/guidage.ts` (16 tests) : position suivie le long du tracé **en avançant** (une ligne de car qui fait l'aller-retour par la même rue, comme le 803 à Saint-Florentin, ne fait pas sauter la position), annonces à 150 m, 40 m et au point de manœuvre, écart de D75, attente, arrêts restants, descente imminente, statut horaire (« En avance de 4 min », « Pressez le pas : TER K7 dans 2 min »).
+- Écran `guidage.tsx`, ouvert par « Démarrer le guidage » dans une carte du Résultat dépliée ; barre d'onglets masquée ; écran allumé (`expo-keep-awake`) ; voix (`expo-speech`, lue seulement si le module natif est dans le build) ; vibration de la descente (`Vibration` de React Native, permission déjà présente).
+- En développement seulement, le paramètre `sim=étape,mètres,écart,HH:MM` simule la position et l'heure, pour capturer chaque état sans marcher (`adb shell am start -d "itinhero://guidage?i=1&sim=4,377,0,09:30"`).
+
+### Comparaison aux maquettes (captures `adb`, 2026-11-05, Domicile → tribunal administratif de Dijon, jeudi 12/11)
+
+| État | Maquette | Écarts restants |
+|---|---|---|
+| Marche | 01 | aucun (« Jusqu'à Tribunal administratif » au lieu de « Jusqu'au » : le nom vient de la recherche, sans article connu) |
+| Attente à l'arrêt | 02 | aucun |
+| Dans le véhicule | 03 | « Descendez dans 4 arrêts » passe sur deux lignes à 24 sp sur 411 dp de large (le texte passe à la ligne, jamais coupé) |
+| Descente imminente | 04 | le drapeau n'a pas les ondes de vibration |
+| Écart au chemin | 05 | aucun |
+
+Écarts des maquettes corrigés dans le code, comme annoncé : carte du bas flottante avec marges (écrans 1 à 3) ; couleurs du mode prises dans les jetons (car violet `mode-car`, train bleu `mode-train`) ; arrêts restants d'après la donnée ; tracé arrêté au drapeau.
+
+### Choix faits en appliquant
+
+- La carte est tournée dans le sens du tracé devant la position, à la marche comme à l'arrêt (pas de boussole magnétique à l'arrêt : un cap qui tremble quand on attend) ; le bouton boussole met le nord en haut.
+- Dans le véhicule, la carte cadre la position en bas et l'arrêt visé en haut (troisième arrêt restant, ou la descente), comme la maquette 03.
+- « Recalculer depuis ici » refait la recherche avec « Ma position » au départ, même rendez-vous et même marge ; il est montré même sans réseau, et dit l'échec s'il n'y en a pas.
+
+### Reste
+
+- Critère 5 (mode avion) et critère 6 (essai sur le terrain, seuils de D75) : par Brainditech.
+- Voix : nouveau development build nécessaire (`expo-speech` ajouté).
+- D76 (carte hors réseau).
+
