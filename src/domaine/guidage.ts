@@ -205,6 +205,8 @@ export type Situation = {
   vibrer: boolean;
   /** Minutes jusqu'à l'arrivée prévue. */
   minutesRestantes: number;
+  /** Trajet à venir (D83) : l'écran dit quand il part au lieu des durées qui restent. */
+  aVenir: Extract<Statut, { type: "a_venir" }> | null;
 };
 
 /** « 6 min », « 1 h 05 », « 7 j 02 h ». */
@@ -214,32 +216,51 @@ export function minutesEnTexte(m: number): string {
   return `${Math.floor(m / 1440)} j ${String(Math.floor((m % 1440) / 60)).padStart(2, "0")} h`;
 }
 
-/** Départ du trajet à plus de 12 h : le statut dit quand il part (« le 12/11 à 06:17 »), pas une avance. */
-function statutAVenir(p: Possibilite, maintenant: number): Statut | null {
+/** Écart au départ au-delà duquel un trajet d'un autre jour (demain matin, ouvert la veille au soir) est « à venir ». */
+export const A_VENIR_AUTRE_JOUR_MS = 3 * 3_600_000;
+
+/**
+ * Trajet à venir (D83) : départ à plus de 12 h, ou un autre jour à plus de 3 h (demain 06:17, ouvert la veille à 20:00).
+ * Le statut dit alors quand il part (« le 12/11 à 06:17 »), pas une avance de plusieurs heures.
+ */
+export function statutAVenir(p: Possibilite, maintenant: number): Extract<Statut, { type: "a_venir" }> | null {
   const departMs = Date.parse(p.depart_utc);
-  if (departMs - maintenant < A_VENIR_MS) return null;
+  const ecart = departMs - maintenant;
   const jour = maintenantAParis(new Date(departMs)).date;
   const memeJour = jour === maintenantAParis(new Date(maintenant)).date;
+  if (ecart < A_VENIR_MS && (memeJour || ecart < A_VENIR_AUTRE_JOUR_MS)) return null;
   return { type: "a_venir", date: memeJour ? null : `${jour.slice(8, 10)}/${jour.slice(5, 7)}`, heure: p.depart };
 }
 
-/** Le taxi vient vous prendre et vous dépose : ni arrêt, ni « prochain arrêt ». */
-export function estTaxi(e: Etape): boolean {
-  return e.mode === "taxi";
+/**
+ * Véhicule qui vient vous prendre et vous dépose (taxi, transport à la demande sans arrêts) :
+ * ni arrêt, ni « prochain arrêt ».
+ */
+export function vientVousChercher(e: Etape): boolean {
+  return e.mode === "taxi" || (e.mode === "transport_a_la_demande" && !e.arrets?.length);
+}
+
+/**
+ * Nom d'un lieu de montée ou de dépose. Pour un taxi, le serveur type par défaut le lieu en « arrêt » : il est dit
+ * tel quel (« Domicile », jamais « arrêt Domicile ») ; une gare reste « gare de Laroche - Migennes ».
+ */
+export function nomLieuVehicule(e: Etape, l: Etape["de"]): string {
+  return vientVousChercher(e) && l.type === "arret" ? l.nom : nomLieuEtape(l);
 }
 
 /** Lieu de montée dit à la personne : « à la gare », « à l'arrêt », « au point de rendez-vous » (taxi). */
 export function lieuMontee(e: Etape): { ici: string; loin: (distance: string) => string } {
-  if (estTaxi(e)) return { ici: "Vous êtes au point de rendez-vous", loin: (d) => `Le point de rendez-vous est à ${d}` };
-  const nom = nomLieuEtape(e.de).toLowerCase();
-  if (nom.startsWith("gare")) return { ici: "Vous êtes à la gare", loin: (d) => `La gare est à ${d}` };
-  if (nom.startsWith("station")) return { ici: "Vous êtes à la station", loin: (d) => `La station est à ${d}` };
+  if (vientVousChercher(e)) return { ici: "Vous êtes au point de rendez-vous", loin: (d) => `Le point de rendez-vous est à ${d}` };
+  if (e.de.type === "gare") return { ici: "Vous êtes à la gare", loin: (d) => `La gare est à ${d}` };
+  if (e.de.type === "station") return { ici: "Vous êtes à la station", loin: (d) => `La station est à ${d}` };
   return { ici: "Vous êtes à l'arrêt", loin: (d) => `L'arrêt est à ${d}` };
 }
 
 /** Textes du bandeau dans le véhicule (maquette 03) : titre, sous-titre et bande du bas. */
 export function textesVehicule(e: Etape, restants: ArretSitue[]): { titre: string; sousTitre: string; bande: string } {
-  if (estTaxi(e)) return { titre: "En taxi", sousTitre: jusqua(nomLieuEtape(e.a)), bande: `Arrivée prévue à ${e.arrivee}` };
+  if (vientVousChercher(e)) {
+    return { titre: `En ${vehiculeMinuscule(e)}`, sousTitre: jusqua(nomLieuVehicule(e, e.a)), bande: `Arrivée prévue à ${e.arrivee}` };
+  }
   // Sans arrêt avant la descente (train direct), « Prochain arrêt » redirait la descente : on donne l'heure d'arrivée.
   if (restants.length <= 1) {
     return { titre: "Sans arrêt jusqu'à la descente", sousTitre: `Descente : ${e.a.nom}`, bande: `Arrivée prévue à ${e.arrivee}` };
@@ -249,7 +270,7 @@ export function textesVehicule(e: Etape, restants: ArretSitue[]): { titre: strin
 
 /** Titre et phrase de la descente imminente (maquette 04) : un taxi ne s'arrête pas « au prochain arrêt ». */
 export function titreDescente(e: Etape): string {
-  return estTaxi(e) ? "Vous arrivez" : "Descendez au prochain arrêt";
+  return vientVousChercher(e) ? "Vous arrivez" : "Descendez au prochain arrêt";
 }
 export function phraseDescente(e: Etape, nom: string): string {
   return `${titreDescente(e)} : ${nom}`;
@@ -316,6 +337,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
   const annonces: string[] = [];
   let vibrer = false;
   const minutesRestantes = Math.max(0, Math.ceil((parcours.arriveeMs - maintenant) / 60_000));
+  const aVenir = statutAVenir(parcours.possibilite, maintenant);
   const dire = (cle: string, phrase: string) => {
     if (etat.annonces.includes(cle)) return;
     etat.annonces.push(cle);
@@ -328,7 +350,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
     const g = parcours.etapes[k];
     if (!g) {
       dire("fin", "Vous êtes arrivé");
-      return { etat, vue: { type: "fin" }, courante: null, abscisse: null, cap: null, ecart: null, annonces, vibrer, minutesRestantes };
+      return { etat, vue: { type: "fin" }, courante: null, abscisse: null, cap: null, ecart: null, annonces, vibrer, minutesRestantes, aVenir };
     }
     const recul = g.etape.mode === "marche" ? RECUL_MARCHE_METRES : RECUL_VEHICULE_METRES;
     // Un véhicule repasse parfois par la même rue (aller-retour à un arrêt) : on reste sur l'aller.
@@ -406,6 +428,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
         annonces,
         vibrer,
         minutesRestantes,
+        aVenir,
       };
     }
 
@@ -434,6 +457,7 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
         annonces,
         vibrer,
         minutesRestantes,
+        aVenir,
       };
     }
     const descente = g.arrets[g.arrets.length - 1]!;
@@ -465,11 +489,12 @@ export function situer(parcours: Parcours, etat0: EtatGuidage, position: Point |
         annonces,
         vibrer,
         minutesRestantes,
+        aVenir,
       };
     }
-    return { etat, vue: { type: "vehicule", restants }, courante: g, abscisse, cap: capVehicule, ecart: null, annonces, vibrer, minutesRestantes };
+    return { etat, vue: { type: "vehicule", restants }, courante: g, abscisse, cap: capVehicule, ecart: null, annonces, vibrer, minutesRestantes, aVenir };
   }
-  return { etat, vue: { type: "fin" }, courante: null, abscisse: null, cap: null, ecart: null, annonces, vibrer, minutesRestantes };
+  return { etat, vue: { type: "fin" }, courante: null, abscisse: null, cap: null, ecart: null, annonces, vibrer, minutesRestantes, aVenir };
 }
 
 /** « à l'arrêt Mairie », « à la gare de Dijon », « à Tribunal administratif de Dijon ». */

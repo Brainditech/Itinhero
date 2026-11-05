@@ -12,7 +12,9 @@ import {
   aLieu,
   lieuMontee,
   minutesEnTexte,
+  nomLieuVehicule,
   phraseMarche,
+  statutAVenir,
   phraseStatut,
   textesVehicule,
   titreDescente,
@@ -354,7 +356,13 @@ describe("issue 0017 — taxi guidé comme un taxi, pas comme un bus", () => {
     const t = textesVehicule(g.etape, s.vue.type === "vehicule" ? s.vue.restants : []);
     expect(t.titre).toBe("En taxi");
     expect(`${t.titre} ${t.sousTitre} ${t.bande}`).not.toMatch(/Prochain arrêt|Sans arrêt|[Dd]escente/);
-    expect(t.sousTitre).toBe(jusqua(`arrêt ${g.etape.a.nom}`));
+    // Le lieu d'un taxi est dit tel quel : jamais « l'arrêt … ».
+    expect(t.sousTitre).toBe(jusqua(g.etape.a.nom));
+    expect(g.etape.de.type).toBe("arret");
+    expect(nomLieuVehicule(g.etape, g.etape.de)).toBe(g.etape.de.nom);
+    // Une gare de dépose garde son nom de gare.
+    const gare = { ...g.etape.a, nom: "Laroche - Migennes", type: "gare" as const };
+    expect(nomLieuVehicule(g.etape, gare)).toBe("gare de Laroche - Migennes");
     expect(t.bande).toBe(`Arrivée prévue à ${g.etape.arrivee}`);
   });
   it("à l'approche : « Vous arrivez », dit une seule fois", () => {
@@ -385,6 +393,21 @@ describe("issue 0017 — gare, arrêt, article", () => {
     expect(lieuMontee(POSSIBILITE.etapes[3]!).ici).toBe("Vous êtes à la gare");
     expect(lieuMontee(POSSIBILITE.etapes[1]!).ici).toBe("Vous êtes à l'arrêt");
   });
+  it("le type du lieu décide, pas son nom : « Paris Gare de Lyon » est une gare", () => {
+    const e = POSSIBILITE.etapes[3]!;
+    expect(lieuMontee({ ...e, de: { ...e.de, nom: "Paris Gare de Lyon", type: "gare" } }).ici).toBe("Vous êtes à la gare");
+    expect(lieuMontee({ ...e, de: { ...e.de, nom: "Châtelet", type: "station" } }).ici).toBe("Vous êtes à la station");
+  });
+  it("transport à la demande sans arrêts : guidé comme un taxi ; avec arrêts, comme un bus", () => {
+    const bus = POSSIBILITE.etapes[1]!;
+    const tad = { ...bus, mode: "transport_a_la_demande" as const, arrets: [] };
+    expect(lieuMontee(tad).ici).toBe("Vous êtes au point de rendez-vous");
+    expect(titreDescente(tad)).toBe("Vous arrivez");
+    expect(textesVehicule(tad, []).sousTitre).toBe(jusqua(bus.a.nom));
+    const tadLigne = { ...tad, arrets: bus.arrets };
+    expect(bus.arrets?.length).toBeGreaterThan(0);
+    expect(titreDescente(tadLigne)).toBe("Descendez au prochain arrêt");
+  });
   it("« Gare de Joigny », nom d'un lieu choisi, prend son article", () => {
     expect(aLieu("Gare de Joigny")).toBe("à la gare de Joigny");
     expect(jusqua("Arrêt Mairie")).toBe("Jusqu'à l'arrêt Mairie");
@@ -407,6 +430,19 @@ describe("issue 0017 — trajet d'un autre jour", () => {
     const p = preparer({ ...POSSIBILITE, depart: "23:00", depart_utc: "2026-11-14T22:00:00.000Z" });
     const s = situer(p, ETAT_INITIAL, null, Date.parse("2026-11-14T07:00:00.000Z"));
     expect(s.vue.type === "marche" && phraseStatut(s.vue.statut)).toBe("Départ prévu à 23:00");
+  });
+  it("demain matin ouvert la veille au soir (10 h avant) : à venir, avec la date", () => {
+    const t = Date.parse(POSSIBILITE.depart_utc) - 10 * 3_600_000;
+    expect(statutAVenir(POSSIBILITE, t)).toEqual({ type: "a_venir", date: "14/11", heure: POSSIBILITE.depart });
+    // Une heure avant, même la veille d'un départ après minuit : l'avance ordinaire.
+    expect(statutAVenir(POSSIBILITE, Date.parse(POSSIBILITE.depart_utc) - 60 * 60_000)).toBeNull();
+  });
+  it("trajet à venir qui commence par un véhicule : la situation le dit aussi", () => {
+    const t = Date.parse(POSSIBILITE.depart_utc) - 7 * 86_400_000;
+    const s = situer(parcours, { ...ETAT_INITIAL, etape: 1 }, null, t);
+    expect(s.vue.type).toBe("attente");
+    expect(s.aVenir && phraseStatut(s.aVenir)).toBe(`Départ prévu le 14/11 à ${POSSIBILITE.depart}`);
+    expect(situer(parcours, { ...ETAT_INITIAL, etape: 1 }, null, heure("08:20")).aVenir).toBeNull();
   });
   it("durées longues lisibles", () => {
     expect(minutesEnTexte(45)).toBe("45 min");

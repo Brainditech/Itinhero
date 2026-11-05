@@ -49,9 +49,11 @@ Fausse piste écartée : l'écart au chemin semblait ne jamais se déclencher en
 - `src/stockage/position.ts`, `src/recherche.tsx` : `MESSAGES_POSITION_GUIDAGE` pour le recalcul.
 - `Trajet.tsx` : ligne de marche par `phraseMarche`.
 
+- Relecture indépendante du correctif (même jour), 6 remarques vérifiées et corrigées : seuil « à venir » qui laissait « En avance de 10 h » la veille au soir (désormais : plus de 12 h, ou un autre jour à plus de 3 h) ; gare reconnue par son type et non par le début de son nom (« Paris Gare de Lyon ») ; transport à la demande sans arrêts guidé comme un taxi (`vientVousChercher`) ; lieu d'un taxi sans « arrêt » (`nomLieuVehicule`, « Montez dans le taxi à Domicile ») ; trajet à venir qui commence par un véhicule (« Taxi le 12/11 à 08:46 », carte du bas « Départ prévu le 12/11 à 08:46 » au lieu de « 7 j 03 h restantes ») ; commentaire mal placé.
+
 ## 4. Tests de régression
 
-`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 10 tests, qui échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 162 tests verts ; lint et types sans erreur.
+`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 14 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 166 tests verts ; lint et types sans erreur ; export Android réussi.
 
 ## 5. Revérifié sur le téléphone
 

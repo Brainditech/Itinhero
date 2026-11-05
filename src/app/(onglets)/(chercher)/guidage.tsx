@@ -21,6 +21,7 @@ import {
   aLieu,
   lieuMontee,
   minutesEnTexte,
+  nomLieuVehicule,
   phraseStatut,
   positionFraiche,
   positionSimulee,
@@ -37,7 +38,7 @@ import {
   type Situation,
   type Statut,
 } from "@/domaine/guidage";
-import { formaterDistance, jetonMode, nomLieuEtape } from "@/domaine/resultat";
+import { formaterDistance, jetonMode } from "@/domaine/resultat";
 import { useDeroulerRecherche, useRecherche } from "@/recherche";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 import { dire, taire, vibrer } from "@/voix";
@@ -140,7 +141,8 @@ export default function Guidage() {
         ? positionSimulee(parcours, simulation.etape, simulation.metres, simulation.ecart)
         : positionFraiche(positionRef.current, Date.now());
       const s = situer(parcours, etatRef.current, ici, maintenant);
-      etatRef.current = s.etat;      // Toutes les phrases du même instant, dans l'ordre, en une seule annonce : aucune n'est coupée par la suivante.
+      etatRef.current = s.etat;
+      // Toutes les phrases du même instant, dans l'ordre, en une seule annonce : aucune n'est coupée par la suivante.
       if (voixRef.current && s.annonces.length > 0) dire(s.annonces.join(". "));
       if (s.vibrer) vibrer();
       if (ici) sansPositionDepuis = null;
@@ -278,7 +280,12 @@ function contenuBandeau(s: Situation): ContenuBandeau {
     }
     return {
       icone,
-      titre: v.minutes > 0 ? `${vehiculeCourt(e)} dans ${minutesEnTexte(v.minutes)}` : `${vehiculeCourt(e)} à ${e.depart}`,
+      // Trajet à venir (D83) : « Taxi le 12/11 à 08:46 », pas « Taxi dans 7 j 01 h ».
+      titre: s.aVenir
+        ? `${vehiculeCourt(e)} ${s.aVenir.date ? `le ${s.aVenir.date} ` : ""}à ${e.depart}`
+        : v.minutes > 0
+          ? `${vehiculeCourt(e)} dans ${minutesEnTexte(v.minutes)}`
+          : `${vehiculeCourt(e)} à ${e.depart}`,
       sousTitre: `Attendez le ${vehiculeMinuscule(e)}${direction}`,
       bande:
         e.reservation === "appel"
@@ -470,7 +477,9 @@ function CarteBas({
       ? `${v.restanteMinutes} min · ${formaterDistance(v.restanteMetres)} à pied`
       : v.type === "fin"
         ? "Bon rendez-vous"
-        : `${minutesEnTexte(situation.minutesRestantes)} restantes`;
+        : situation.aVenir
+          ? phraseStatut(situation.aVenir)
+          : `${minutesEnTexte(situation.minutesRestantes)} restantes`;
   const sansPositionLongtemps = v.type === "marche" && v.sansPosition && positionPerdue;
   // Hors du chemin près du bout de la marche (GPS décalé dans un hall de gare) : la personne peut finir l'étape
   // elle-même, par un bouton discret (un détour en route ne doit pas faire sauter la marche d'un appui par erreur).
@@ -520,7 +529,7 @@ function CarteBas({
       ) : null}
       {v.type === "attente" && e ? (
         <Ligne icone={iconeMode(e.mode)} couleur={couleurMode}>
-          {`Montez dans le ${vehiculeMinuscule(e)} ${aLieu(nomLieuEtape(e.de))}`}
+          {`Montez dans le ${vehiculeMinuscule(e)} ${aLieu(nomLieuVehicule(e, e.de))}`}
         </Ligne>
       ) : null}
       {v.type === "vehicule" ? <ArretsRestants situation={situation} couleur={couleurMode} /> : null}
