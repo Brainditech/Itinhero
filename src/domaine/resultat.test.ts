@@ -264,6 +264,15 @@ describe("Lieux du formulaire", () => {
     expect(detailCandidat({ ...c, type: "adresse", commune: null, code_postal: null, distance_metres: null })).toBe("Adresse");
   });
 
+  it("détail : le transport dit (D92), la commune pas redite sous un lieu de son nom", () => {
+    const c = { nom: "Saint-Michel-sur-Orge", type: "lieu" as const, commune: "Saint-Michel-sur-Orge", code_postal: "91240", lat: 0, lon: 0, distance_metres: 120000 };
+    expect(detailCandidat(c)).toBe("91240 · à 120 km");
+    expect(detailCandidat({ ...c, type: "arret", transport: "train" })).toBe("Gare, 91240 · à 120 km");
+    expect(detailCandidat({ ...c, nom: "Châtelet", type: "arret", commune: "Paris", code_postal: "75004", transport: "metro", distance_metres: null })).toBe(
+      "Métro, Paris, 75004",
+    );
+  });
+
   it("distances", () => {
     expect(formaterDistance(58)).toBe("60 m");
     expect(formaterDistance(1234)).toBe("1,2 km");

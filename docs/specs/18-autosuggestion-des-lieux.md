@@ -1,7 +1,7 @@
 # Spec 18 — Lieux suggérés pendant la frappe
 
 - **Date** : 2026-11-05
-- **État** : **approuvée par Brainditech le 2026-11-05 (« implemente »), avec une demande en plus : supprimer l'écran « C'est ce lieu » (« c'est moche »).** Appliquée, voir §10. **Complément §12 (icônes selon le transport, D92) proposé le 2026-11-05, à approuver.**
+- **État** : **approuvée par Brainditech le 2026-11-05 (« implemente »), avec une demande en plus : supprimer l'écran « C'est ce lieu » (« c'est moche »).** Appliquée, voir §10. **Complément §12 (icônes selon le transport, doublons écartés, D92) approuvé le 2026-11-05 (« vas y démerde toi pour que tout s'embranche parfaitement »), appliqué et constaté sur le téléphone (§12.5, §12.6).**
 - **Branche** : `phase-2/autosuggestion-lieux`
 - **Maquettes** : `design/accueil/02-formulaire-repli.png` (formulaire). La maquette `design/confirmation-lieu/03-confirmation-lieu.png` n'est plus suivie : l'écran disparaît (D91). Écart voulu, décrit en §4.
 - **Demande de Brainditech (2026-11-05)** : « lorsque je tape un endroit il faut que je saisisse également l'arrivée avant qu'il corrige la première adresse ; lorsque je reviens après validation du lieu, ça ne modifie pas la zone de texte, ça remet le texte initial alors que valider le lieu devrait justement rectifier ; je voudrais plutôt une autosuggestion pour éviter un aller-retour », puis « supprime la suggestion avec le c'est ce lieu, car c'est moche ».
@@ -133,13 +133,13 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
 - **Critère 10 — en partie.** Le tunnel `adb reverse` coupé pendant la frappe n'a pas fait apparaître « Suggestions indisponibles » de façon sûre (connexion déjà ouverte gardée) ; le cas est couvert par les tests de `etatSuggestions`. Restent : serveur vraiment arrêté, TalkBack, capture côte à côte avec la maquette 02, par Brainditech.
 - **Critère 11** : à faire (comparaison avec Google Maps).
 
-## 12. Complément : une icône qui dit ce qu'est le lieu (proposé le 2026-11-05, à approuver)
+## 12. Complément : une icône qui dit ce qu'est le lieu (approuvé le 2026-11-05)
 
 - **Demande de Brainditech (2026-11-05)** : « des icônes pour adresse et métro pour les métros ou gare ».
 - **Constaté** : la liste montre une icône par nature (`ICONE_NATURE`, `elements.tsx`) : `directions_transit` pour **tout** arrêt (métro, gare, simple arrêt de bus), `signpost` pour une adresse, `location_on` pour un lieu. On ne distingue donc pas Châtelet (métro) de « Rue de la Gare » (bus).
 - **Constaté contre le MOTIS local (v2.11.4, données nationales)** : `/api/v1/geocode` rend pour chaque arrêt la liste `modes` des transports qui le desservent. Exemples : Châtelet, Paris ⇒ `SUBWAY, BUS` ; Gare de Lyon, Paris ⇒ `REGIONAL_RAIL, SUBWAY, BUS` ; Auxerre Saint-Gervais ⇒ `REGIONAL_RAIL, BUS` ; DIJON Gare ⇒ `REGIONAL_RAIL, TRAM, BUS` ; Rue de la Gare, Pusignan ⇒ `BUS` ; Domer - Garibaldi, Lyon ⇒ `[]`. Aujourd'hui le serveur jette ce champ (`schemaMatch`, `serveur/src/lieux/motis-geocode.ts`).
 
-### D92 — Icône d'un arrêt selon le transport le plus lourd qui le dessert (proposée)
+### D92 — Icône d'un arrêt selon le transport le plus lourd qui le dessert (acceptée ; écarts d'application en §12.5)
 
 - Le serveur garde `modes` des arrêts MOTIS et rend dans chaque candidat de `GET /v1/lieux` un champ **`transport`** : `"train"`, `"metro"`, `"tram"`, `"car"`, `"bus"`, `"bateau"`, ou absent (adresse, lieu, arrêt sans mode connu). Le plus lourd l'emporte, dans cet ordre : train (`RAIL`, `HIGHSPEED_RAIL`, `LONG_DISTANCE`, `NIGHT_RAIL`, `REGIONAL_FAST_RAIL`, `REGIONAL_RAIL`, `SUBURBAN`) > métro (`SUBWAY`) > tram (`TRAM`) > car (`COACH`) > bus (`BUS`, `ODM`) > bateau (`FERRY`). Un mode inconnu est ignoré (le schéma Zod ne refuse pas la réponse pour autant).
 - L'app choisit l'icône (Material Symbols, déjà utilisés par `expo-symbols`) :
@@ -147,7 +147,7 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
   | Candidat | Icône | Exemple |
   |---|---|---|
   | arrêt `train` | `train` | Auxerre Saint-Gervais, Gare de Lyon |
-  | arrêt `metro` | `subway` | Châtelet, Pré-Saint-Gervais |
+  | arrêt `metro` | « M » en gras (§12.5) | Châtelet, Pré-Saint-Gervais |
   | arrêt `tram` | `tram` | arrêt de tram seul |
   | arrêt `car` ou `bus` | `directions_bus` | Rue de la Gare, Pusignan |
   | arrêt `bateau` | `directions_boat` | |
@@ -155,7 +155,7 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
   | adresse | `home_pin` (repère avec une maison) | 3 rue de la Gare, Joigny |
   | lieu (commune, monument, commerce) | `location_on` (comme aujourd'hui) | Tribunal administratif, Dijon |
 
-- Le lecteur d'écran dit la nature avant le nom : « Gare, Auxerre Saint-Gervais, Auxerre, à 38 km » ; « Métro, Châtelet, Paris » ; « Arrêt de bus, … » ; « Adresse, … ». La ligne de détail écrite ne change pas.
+- La ligne de détail, écrite et lue, dit ce qu'est le lieu : « Gare, Auxerre, 89000 · à 38 km » ; « Métro, Paris, 75004 » ; « Arrêt de bus, … » ; « Adresse, … » (§12.5). TalkBack lit le nom puis cette ligne.
 - Le lieu choisi garde son `transport` (bout « lieu choisi », `schemaBoutLieu`), pour que l'icône reste la même si la liste se rouvre.
 - Raison : un débutant reconnaît d'un coup d'œil la gare ou la station de métro parmi des homonymes, sans lire la ligne de détail.
 - Options écartées : une icône par mode, plusieurs côte à côte (illisible sur 48 dp, et Gare de Lyon en aurait trois) ; deviner le mode depuis le nom (« Gare », « Métro ») (faux pour « Rue de la Gare », arrêt de bus) ; le pictogramme officiel de chaque réseau (logos des opérateurs, droits et cohérence) ; `signpost` pour l'adresse (lu comme un panneau de direction, pas comme une adresse).
@@ -171,3 +171,26 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
 13. Tests serveur : `transportDesModes` : `REGIONAL_RAIL, SUBWAY, BUS` ⇒ `train` ; `SUBWAY, BUS` ⇒ `metro` ; `REGIONAL_RAIL, TRAM, BUS` ⇒ `train` ; `BUS` ⇒ `bus` ; `[]` ou absent ⇒ rien ; un mode inconnu seul ⇒ rien. Une réponse MOTIS enregistrée avec `modes` donne `transport` dans `/v1/lieux`.
 14. Tests app : `iconeCandidat` rend l'icône du tableau pour chaque ligne ; `natureLue` rend « Gare », « Métro », « Tram », « Arrêt de car », « Arrêt de bus », « Arrêt », « Adresse », « Lieu » ; un ancien candidat sans `transport` passe toujours le schéma.
 15. Sur le téléphone : « chatelet » ⇒ Châtelet, Paris avec l'icône métro ; « auxerre saint » ⇒ la gare avec l'icône train ; « 3 rue de la gare joigny » ⇒ icône adresse ; « rue de la gare » ⇒ arrêts de bus avec l'icône bus.
+16. Tests serveur : doublons écartés (§12.5) : « Basilique de Saint-Denis » = « Basilique Saint-Denis » à 35 m ; « Châtelet » deux fois dans le 1er à 210 m ⇒ une fois ; la commune donnée quatre fois ⇒ une fois, l'arrêt du même nom gardé ; la gare de l'IGN et l'arrêt de MOTIS du même nom ⇒ une fois, même dans deux arrondissements ; le monument et la station de métro du même nom ⇒ deux ; même nom dans deux communes, ou à 1 km dans la même ⇒ deux.
+
+### 12.5 Ce qui a été appliqué (2026-11-05), avec les écarts constatés en essayant
+
+- Serveur, `motis-geocode.ts` : `modes` lu (facultatif) ; `transportDesModes` ; `Candidat.transport`.
+- Serveur, `ign-geocode.ts` :
+  - **En plus** : `transportDesCategories` donne aussi un transport aux gares de la BD TOPO (`category` de l'IGN : « gare voyageurs… » ⇒ train, « gare routière » ⇒ car, « station de métro » ⇒ métro). Sans cela, « Gare d'Auxerre-Saint-Gervais », que seule l'IGN rend, gardait l'icône d'un lieu.
+  - **En plus, doublons écartés** (constaté sur le téléphone : « saint michel sur orge » ⇒ 5 lignes, toutes la commune ou presque). Deux candidats sont le même lieu : noms proches à moins de 80 m (règle d'avant), noms comparés sans les petits mots (« de », « la ») ; même nom à moins de 300 m s'ils sont tous deux desservis par un transport, ou de même nature dans la même commune ; la commune elle-même à moins de 5 km.
+  - **En plus, classement** : le bonus de 0,2 du nom exact vaut aussi pour un arrêt (« gare de lyon » : la gare avant son parking) ; un transport lourd ajoute 0,15 (train, métro) ou 0,06 (tram). Depuis l'Yonne, « chatelet » montre le métro de Paris en 4e, après le lieu-dit voisin et deux arrêts de bus que MOTIS place lui-même devant (rang de MOTIS compté dans la note) : laissé tel quel, il est dans les 5.
+- App, `api.ts`, `demande.ts` : `transport` facultatif dans le candidat et le lieu choisi ; une valeur inconnue est oubliée (`.catch`), le candidat reste valable.
+- App, `suggestions.ts` : `iconeCandidat`, `natureLue`. **Écart** : le métro est un « M » en gras dans le rond, pas le pictogramme `subway`, qui se confondait avec le bus à 22 dp sur le téléphone.
+- App, `resultat.ts`, `detailCandidat` : **écart** : la ligne de détail écrite dit ce qu'est le lieu (« Gare, Paris, 75012 », « Métro, Paris, 75004 », « Arrêt de bus, … », « Adresse, … ») au lieu de « Arrêt » pour tous, et ne redit pas la commune sous un lieu qui porte son nom (« Saint-Michel-sur-Orge » ⇒ « 91240 · à 120 km »). Le libellé lu par TalkBack est le nom puis cette ligne (« Joigny, Gare, 89300, à 17 km »).
+- App, `elements.tsx` : `IconeDuLieu`, rond de 48 dp (`h-12 w-12`, la taille des autres boutons ronds ; `h-10` n'était pas produit par NativeWind et le rond suivait son contenu) ; ligne de détail sur 3 lignes au plus (« à 66 km » était coupé).
+- Vérifié : serveur 221 tests, app 229 tests, `tsc` et `expo lint` verts.
+
+### 12.6 Constaté sur le téléphone (2026-11-05, par Claude via `adb`, captures hors dépôt, D38)
+
+- « gare de lyon » ⇒ Gare de Lyon (Paris), Paris-Gare-de-Lyon, Lyon Part-Dieu, Lyon Perrache : icône train, « Gare, … » ; la station de métro de l'IGN du même nom n'apparaît plus en double.
+- « chatelet » ⇒ Châtelet, Paris avec le « M », « Métro, Paris, 75004 » ; arrêts de bus de Montereau et Corquilleroy avec l'icône bus. Touché ⇒ le champ montre « Châtelet », « Métro, Paris, 75004 » dessous.
+- « 3 rue de la gare joigny » ⇒ icône adresse. **Limite connue, antérieure à ce complément** (même classement avant) : l'IGN n'a pas de n° 3 rue de la Gare à Joigny (89), seulement la rue ; le « 3 » tapé fait passer les adresses numérotées de Joigny-sur-Meuse devant. À traiter à part si Brainditech le juge utile.
+- « joigny » tapé sans choisir, « Chercher » ⇒ « Choisissez le lieu dans la liste. » sous l'Arrivée, Joigny (commune, une seule fois) puis Joigny (Gare, icône train) ; aucun autre écran ; la gare touchée, « Chercher » ⇒ Résultat directement (« Possible », départ 06:18).
+- Saint-Michel-sur-Orge (arrêt) → Basilique de Saint-Denis ⇒ Résultat « Possible » (07:49 → 09:03) ; l'API n'a jamais redémarré (issue 0020).
+- Reste du critère 10 (TalkBack, serveur arrêté, capture côte à côte avec la maquette 02) et critère 11 (comparaison avec Google Maps) : par Brainditech.

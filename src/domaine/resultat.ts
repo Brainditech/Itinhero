@@ -1,5 +1,6 @@
 import type { Candidat, Etape, LieuEtape, Possibilite, ReponseItineraires } from "./api";
 import type { Bout, Demande } from "./demande";
+import { natureLue } from "./suggestions";
 
 // Ce qu'affichent le formulaire et le Résultat (spec 10, §4.1). Tout vient de la réponse de l'API :
 // l'app ne calcule aucune heure (invariant 3 par extension : rien d'inventé côté client).
@@ -86,10 +87,24 @@ export function phraseVotreTrajet(depart: BoutRecap, arrivee: BoutRecap, demande
   return `Votre trajet : de ${lieu(depart)}, à ${lieu(arrivee)}. ${quandDemande(demande).replaceAll(" · ", ", ")}.`;
 }
 
-/** Deuxième ligne d'un candidat : commune et code postal, puis la distance si le serveur la donne. */
+/** Nom comparé sans accents, casse, tirets ni apostrophes. */
+const simple = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+/**
+ * Deuxième ligne d'un candidat : ce qu'il est (« Gare », « Métro », « Adresse »… D92), commune et code postal,
+ * puis la distance si le serveur la donne.
+ */
 export function detailCandidat(c: Candidat): string {
-  const lieu = [c.commune, c.code_postal].filter((v): v is string => !!v).join(", ");
-  const nature = c.type === "arret" ? "Arrêt" : c.type === "adresse" ? "Adresse" : "";
+  // La commune n'est pas redite sous un lieu qui porte son nom (« Saint-Michel-sur-Orge » ⇒ « 91240 »).
+  const commune = c.commune && simple(c.commune) !== simple(c.nom) ? c.commune : null;
+  const lieu = [commune, c.code_postal].filter((v): v is string => !!v).join(", ");
+  const nature = natureLue(c);
   const morceaux = [nature && lieu ? `${nature}, ${lieu}` : nature || lieu];
   if (c.distance_metres != null) morceaux.push(`à ${formaterDistance(c.distance_metres)}`);
   return morceaux.filter((m) => m !== "").join(" · ");

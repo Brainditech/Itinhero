@@ -27,10 +27,31 @@ const schemaMatch = z.object({
   lon: z.number().min(-180).max(180),
   zip: z.string().optional(),
   category: z.string().optional(),
+  // Transports qui desservent un arrêt (« SUBWAY », « REGIONAL_RAIL »…) ; un mode inconnu est ignoré, pas refusé.
+  modes: z.array(z.string()).optional(),
   areas: z.array(z.object({ name: z.string(), default: z.boolean().optional() })).default([]),
 });
 
 export const schemaReponseGeocode = z.array(schemaMatch);
+
+/** Transport le plus lourd qui dessert un arrêt (D92) : l'app en tire l'icône. */
+export type Transport = "train" | "metro" | "tram" | "car" | "bus" | "bateau";
+
+/** Modes de MOTIS v2.11.4 (`Mode`, openapi.yaml du tag) rangés du plus lourd au plus léger (D92). */
+const ORDRE_TRANSPORTS: readonly (readonly [Transport, readonly string[]])[] = [
+  ["train", ["RAIL", "HIGHSPEED_RAIL", "LONG_DISTANCE", "NIGHT_RAIL", "REGIONAL_FAST_RAIL", "REGIONAL_RAIL", "SUBURBAN"]],
+  ["metro", ["SUBWAY"]],
+  ["tram", ["TRAM"]],
+  ["car", ["COACH"]],
+  ["bus", ["BUS", "ODM"]],
+  ["bateau", ["FERRY"]],
+];
+
+/** `["REGIONAL_RAIL", "SUBWAY", "BUS"]` ⇒ « train » ; aucun mode connu ⇒ undefined. */
+export function transportDesModes(modes: readonly string[] | undefined): Transport | undefined {
+  if (!modes) return undefined;
+  return ORDRE_TRANSPORTS.find(([, liste]) => liste.some((m) => modes.includes(m)))?.[0];
+}
 
 export type Candidat = {
   nom: string;
@@ -44,6 +65,8 @@ export type Candidat = {
    * ou la recherche par catégorie dans les lieux d'OSM (D61).
    */
   source: "ign" | "motis" | "osm";
+  /** Arrêt de MOTIS (ses modes) ou gare de la BD TOPO (sa catégorie) : transport le plus lourd (D92). */
+  transport?: Transport;
 };
 
 const TYPES = { ADDRESS: "adresse", PLACE: "lieu", STOP: "arret" } as const;
@@ -64,13 +87,17 @@ function sansPosition(m: { lat: number; lon: number }): boolean {
 }
 
 export function lireReponseGeocode(brut: unknown): Candidat[] {
-  return schemaReponseGeocode.parse(brut).filter((m) => !sansPosition(m)).map((m) => ({
-    nom: m.name,
-    type: TYPES[m.type],
-    commune: m.areas.find((a) => a.default)?.name ?? null,
-    code_postal: codePostal(m.zip),
-    lat: m.lat,
-    lon: m.lon,
-    source: "motis" as const,
-  }));
+  return schemaReponseGeocode.parse(brut).filter((m) => !sansPosition(m)).map((m) => {
+    const transport = m.type === "STOP" ? transportDesModes(m.modes) : undefined;
+    return {
+      nom: m.name,
+      type: TYPES[m.type],
+      commune: m.areas.find((a) => a.default)?.name ?? null,
+      code_postal: codePostal(m.zip),
+      lat: m.lat,
+      lon: m.lon,
+      source: "motis" as const,
+      ...(transport ? { transport } : {}),
+    };
+  });
 }

@@ -53,7 +53,7 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 | `GET /health` | état de l'API, de MOTIS et date du jeu GTFS actif |
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond |
 | `POST /v1/assistant` | demande + réglages en cours → action ou identifiant de conseil par Claude, sous limite et plafond (D31) |
-| `GET /v1/lieux?q=` | candidats du géocodeur MOTIS |
+| `GET /v1/lieux?q=&proche=` | candidats de l'IGN et de MOTIS classés ensemble (D60), doublons écartés ; `transport` d'un arrêt ou d'une gare (D92) |
 | `POST /v1/itineraires` | verdict + possibilités (segments sourcés, tous les tarifs applicables) ; avec l'heure de fin du rendez-vous, le retour lié (D47) ; taxi comme étape (D48) ; covoiturage (D50) |
 | `POST /v1/numeros` | lieu et type (taxi, transport à la demande) → numéros des fiches validées, ou trouvés sur une page publique vérifiée par le serveur, « non vérifié » (D49) |
 | `GET /v1/fiches` | tarifs et fiches validées (la réduction est appliquée côté client) |
@@ -99,7 +99,7 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 | Réservation obligatoire | GTFS `pickup_type=2` ou `route_type 715` |
 | Échéance de réservation, numéro à appeler | fiche validée ; sinon numéro lu sur une page publique téléchargée par le serveur, avec l'URL, la date et « non vérifié » (D49) ; sinon « délai non connu » / « aucun numéro connu » |
 | Verdict | calcul déterministe : arrivée ≤ heure du rendez-vous − marge (10 min par défaut, ou valeur dite dans la phrase) |
-| Lieu de destination | géocodeur MOTIS (OSM), candidat confirmé |
+| Lieu de destination | géocodeur de l'IGN et de MOTIS (D60), lieu choisi dans la liste sous le champ (D91) |
 | « Horaires du JJ/MM » | `feed_info.feed_version` ou date d'ingestion du jeu actif |
 | Consignes et glossaire | gabarits fixes versionnés dans le dépôt |
 | Marge affichée | décision D17, ou valeur extraite de la phrase |

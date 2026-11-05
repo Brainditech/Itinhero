@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { schemaTransport } from "./api";
 import { distance } from "./geo";
 
 // Forme unique d'une demande (spec 02, décision 5 ; invariant 9) : produite par le formulaire
@@ -33,6 +34,8 @@ export const schemaBoutLieu = z.object({
   nature: z.enum(["adresse", "lieu", "arret"]),
   commune: z.string().nullish(),
   code_postal: z.string().nullish(),
+  /** Gardé pour que l'icône et la ligne de détail restent les mêmes (D92). */
+  transport: schemaTransport,
 });
 
 /**

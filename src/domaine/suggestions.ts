@@ -1,4 +1,4 @@
-import type { Candidat, ResultatApi } from "./api";
+import type { Candidat, ResultatApi, Transport } from "./api";
 import type { Bout, BoutLieu, CoteBout } from "./demande";
 
 // Lieux suggérés pendant la frappe (spec 18, D90, D91) : pur TypeScript, testé sous Node.
@@ -34,12 +34,67 @@ export function boutDuCandidat(c: Candidat): BoutLieu {
     nature: c.type,
     commune: c.commune ?? null,
     code_postal: c.code_postal ?? null,
+    ...(c.transport ? { transport: c.transport } : {}),
   };
 }
 
 /** Lieu choisi ⇒ candidat, sans distance (elle dépend de l'autre bout) : pour sa ligne de détail et son adresse. */
 export function candidatDuBout(b: BoutLieu): Candidat {
-  return { nom: b.nom, lat: b.lat, lon: b.lon, type: b.nature, commune: b.commune, code_postal: b.code_postal };
+  return {
+    nom: b.nom,
+    lat: b.lat,
+    lon: b.lon,
+    type: b.nature,
+    commune: b.commune,
+    code_postal: b.code_postal,
+    ...(b.transport ? { transport: b.transport } : {}),
+  };
+}
+
+// ——— Ce qu'est le lieu : icône et mot (spec 18, §12 ; D92) ———
+
+/**
+ * Icône d'une ligne de la liste : un nom Material Symbols (expo-symbols), ou « M », le signe du métro
+ * (le pictogramme `subway` se confond avec le bus à 22 dp, constaté sur le téléphone le 2026-11-05).
+ */
+export type IconeLieu =
+  | "M"
+  | "train"
+  | "tram"
+  | "directions_bus"
+  | "directions_boat"
+  | "directions_transit"
+  | "home_pin"
+  | "location_on";
+
+const ICONES_TRANSPORT: Record<Transport, IconeLieu> = {
+  train: "train",
+  metro: "M",
+  tram: "tram",
+  car: "directions_bus",
+  bus: "directions_bus",
+  bateau: "directions_boat",
+};
+
+const MOTS_TRANSPORT: Record<Transport, string> = {
+  train: "Gare",
+  metro: "Métro",
+  tram: "Tram",
+  car: "Arrêt de car",
+  bus: "Arrêt de bus",
+  bateau: "Embarcadère",
+};
+
+/** Icône d'un candidat : son transport s'il en a un, sinon sa nature. */
+export function iconeCandidat(c: Pick<Candidat, "type" | "transport">): IconeLieu {
+  if (c.transport) return ICONES_TRANSPORT[c.transport];
+  return c.type === "arret" ? "directions_transit" : c.type === "adresse" ? "home_pin" : "location_on";
+}
+
+/** Mot qui dit ce qu'est le lieu (« Gare », « Métro », « Adresse »…) ; vide pour un lieu sans transport. */
+export function natureLue(c: Pick<Candidat, "type" | "transport">): string {
+  if (c.transport) return MOTS_TRANSPORT[c.transport];
+  return c.type === "arret" ? "Arrêt" : c.type === "adresse" ? "Adresse" : "";
 }
 
 /** Ce que montre la liste sous un champ. */

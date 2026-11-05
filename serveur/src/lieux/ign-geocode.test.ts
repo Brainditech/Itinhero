@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { appTest, ENTETE } from "../outils-test.js";
-import { construireUrlIgn, fusionner, lireReponseIgn, type CandidatNote } from "./ign-geocode.js";
+import { construireUrlIgn, fusionner, lireReponseIgn, transportDesCategories, type CandidatNote } from "./ign-geocode.js";
 import type { Candidat } from "./motis-geocode.js";
 
 const ICI = path.dirname(fileURLToPath(import.meta.url));
@@ -104,6 +104,80 @@ describe("classement IGN + MOTIS (D60)", () => {
     expect(fusionner([a], [b], undefined, "Gare d'Auxerre").length).toBe(1);
     const beaucoup = Array.from({ length: 15 }, (_, i) => motis(`Arrêt ${i}`, 45 + i, 2));
     expect(fusionner([], beaucoup, undefined, "arret").length).toBe(10);
+  });
+
+  // Doublons constatés le 2026-11-05 dans les suggestions (spec 18, §12).
+  it("« de » ne sépare pas deux noms : Basilique de Saint-Denis = Basilique Saint-Denis à 35 m", () => {
+    const a = ign("Basilique de Saint-Denis", 0.9, 48.9355, 2.3597, "Saint-Denis");
+    const b = { ...motis("Basilique Saint-Denis", 48.9358, 2.3591), type: "lieu" as const, commune: "Saint-Denis" };
+    expect(fusionner([a], [b], undefined, "basilique saint denis").map((c) => c.nom)).toEqual(["Basilique de Saint-Denis"]);
+  });
+
+  it("même nom, même nature, même commune à moins de 300 m : une fois (Châtelet à 210 m)", () => {
+    const a = { ...ign("Châtelet", 0.9, 48.8577, 2.3474, "Paris"), code_postal: "75001" };
+    const b = { ...ign("Châtelet", 0.8, 48.8596, 2.3471, "Paris"), code_postal: "75001" };
+    expect(fusionner([a, b], [], undefined, "chatelet")).toHaveLength(1);
+  });
+
+  it("la commune donnée quatre fois n'apparaît qu'une fois, l'arrêt du même nom reste", () => {
+    const commune = { ...ign("Saint-Michel-sur-Orge", 0.87, 48.6332, 2.3127, "Saint-Michel-sur-Orge"), code_postal: "91240" };
+    const sansCommune = { ...ign("Saint-Michel-sur-Orge", 0.54, 48.6336, 2.3106), commune: null, code_postal: "91240" };
+    const ville = { ...motis("Saint-Michel-sur-Orge", 48.6303, 2.3027), type: "lieu" as const, commune: "Saint-Michel-sur-Orge", code_postal: "91240" };
+    const gare = { ...motis("Saint-Michel-sur-Orge", 48.6358, 2.3065), commune: "Saint-Michel-sur-Orge", code_postal: "91240" };
+    const r = fusionner([commune, sansCommune], [gare, ville], undefined, "saint michel sur orge");
+    expect(r.map((c) => c.type)).toEqual(["lieu", "arret"]);
+  });
+
+  it("même nom dans deux communes, ou loin dans la même : gardés tous les deux", () => {
+    const conches = { ...ign("le Châtelet", 0.5, 48.8594, 2.7192, "Conches-sur-Gondoire"), code_postal: "77600" };
+    const vernouillet = { ...ign("le Châtelet", 0.5, 48.9676, 1.9758, "Vernouillet"), code_postal: "78540" };
+    const pont1 = ign("Pont", 0.3, 48.625, 2.3145, "Saint-Michel-sur-Orge");
+    const pont2 = ign("Pont", 0.3, 48.6341, 2.2939, "Saint-Michel-sur-Orge");
+    expect(fusionner([conches, vernouillet, pont1, pont2], [], undefined, "x")).toHaveLength(4);
+  });
+
+  it("une gare de l'IGN et l'arrêt de MOTIS du même nom : une seule gare, même à cheval sur deux arrondissements", () => {
+    const stationIgn = { ...ign("Châtelet", 0.9, 48.8577, 2.3474, "Paris"), code_postal: "75001", transport: "metro" as const };
+    const arret = { ...motis("Châtelet", 48.8584, 2.3485), commune: "Paris", code_postal: "75004", transport: "metro" as const };
+    expect(fusionner([stationIgn], [arret], PARIS, "chatelet")).toHaveLength(1);
+    // Le monument et la station de métro du même nom restent deux lieux (Basilique de Saint-Denis).
+    const monument = ign("Basilique de Saint-Denis", 0.9, 48.9355, 2.3597, "Saint-Denis");
+    const metro = { ...motis("Basilique de Saint-Denis", 48.9377, 2.36), commune: "Saint-Denis", transport: "metro" as const };
+    expect(fusionner([monument], [metro], undefined, "basilique saint denis")).toHaveLength(2);
+  });
+
+  it("à distance et note voisines, la gare passe devant l'arrêt de bus du même nom", () => {
+    const bus = { ...motis("Centre", 48.0, 3.0), transport: "bus" as const };
+    const gare = { ...motis("Centre", 48.3, 3.0), transport: "train" as const };
+    expect(fusionner([], [bus, gare], { lat: 47.9, lon: 3.0 }, "centre")[0]!.transport).toBe("train");
+  });
+
+  it("un arrêt au nom exact passe devant le parking du même nom", () => {
+    const parking = ign("Parking Gare de Lyon", 0.9, 48.8438, 2.373, "Paris");
+    const arret = motis("Gare de Lyon", 48.8446, 2.3751);
+    expect(fusionner([parking], [arret], PARIS, "gare de lyon")[0]!.nom).toBe("Gare de Lyon");
+  });
+});
+
+describe("transportDesCategories (D92)", () => {
+  it("gare de la BD TOPO ⇒ transport ; autre catégorie ⇒ rien", () => {
+    expect(transportDesCategories(["gare voyageurs et fret", "transport", "équipement de transport"])).toBe("train");
+    expect(transportDesCategories(["gare voyageurs uniquement"])).toBe("train");
+    expect(transportDesCategories(["gare routière", "transport"])).toBe("car");
+    expect(transportDesCategories(["lieu-dit habité", "zone d'habitation"])).toBeUndefined();
+    expect(transportDesCategories(undefined)).toBeUndefined();
+  });
+
+  it("une gare lue chez l'IGN garde son transport", () => {
+    const brut = {
+      features: [
+        {
+          geometry: { coordinates: [3.5851, 47.7973] },
+          properties: { _type: "poi", name: ["Gare d'Auxerre-Saint-Gervais"], city: ["Auxerre"], postcode: ["89000"], category: ["gare voyageurs et fret", "transport"], score: 0.85 },
+        },
+      ],
+    };
+    expect(lireReponseIgn(brut)[0]!.transport).toBe("train");
   });
 });
 

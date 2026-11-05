@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Candidat } from "./api";
+import { schemaCandidat, type Candidat } from "./api";
 import { echangerBouts, schemaBout, type Bout, type BoutLieu } from "./demande";
 import {
   annonceSuggestions,
@@ -9,7 +9,9 @@ import {
   Derniere,
   enAttente,
   etatSuggestions,
+  iconeCandidat,
   MESSAGES_SUGGESTIONS,
+  natureLue,
   reporterLieu,
   SUGGESTIONS_MAX,
   texteASuggerer,
@@ -143,5 +145,50 @@ describe("état de la liste (spec 18, critère 5)", () => {
     expect(d.estDerniere(seconde)).toBe(true);
     d.oublier();
     expect(d.estDerniere(seconde)).toBe(false);
+  });
+});
+
+// Spec 18, §12 (D92) : ce qu'est le lieu, d'un coup d'œil et à l'oreille.
+describe("icône et nature d'un candidat (D92)", () => {
+  const arret = (transport?: Candidat["transport"]): Candidat => ({ ...GARE, type: "arret", ...(transport ? { transport } : {}) });
+
+  it("icône selon le transport, sinon selon la nature", () => {
+    expect(iconeCandidat(arret("train"))).toBe("train");
+    expect(iconeCandidat(arret("metro"))).toBe("M");
+    expect(iconeCandidat(arret("tram"))).toBe("tram");
+    expect(iconeCandidat(arret("car"))).toBe("directions_bus");
+    expect(iconeCandidat(arret("bus"))).toBe("directions_bus");
+    expect(iconeCandidat(arret("bateau"))).toBe("directions_boat");
+    expect(iconeCandidat(arret())).toBe("directions_transit");
+    expect(iconeCandidat({ type: "adresse" })).toBe("home_pin");
+    expect(iconeCandidat({ type: "lieu" })).toBe("location_on");
+    // Gare de la BD TOPO : un lieu avec un transport.
+    expect(iconeCandidat({ type: "lieu", transport: "train" })).toBe("train");
+  });
+
+  it("mot dit et écrit", () => {
+    expect(natureLue(arret("train"))).toBe("Gare");
+    expect(natureLue(arret("metro"))).toBe("Métro");
+    expect(natureLue(arret("tram"))).toBe("Tram");
+    expect(natureLue(arret("car"))).toBe("Arrêt de car");
+    expect(natureLue(arret("bus"))).toBe("Arrêt de bus");
+    expect(natureLue(arret())).toBe("Arrêt");
+    expect(natureLue({ type: "adresse" })).toBe("Adresse");
+    expect(natureLue({ type: "lieu" })).toBe("");
+  });
+
+  it("le lieu choisi garde son transport, aller et retour", () => {
+    const b = boutDuCandidat(arret("metro"));
+    expect(b.transport).toBe("metro");
+    expect(schemaBout.safeParse(b).success).toBe(true);
+    expect(candidatDuBout(b).transport).toBe("metro");
+    expect(boutDuCandidat(arret())).not.toHaveProperty("transport");
+  });
+
+  it("un transport inconnu (serveur plus récent) est oublié, le candidat reste valable", () => {
+    const r = schemaCandidat.safeParse({ ...GARE, transport: "teleportation" });
+    expect(r.success).toBe(true);
+    expect(r.success && r.data.transport).toBeUndefined();
+    expect(schemaCandidat.safeParse({ ...GARE }).success).toBe(true);
   });
 });

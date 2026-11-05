@@ -5,7 +5,7 @@ import { SymbolView, type AndroidSymbol } from "expo-symbols";
 import type { Candidat } from "@/domaine/api";
 import type { Bout } from "@/domaine/demande";
 import { detailCandidat } from "@/domaine/resultat";
-import { annonceSuggestions, MESSAGES_SUGGESTIONS, type EtatSuggestions } from "@/domaine/suggestions";
+import { annonceSuggestions, iconeCandidat, MESSAGES_SUGGESTIONS, type EtatSuggestions, type IconeLieu } from "@/domaine/suggestions";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /** Mot « Itinhero » en haut à gauche de chaque écran. */
@@ -341,11 +341,21 @@ export function ChampLieu({
   );
 }
 
-const ICONE_NATURE = {
-  arret: "directions_transit",
-  adresse: "signpost",
-  lieu: "location_on",
-} as const satisfies Record<Candidat["type"], AndroidSymbol>;
+/** Ce qu'est le lieu d'un coup d'œil, dans un rond : gare, « M » du métro, bus, adresse… (D92). Le libellé lu est sur la ligne. */
+function IconeDuLieu({ icone }: { icone: IconeLieu }) {
+  return (
+    <View
+      importantForAccessibility="no-hide-descendants"
+      className="h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primaire-doux"
+    >
+      {icone === "M" ? (
+        <Text className="font-inter-bold text-corps text-primaire">M</Text>
+      ) : (
+        <SymbolView name={{ android: icone, web: icone }} size={22} tintColor={couleurs.primaire} />
+      )}
+    </View>
+  );
+}
 
 /** Liste des lieux suggérés sous un champ (spec 18, §4.1). */
 function ListeSuggestions({ suggestions, onChoisir }: { suggestions: EtatSuggestions; onChoisir: (c: Candidat) => void }) {
@@ -379,13 +389,14 @@ function ListeSuggestions({ suggestions, onChoisir }: { suggestions: EtatSuggest
             onPress={() => onChoisir(c)}
             className={`min-h-12 flex-row items-center gap-3 px-4 py-2 active:bg-primaire-doux ${i > 0 ? "border-t border-bordure-carte" : ""}`}
           >
-            <SymbolView name={{ android: ICONE_NATURE[c.type], web: ICONE_NATURE[c.type] }} size={22} tintColor={couleurs.primaire} />
+            {/* Ce qu'est le lieu d'un coup d'œil : gare, métro, bus, adresse… (D92). */}
+            <IconeDuLieu icone={iconeCandidat(c)} />
             <View className="flex-1">
               <Text className="font-inter-medium text-corps text-texte" numberOfLines={2}>
                 {c.nom}
               </Text>
               {detail ? (
-                <Text className="font-inter text-secondaire text-texte-secondaire" numberOfLines={2}>
+                <Text className="font-inter text-secondaire text-texte-secondaire" numberOfLines={3}>
                   {detail}
                 </Text>
               ) : null}

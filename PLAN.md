@@ -270,7 +270,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : test, plus capture.
   Fait en partie (spec 10) : écran `confirmation.tsx` (jusqu'à 5 candidats, le premier choisi ; un seul ⇒ Résultat direct ; aucun ⇒ message), textes testés dans `src/domaine/resultat.test.ts`, 2026-11-04. Manque : la capture sur le téléphone.
   Spec 13 (D77, D78) : départ tapé confirmé lui aussi (« D'où partez-vous ? »), puis l'arrivée ; textes testés dans `src/domaine/resultat.test.ts`, 2026-11-04. Manque : critères 4 à 6 de la spec 13 sur le téléphone.
-  Spec 18 (D90, D91, 2026-11-05) : l'écran de Confirmation est supprimé ; les lieux se choisissent dans une liste sous le champ, pendant la frappe ou, pour un texte ambigu, à « Chercher ». Tests dans `src/domaine/suggestions.test.ts` ; critères 7 à 9 de la spec 18 constatés sur le téléphone (spec 18 §11). Manque : critères 10 et 11 (serveur arrêté, TalkBack, capture côte à côte, comparaison avec Google Maps).
+  Spec 18 (D90, D91, 2026-11-05) : l'écran de Confirmation est supprimé ; les lieux se choisissent dans une liste sous le champ, pendant la frappe ou, pour un texte ambigu, à « Chercher ». Tests dans `src/domaine/suggestions.test.ts` ; critères 7 à 9 de la spec 18 constatés sur le téléphone (spec 18 §11). Complément §12 (D92, 2026-11-05) : icône et mot selon le transport, doublons écartés ; tests dans `serveur/src/lieux/*.test.ts` et `src/domaine/suggestions.test.ts`, constaté sur le téléphone (spec 18 §12.6). Manque : critères 10 et 11 (serveur arrêté, TalkBack, capture côte à côte, comparaison avec Google Maps).
 
 ### Phase 2 bis — Données nationales (D46, avancée par D54)
 
