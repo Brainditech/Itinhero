@@ -517,3 +517,48 @@ describe("spec 17 — « Me guider » démarre à l'étape choisie (D86)", () =>
     expect(etatDepart("x", 5)).toEqual(ETAT_INITIAL);
   });
 });
+
+describe("issue 0022 — loin du chemin au départ d'une marche : pas « Vous y êtes »", () => {
+  // Guidage ouvert à 17 km du chemin (retour de Joigny essayé depuis Brienon) : la position se projette au bout
+  // du tracé ; avant l'écart (15 s), le guidage se croyait au bout de la marche.
+  const k = 4;
+  const g = parcours.etapes[k]!;
+  const loin = positionSimulee(parcours, k, 0, 17_000);
+  it.each([
+    [0, 17_000],
+    [0.5, 17_000],
+    [1, 17_000],
+    [0, -17_000],
+    [1, -17_000],
+  ])("les 15 premières secondes (à %f du tracé, %i m de côté) : on reste au début de la marche", (part, cote) => {
+    const ici = positionSimulee(parcours, k, g.ligne.longueur * part, cote);
+    let etat: EtatGuidage = { ...ETAT_INITIAL, etape: k };
+    for (let t = 0; t < 15; t++) {
+      const s = situer(parcours, etat, ici, heure("10:30") + t * 1000);
+      etat = s.etat;
+      expect(s.abscisse).toBe(0);
+      expect(s.vue.type).toBe("marche");
+      if (s.vue.type === "marche") expect(s.vue.distance).toBeGreaterThan(15);
+    }
+  });
+  it("au départ, à 17 km : ni étape suivante ni annonce d'arrivée", () => {
+    let etat: EtatGuidage = { ...ETAT_INITIAL, etape: k };
+    for (let t = 0; t < 15; t++) {
+      const s = situer(parcours, etat, loin, heure("10:30") + t * 1000);
+      etat = s.etat;
+      expect(s.etat.etape).toBe(k);
+      expect(s.vue.type).toBe("marche");
+      if (s.vue.type === "marche") expect(s.vue.distance).toBeGreaterThan(15);
+      expect(s.annonces.some((d) => /est sur votre|est devant vous/.test(d))).toBe(false);
+    }
+  });
+  it("après 15 s : l'écart est signalé", () => {
+    let etat: EtatGuidage = { ...ETAT_INITIAL, etape: k };
+    let s: Situation | null = null;
+    for (let t = 0; t <= 16; t++) {
+      s = situer(parcours, etat, loin, heure("10:30") + t * 1000);
+      etat = s.etat;
+    }
+    expect(s!.ecart?.metres).toBeGreaterThan(10_000);
+  });
+});
