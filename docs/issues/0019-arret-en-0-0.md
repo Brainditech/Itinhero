@@ -1,7 +1,7 @@
 # Issue 0019 — Arrêt « JOIGNY-3 RUE DE LA GARE » proposé « à 5348 km »
 
 - **Date** : 2026-11-05
-- **État** : **analyse approuvée** par Brainditech le 2026-11-05, option « 0,0 seulement ». Cause vérifiée sur MOTIS ; aucune correction écrite.
+- **État** : **corrigé** (branche `issue/0019-arret-en-0-0`), revérifié sur le téléphone le 2026-11-05. Analyse approuvée par Brainditech le 2026-11-05, option « 0,0 seulement ».
 - **Branche** : `issue/0018-0019-essai-recalcul` (analyse seulement).
 
 ## 1. Reproduction
@@ -33,3 +33,10 @@ Le même arrêt peut aussi servir dans un itinéraire MOTIS. Il faudra vérifier
 ## 4. Test de régression prévu
 
 `serveur/src/lieux/motis-geocode.test.ts` (nouveau) : une réponse MOTIS avec un `STOP` à 0,0 et un autre normal ⇒ seul le second ressort. Le test doit échouer sur le code actuel.
+
+## 5. Correction (2026-11-05)
+
+- `lireReponseGeocode` écarte les candidats à 0,0 exactement (`sansPosition`), avant la conversion ; un lieu dont une seule coordonnée vaut 0 est gardé.
+- Test `serveur/src/lieux/motis-geocode.test.ts` : échoue sur le code d'avant (« JOIGNY-3 RUE DE LA GARE » ressortait), passe après. `npm test` du serveur : 197 tests verts ; app : lint, types, 172 tests verts.
+- Revérifié sur le téléphone (API nationale reconstruite, même recherche qu'au §1) : « Quel lieu ? » propose Gare de Joigny, Rue de la Gare, Place de la Gare (Joigny, à 17 km), Rue de la Gare (Joigny-sur-Meuse, à 222 km), La Haie de Joigny ; plus d'arrêt « à 5348 km ».
+- Reste à faire, à part : vérifier si un itinéraire MOTIS peut passer par cet arrêt (§3, dernier paragraphe).
