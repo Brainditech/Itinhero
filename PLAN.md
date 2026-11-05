@@ -318,6 +318,8 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : capture.
 - [ ] Guidage en direct de porte à porte : marche virage par virage, attente à l'arrêt, arrêts restants, descente, écart au chemin (D72 à D75, spec 12).
   Preuve : tests du domaine (annonces, écart, descente), captures des 5 états comparées à `design/guidage/`, essai sur le terrain par Brainditech.
+- [ ] Perdu pendant une marche : nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé quand le véhicule suivant reste à portée (D96, spec 20).
+  Preuve : tests du serveur et du domaine, test sur le MOTIS national, captures adb (nouveau chemin, véhicule plus à portée, 17 km).
 - [ ] Annuaire `data/fiches/` validé. Avertissement ⚠ au-delà de 15 min de marche, avec un taxi pour cette étape.
   Preuve : tests (« aucun numéro connu »), au moins une fiche taxi validée.
 - [ ] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
