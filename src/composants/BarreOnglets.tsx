@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Keyboard, Pressable, Text, View } from "react-native";
+import { useSegments } from "expo-router";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { SymbolView } from "expo-symbols";
 import type { AndroidSymbol } from "expo-symbols";
@@ -21,6 +22,7 @@ const ONGLETS: Record<string, { libelle: string; icone: AndroidSymbol }> = {
 export function BarreOnglets({ state, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [clavierOuvert, setClavierOuvert] = useState(false);
+  const segments = useSegments();
 
   useEffect(() => {
     const ouvert = Keyboard.addListener("keyboardDidShow", () => setClavierOuvert(true));
@@ -31,7 +33,8 @@ export function BarreOnglets({ state, navigateToTab }: BottomTabBarProps) {
     };
   }, []);
 
-  if (clavierOuvert) return null;
+  // Le guidage occupe tout l'écran (spec 12, maquettes design/guidage/).
+  if (clavierOuvert || segments.includes("guidage" as never)) return null;
 
   return (
     <View

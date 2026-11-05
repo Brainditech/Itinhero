@@ -84,6 +84,7 @@ export default function Resultat() {
         <CartePossibilite
           key={`${p.depart_utc}-${p.arrivee_utc}-${i}`}
           possibilite={p}
+          index={i}
           destination={arrivee.nom}
           date={demande.date}
           adresse={reponse.arrivee.adresse}

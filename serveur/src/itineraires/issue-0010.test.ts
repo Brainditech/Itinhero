@@ -192,3 +192,21 @@ describe("route : noms envoyés par l'app et adresse de l'arrivée", () => {
     expect(r.statusCode).toBe(400);
   });
 });
+
+describe("spec 12 — données du guidage", () => {
+  it("le 803 porte ses arrêts intermédiaires avec l'heure prévue, la marche n'en a pas", () => {
+    const bus = etape("bus");
+    expect(bus.arrets).toEqual([
+      expect.objectContaining({ nom: "St Florentin-Hlm", passage: "08:36" }),
+      expect.objectContaining({ nom: "St Florentin-Mairie" }),
+    ]);
+    expect(etape("marche").arrets).toBeNull();
+  });
+  it("chaque étape a ses instants UTC et un tracé ; les marches ont des consignes", () => {
+    for (const e of premiere().etapes) {
+      expect(Date.parse(e.arrivee_utc)).toBeGreaterThanOrEqual(Date.parse(e.depart_utc));
+      expect(e.trace).toBeTruthy();
+      expect(e.consignes === null).toBe(e.mode !== "marche");
+    }
+  });
+});

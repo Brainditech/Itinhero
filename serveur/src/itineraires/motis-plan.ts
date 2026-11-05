@@ -112,6 +112,10 @@ const schemaEtape = z.object({
   agencyName: z.string().optional(),
   legGeometry: schemaTrace.optional(),
   steps: z.array(schemaMorceau).optional(),
+  // Arrêts desservis entre la montée et la descente (spec 12, guidage dans le véhicule).
+  intermediateStops: z
+    .array(z.object({ name: z.string(), lat: z.number(), lon: z.number(), arrival: z.iso.datetime().optional(), departure: z.iso.datetime().optional() }))
+    .optional(),
 });
 
 const schemaItineraire = z.object({ legs: z.array(schemaEtape).min(1) });
@@ -143,6 +147,8 @@ export type Etape = {
   trace?: { points: string; precision: number };
   /** Morceaux de la marche (spec 11). */
   morceaux?: Morceau[];
+  /** Arrêts intermédiaires d'une étape en véhicule (spec 12). */
+  arrets?: { nom: string; coord: Point; passage: Date | null }[];
 };
 
 export type Possibilite = { etapes: Etape[]; depart: Date; arrivee: Date };
@@ -173,6 +179,10 @@ export function lireReponsePlan(brut: unknown): Possibilite[] {
         coordA: { lat: l.to.lat, lon: l.to.lon },
         trace: l.legGeometry,
         morceaux: l.steps,
+        arrets: l.intermediateStops?.map((a) => {
+          const h = a.arrival ?? a.departure;
+          return { nom: a.name, coord: { lat: a.lat, lon: a.lon }, passage: h ? new Date(h) : null };
+        }),
       };
     });
     return { etapes, depart: etapes[0]!.depart, arrivee: etapes[etapes.length - 1]!.arrivee };

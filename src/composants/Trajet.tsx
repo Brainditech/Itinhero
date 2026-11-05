@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import type { AndroidSymbol } from "expo-symbols";
 
@@ -189,11 +190,14 @@ function LigneAttente({ texte }: { texte: string }) {
 /** Carte d'une possibilité ; la toucher (ou son chevron, en haut à droite) déplie ou replie ses étapes. */
 export function CartePossibilite({
   possibilite,
+  index,
   destination,
   date,
   adresse,
 }: {
   possibilite: Possibilite;
+  /** Rang dans la réponse, pour ouvrir son guidage (spec 12). */
+  index: number;
   destination: string;
   /** Jour demandé (« 2026-11-12 »), pour dire « vendredi » quand l'arrivée est le lendemain (spec 15). */
   date: string;
@@ -267,6 +271,15 @@ export function CartePossibilite({
               {adresse ? <Text className="font-inter text-badge text-texte-secondaire">{adresse}</Text> : null}
             </View>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: "/guidage", params: { i: String(index) } })}
+            className="mt-4 min-h-14 flex-row items-center justify-center gap-2 rounded-bouton bg-fond active:bg-primaire-doux"
+            style={{ borderWidth: 1.5, borderColor: couleurs.primaire }}
+          >
+            <SymbolView name={{ android: "navigation", web: "navigation" }} size={22} tintColor={couleurs.primaire} />
+            <Text className="font-inter-semibold text-corps text-primaire">Démarrer le guidage</Text>
+          </Pressable>
           <View className="mt-4 flex-row items-center justify-center gap-2">
             <Text className="font-inter-medium text-badge text-primaire">Replier les étapes</Text>
             <Chevron ouvert />

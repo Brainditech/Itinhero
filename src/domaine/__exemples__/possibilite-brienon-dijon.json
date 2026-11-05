@@ -1,0 +1,391 @@
+{
+ "depart": "08:14",
+ "arrivee": "10:44",
+ "depart_utc": "2026-11-14T07:14:00.000Z",
+ "arrivee_utc": "2026-11-14T09:44:00.000Z",
+ "duree_minutes": 150,
+ "correspondances": 1,
+ "montee": {
+  "arriver_a": "08:15",
+  "vehicule": "08:25",
+  "marge_minutes": 10
+ },
+ "etapes": [
+  {
+   "mode": "marche",
+   "mode_motis": "WALK",
+   "ligne": null,
+   "direction": null,
+   "numero": null,
+   "reservation": null,
+   "exploitant": null,
+   "de": {
+    "nom": "Domicile",
+    "type": "depart",
+    "arret": null,
+    "lat": 47.9918,
+    "lon": 3.617
+   },
+   "a": {
+    "nom": "Mairie",
+    "type": "arret",
+    "arret": "600326",
+    "lat": 47.991799,
+    "lon": 3.616984
+   },
+   "depart": "08:14",
+   "arrivee": "08:15",
+   "duree_minutes": 1,
+   "distance_metres": 1,
+   "etat": "prevu",
+   "source": {
+    "type": "osm",
+    "jeu": "osm",
+    "version": "2026-11-04"
+   },
+   "trace": "o~dpzAomw{E@^",
+   "consignes": [
+    {
+     "manoeuvre": "depart",
+     "rue": null,
+     "cap": "ouest",
+     "lat": 47.9918,
+     "lon": 3.617,
+     "distance_metres": 1
+    },
+    {
+     "manoeuvre": "arrivee",
+     "rue": null,
+     "cote_arrivee": "devant",
+     "lat": 47.991799,
+     "lon": 3.616984,
+     "distance_metres": 0
+    }
+   ],
+   "depart_utc": "2026-11-14T07:14:00.000Z",
+   "arrivee_utc": "2026-11-14T07:15:00.000Z",
+   "arrets": null
+  },
+  {
+   "mode": "bus",
+   "mode_motis": "BUS",
+   "ligne": "803",
+   "direction": "Auxerre",
+   "numero": null,
+   "reservation": "appel",
+   "exploitant": "MOBIGO 89",
+   "de": {
+    "nom": "Mairie",
+    "type": "arret",
+    "arret": "600326",
+    "lat": 47.991799,
+    "lon": 3.616984
+   },
+   "a": {
+    "nom": "Saint-Florentin-Vergigny, 3 rue de la Gare",
+    "type": "arret",
+    "arret": "3103848",
+    "lat": 47.978725700000005,
+    "lon": 3.7271374000000006
+   },
+   "depart": "08:25",
+   "arrivee": "08:50",
+   "duree_minutes": 25,
+   "distance_metres": null,
+   "etat": "prevu",
+   "source": {
+    "type": "gtfs",
+    "jeu": "r84072",
+    "version": "2026-09-21",
+    "trip_id": "1014608-1-1",
+    "date_service": "2026-11-14",
+    "fin_validite": "2027-08-31"
+   },
+   "trace": "m~dpzAolw{ESCUrESz@g@z@sNkCgYcGoUgEcBg@cB{@g@{@g@wB?oAf@kCnA{EnA{Ez@oFf@gEz@_IbBoP~Cw`@jHsg@fOchArIkp@z@oFz@oFf@{Ef@{O?sDSkMg@oK{@gJsDoUoAcGsDkR_I_b@sSchAoZs~A{r@wvDcGk\\kWcrAkWguAwGs]ooBsjKknA{sGkp@okD{E_Xcj@csCk\\oeBwL_q@co@gjDgEoUwe@ggCgYgzAkk@g{Ckp@clDgYo{A_SkdAoUwmAoKcj@kHc`@oFc[cBwLoAoK{@sI{@oKg@gJg@oKS_ISkMSgTf@gYRgJf@cLz@wLz@oKvBkRjC_SjCoPfJsl@nF_]jHce@bG_b@zJct@zOobAjHod@f@sDvBkRnA{Of@wLnAwe@RkHRgEf@sIf@oFf@{Ez@wGf@kCjMkk@zJ{m@fEoUbBwLz@gJf@wLf@{YRwLnAgOnFgYrDoKvQwe@jRsg@jMw[fOc`@vBcGnFsN~C_IbLc[fOc`@zE_N~C_IrIcVzEwLzJ_XrIgTvGwQbGcQfEgOrDsNjC_NvBwLnA_If@gEnA{Jz@wGf@cGf@kHRsDR{Ez@oUnAc`@f@_SbBco@RsIf@c[f@_b@RwLRsIf@wQnAgYz@oUbBkf@nA_b@~ColAjC_eAbB{r@rD_oAnAwj@f@sSRgORgO?{O?_Xg@{OSwGoAcV{@oPcBw[_IguAgJcaBwBw`@kCwe@wGsjAcBoZ{@oPoF{fAcBc[oA_XwBs]S{ES_DcB_S{@cLsIsyAg@wLg@gJ{@kMoA{JoA_IcB_IwBsIsD{O{Jsb@sNon@gEsS{@{EwBoP{@gJSwLRsIf@kHz@cGnAcGbBcGvBwGjC_IbQgc@~H_SvG{OzEcLnFkMfE{JrD{JjC_IvBkHvB_InAcGz@cGnA_InAcGz@sDbB{EzEwLod@ce@wBwBg^c[{O_Ngh@we@sD_DoFgEnFfErD~Cfh@ve@zO~Mf^b[vBvBnd@be@fEkM~CgJvBcGbBgEbBgEbBsDbB_DbBkCbBwBvBwBjCcBjCoAjC{@fE{@fE{@jCg@~C{@~CoAvBoAjCwBvBkCvBsDnA_DnAgEnAcGz@oFf@oFR{E?gES{Eg@cGg@sD{@sDoAgEoAsDkCcGwBgEwBsD{EwGoFkHcLgOgO_SgEoFcBkC{@cBg@wBSwB?cBRwBf@kCz@wBnAwBbBwBjC_DvB_DvB_DfEcGzEwGvGsIjCsDzTc[jM_SjHwLbBkCzJsS~CgJz@f@z@RnA?z@Sz@g@f@g@f@{@f@oAR{@RcB?cBSwBS{@bBcBvBkCbBkCvBgEbB_DnAkCnAsDnAgEnAoFz@gEf@sDvBkCjCkCvBwBvBcBzE_DvLz@~CRbBRbBRbBRfEf@~CRzOvBbLnAvBRja@zEnU~CjRvBzJnA~Cf@nKnAbBRvGf@zY~CjHz@vo@jHf|@nKrjA~Mb~@nKbj@vGbLbBrl@fJjMbBjRjCbV~CnKbBvLz@fEf@bGf@rDRzEf@~Hz@vLnArIz@bGz@nFf@~Cf@nFf@jHz@zJz@fE?nF{@fEcBnFgEnPoPzE{EnFsDvB{@~C{@jCSfJSfTvBrInArX~CrDf@bBRvBRnFf@vBR~Cf@vGz@vGbBfEvBjCvBg@jMSjH?nF?bGRzERfERzER~CRvBf@rDf@jCvGf^fE~RrDrSbBfJvBzJjCzJf@vBbBzE~CfJnFnPrNja@jHzTb[r`AjCsI~BxX",
+   "consignes": null,
+   "depart_utc": "2026-11-14T07:25:00.000Z",
+   "arrivee_utc": "2026-11-14T07:50:00.000Z",
+   "arrets": [
+    {
+     "nom": "St Florentin-Hlm",
+     "lat": 48.0009,
+     "lon": 3.72046,
+     "passage": "08:36"
+    },
+    {
+     "nom": "St Florentin-Mairie",
+     "lat": 48.001749,
+     "lon": 3.7286,
+     "passage": "08:41"
+    }
+   ]
+  },
+  {
+   "mode": "marche",
+   "mode_motis": "WALK",
+   "ligne": null,
+   "direction": null,
+   "numero": null,
+   "reservation": null,
+   "exploitant": null,
+   "de": {
+    "nom": "Saint-Florentin-Vergigny, 3 rue de la Gare",
+    "type": "arret",
+    "arret": "3103848",
+    "lat": 47.978725700000005,
+    "lon": 3.7271374000000006
+   },
+   "a": {
+    "nom": "Saint-Florentin - Vergigny",
+    "type": "gare",
+    "arret": "StopPoint:OCETrain TER-87683318",
+    "lat": 47.981058,
+    "lon": 3.731036
+   },
+   "depart": "08:50",
+   "arrivee": "09:04",
+   "duree_minutes": 14,
+   "distance_metres": 943,
+   "etat": "prevu",
+   "source": {
+    "type": "osm",
+    "jeu": "osm",
+    "version": "2026-11-04"
+   },
+   "trace": "qnkozA}onbFGSmHcT??u^_hAcRak@??kGuR??uK_]??aPq_AiHwa@s@cGa@_H??y@{KJmU??@cDQaD[sBw@uC{@oBiDeF??iB{@wCk@{Eq@??{[sD??af@cG??aJ{@eIw@??lBjKzNdk@NrJ??xJjA??tAPfGt@vCrB??nA~C??`Ibt@??lIuB`AFV|@~@lI??b@vD",
+   "consignes": [
+    {
+     "manoeuvre": "depart",
+     "rue": null,
+     "cap": "nord-est",
+     "lat": 47.978745,
+     "lon": 3.727119,
+     "distance_metres": 31
+    },
+    {
+     "manoeuvre": "tout_droit",
+     "rue": "Route de la Gare",
+     "lat": 47.9789,
+     "lon": 3.727467,
+     "distance_metres": 384
+    },
+    {
+     "manoeuvre": "tout_droit",
+     "rue": "D 43",
+     "lat": 47.980515,
+     "lon": 3.731998,
+     "distance_metres": 83
+    },
+    {
+     "manoeuvre": "legerement_gauche",
+     "rue": "N 77",
+     "lat": 47.980703,
+     "lon": 3.73303,
+     "distance_metres": 79
+    },
+    {
+     "manoeuvre": "tout_droit",
+     "rue": "Avenue du 19 Mars 1962",
+     "lat": 47.981404,
+     "lon": 3.733197,
+     "distance_metres": 108
+    },
+    {
+     "manoeuvre": "gauche",
+     "rue": null,
+     "lat": 47.982369,
+     "lon": 3.733385,
+     "distance_metres": 140
+    },
+    {
+     "manoeuvre": "legerement_droite",
+     "rue": "Rue de la Gare",
+     "lat": 47.981612,
+     "lon": 3.732162,
+     "distance_metres": 73
+    },
+    {
+     "manoeuvre": "gauche",
+     "rue": "Place de la Gare",
+     "lat": 47.981411,
+     "lon": 3.731232,
+     "distance_metres": 45
+    },
+    {
+     "manoeuvre": "arrivee",
+     "rue": null,
+     "cote_arrivee": "gauche",
+     "lat": 47.981149,
+     "lon": 3.730997,
+     "distance_metres": 0
+    }
+   ],
+   "depart_utc": "2026-11-14T07:50:00.000Z",
+   "arrivee_utc": "2026-11-14T08:04:00.000Z",
+   "arrets": null
+  },
+  {
+   "mode": "train",
+   "mode_motis": "REGIONAL_RAIL",
+   "ligne": "K7",
+   "direction": "Lyon Part Dieu",
+   "numero": "17769",
+   "reservation": null,
+   "exploitant": "SNCF VOYAGEURS",
+   "de": {
+    "nom": "Saint-Florentin - Vergigny",
+    "type": "gare",
+    "arret": "StopPoint:OCETrain TER-87683318",
+    "lat": 47.981058,
+    "lon": 3.731036
+   },
+   "a": {
+    "nom": "Dijon",
+    "type": "gare",
+    "arret": "StopPoint:OCETrain TER-87713040",
+    "lat": 47.323411,
+    "lon": 5.0272559999999995
+   },
+   "depart": "09:10",
+   "arrivee": "10:24",
+   "duree_minutes": 74,
+   "distance_metres": null,
+   "etat": "prevu",
+   "source": {
+    "type": "gtfs",
+    "jeu": "r83582",
+    "version": "2026-10-30",
+    "trip_id": "OCESN17769F1187_F:TER:FR:Line::B10C45A0-C32C-4232-85F2-4BB81B810084::87686667:87723197:19:1244:20261114",
+    "date_service": "2026-11-14",
+    "fin_validite": null
+   },
+   "trace": "c_pozAwdvbFzslFctxMp`}F}cpMj}vEmdrFlyrCkzuFt~kL{yma@",
+   "consignes": null,
+   "depart_utc": "2026-11-14T08:10:00.000Z",
+   "arrivee_utc": "2026-11-14T09:24:00.000Z",
+   "arrets": [
+    {
+     "nom": "Tonnerre",
+     "lat": 47.859379999999994,
+     "lon": 3.97355,
+     "passage": "09:22"
+    },
+    {
+     "nom": "Nuits sous Ravières",
+     "lat": 47.729307000000006,
+     "lon": 4.211709000000001,
+     "passage": "09:37"
+    },
+    {
+     "nom": "Montbard",
+     "lat": 47.618741,
+     "lon": 4.336212000000001,
+     "passage": "09:47"
+    },
+    {
+     "nom": "Les Laumes - Alésia",
+     "lat": 47.543054,
+     "lon": 4.462602,
+     "passage": "09:56"
+    }
+   ]
+  },
+  {
+   "mode": "marche",
+   "mode_motis": "WALK",
+   "ligne": null,
+   "direction": null,
+   "numero": null,
+   "reservation": null,
+   "exploitant": null,
+   "de": {
+    "nom": "Dijon",
+    "type": "gare",
+    "arret": "StopPoint:OCETrain TER-87713040",
+    "lat": 47.323411,
+    "lon": 5.0272559999999995
+   },
+   "a": {
+    "nom": "Tribunal administratif de Dijon",
+    "type": "arrivee",
+    "arret": null,
+    "lat": 47.324505,
+    "lon": 5.043521
+   },
+   "depart": "10:24",
+   "arrivee": "10:44",
+   "duree_minutes": 20,
+   "distance_metres": 1401,
+   "etat": "prevu",
+   "source": {
+    "type": "osm",
+    "jeu": "osm",
+    "version": "2026-11-04"
+   },
+   "trace": "}okgyA_xyqHm@H??Kk@Sc@??W[]Q??D{A??@cA??F{I??BsV??AwF??Osf@??CsLR{K??HoF??VqA??Ae@Ck@??GyA??s@wC??U_AuAwYkHaxA???g@??AS???eB???wA???[??@_E~Dah@xCme@??UyIw@oHSM??q@g@??q@g@??c@Q??LgA??F{E??yHoG??Rw@Tw@Le@??d@_B??`@uA??v@uC??aJ{a@??nAyB??`@u@??tAaC??u@cCMc@[qA??wYqqA??EWIu@??S}@??g@{B??gKkb@??Mo@??m@{B??_@}A??u@_D??cG{V??bBy@xDwc@??_Ae@??}@a@??v@gG??OG??ZmB??Jm@`Gco@??PaB??fAgB??H_@|Dqd@|@mE\\_B`Did@u@sDEuCj@iL??yA}AiQtAcCtC]J??gAZ??Cs@??A]??AU??~@UV]Tc@f@iA^aALe@Hg@D[IQISIWGYCUAY???c@???[Y@??~GkmA??@mA}EaD??`@mB??l@}C??Sg@??s@[??[O??GC??cE}B??[Q??m@Y??NKBWnJyn@~AyJ",
+   "consignes": [
+    {
+     "manoeuvre": "depart",
+     "rue": "Cour de la Gare Pierre Semard",
+     "cap": "est",
+     "lat": 47.323407,
+     "lon": 5.027216,
+     "distance_metres": 159
+    },
+    {
+     "manoeuvre": "legerement_gauche",
+     "rue": "Avenue Maréchal Foch",
+     "lat": 47.323447,
+     "lon": 5.029249,
+     "distance_metres": 156
+    },
+    {
+     "manoeuvre": "tout_droit",
+     "rue": "Place Darcy",
+     "lat": 47.323684,
+     "lon": 5.031296,
+     "distance_metres": 181
+    },
+    {
+     "manoeuvre": "droite",
+     "rue": "Place Darcy",
+     "lat": 47.323774,
+     "lon": 5.033466,
+     "distance_metres": 312
+    },
+    {
+     "manoeuvre": "droite",
+     "rue": null,
+     "lat": 47.324672,
+     "lon": 5.037157,
+     "distance_metres": 282
+    },
+    {
+     "manoeuvre": "gauche",
+     "rue": null,
+     "lat": 47.324159,
+     "lon": 5.040638,
+     "distance_metres": 50
+    },
+    {
+     "manoeuvre": "droite",
+     "rue": null,
+     "lat": 47.324578,
+     "lon": 5.040561,
+     "distance_metres": 261
+    },
+    {
+     "manoeuvre": "arrivee",
+     "rue": null,
+     "cote_arrivee": "gauche",
+     "lat": 47.32442,
+     "lon": 5.043474,
+     "distance_metres": 0
+    }
+   ],
+   "depart_utc": "2026-11-14T09:24:00.000Z",
+   "arrivee_utc": "2026-11-14T09:44:00.000Z",
+   "arrets": null
+  }
+ ]
+}

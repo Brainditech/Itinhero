@@ -89,6 +89,10 @@ export const schemaEtape = z.object({
   // Spec 11 : tracé encodé (précision 6) et consignes de marche. Absents d'un serveur plus ancien ⇒ null.
   trace: z.string().nullable().default(null),
   consignes: z.array(schemaConsigne).nullable().default(null),
+  // Spec 12 : instants de l'étape et arrêts desservis (guidage). Absents d'un serveur plus ancien ⇒ null.
+  depart_utc: z.string().nullable().default(null),
+  arrivee_utc: z.string().nullable().default(null),
+  arrets: z.array(schemaPoint.extend({ nom: z.string(), passage: HEURE.nullable() })).nullable().default(null),
 });
 export type Etape = z.infer<typeof schemaEtape>;
 

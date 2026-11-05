@@ -100,6 +100,11 @@ export type EtapeAffichee = {
   trace: string | null;
   /** Consignes de marche (spec 11, D71) ; null pour une étape en véhicule. */
   consignes: Consigne[] | null;
+  /** Instants de départ et d'arrivée (ISO, UTC), pour le guidage (spec 12). */
+  depart_utc: string;
+  arrivee_utc: string;
+  /** Arrêts desservis entre la montée et la descente, avec leur heure prévue (spec 12) ; null pour une marche. */
+  arrets: { nom: string; lat: number; lon: number; passage: string | null }[] | null;
 };
 
 /**
@@ -238,6 +243,16 @@ function etapeAffichee(e: Etape, source: SourceEtape, ctx: Contexte, avanceMs: n
     source,
     trace: traceEnPrecision6(e.trace),
     consignes: e.mode === "WALK" ? calculerConsignes(e.morceaux ?? [], e.coordA) : null,
+    depart_utc: new Date(e.depart.getTime() - avanceMs).toISOString(),
+    arrivee_utc: new Date(e.arrivee.getTime() - avanceMs).toISOString(),
+    arrets: e.arrets
+      ? e.arrets.map((a) => ({
+          nom: nomAffichable(a.nom),
+          lat: a.coord.lat,
+          lon: a.coord.lon,
+          passage: a.passage ? heureParis(a.passage).hhmm : null,
+        }))
+      : null,
   };
 }
 
