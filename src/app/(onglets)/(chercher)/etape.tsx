@@ -5,6 +5,7 @@ import { SymbolView } from "expo-symbols";
 import type { AndroidSymbol } from "expo-symbols";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Boussole } from "@/composants/Boussole";
 import { CarteEtape } from "@/composants/CarteEtape";
 import { CARTE } from "@/composants/carte-module";
 import { Fleche } from "@/composants/Fleches";
@@ -30,7 +31,8 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
 /**
  * Fenêtre d'une étape (spec 17) : la carte en fond, l'étape en bas dans un panneau à trois positions
  * (replié, à mi-hauteur, déplié ; D85), et un bouton rond en bas à droite pour lancer le guidage (D86).
- * Elle n'affiche que la réponse déjà reçue : ni position, ni appel au serveur (§7).
+ * Elle n'affiche que la réponse déjà reçue : ni position, ni appel au serveur (§7) ; la boussole lit seulement
+ * l'orientation du téléphone (D88).
  */
 
 /** Bouton rond flottant, 56 dp (cible tactile). */
@@ -356,9 +358,7 @@ export default function FenetreEtape() {
             </Pressable>
           ) : null}
         </View>
-        <BoutonRond
-          icone="center_focus_strong"
-          libelle="Recentrer la carte sur l'étape"
+        <Boussole
           onPress={() => {
             setChoisi(null);
             setRecentrer((n) => n + 1);
