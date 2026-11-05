@@ -1,8 +1,8 @@
 # Issue 0018 — Résultat vide après « Recalculer depuis ici »
 
 - **Date** : 2026-11-05
-- **État** : **analyse approuvée** par Brainditech le 2026-11-05. Cause racine probable, à prouver (relevé du décalage de défilement) avant la correction ; aucune correction écrite.
-- **Branche** : `issue/0018-0019-essai-recalcul` (analyse seulement).
+- **État** : **corrigé** (branche `issue/0018-resultat-vide`), cause prouvée et correction revérifiée sur le téléphone le 2026-11-05. Analyse approuvée par Brainditech le 2026-11-05.
+- **Branche** : `issue/0018-0019-essai-recalcul` (analyse), `issue/0018-resultat-vide` (preuve et correction).
 
 ## 1. Reproduction
 
@@ -36,3 +36,17 @@ Quand le Résultat reçoit une nouvelle réponse, remonter son `ScrollView` en h
 ## 4. Test de régression prévu
 
 La logique est dans un composant React Native, que vitest (TypeScript pur sous Node) ne monte pas. Le test sera donc la reproduction ci-dessus sur le téléphone, captures avant et après. Si la décision « remonter en haut quand la réponse change » sort dans une fonction du domaine, elle aura son test vitest.
+
+## 5. Preuve de la cause (2026-11-05)
+
+Relevé temporaire (`onScroll`, `onContentSizeChange` sur le `ScrollView` d'`Ecran`, lus par `adb logcat`, retiré avant le commit). Guidage ouvert par lien profond en simulation (`sim=0,50,-80,06:18` : écart de 80 m, « Recalculer depuis ici » après 15 s) depuis le Résultat défilé jusqu'à « Démarrer le guidage ».
+
+1. **Recalcul réel, même départ 06:17** : clés inchangées, carte toujours dépliée, contenu 2790 avant et après, défilement gardé (y ≈ 1666 avant, 1615 relevé après). L'écran montre le milieu de la carte, pas le haut. Confirme le point 1 de l'hypothèse : le Résultat est réutilisé avec son défilement.
+2. **Même essai, clé des cartes forcée à changer à chaque réponse** (essai temporaire, pour reproduire le passage de 06:17 à 06:16 du §1) : contenu 2790 → 1393 pour une vue de 821, défilement à y ≈ 1552, au-delà de la fin du contenu ; aucun `onScroll` émis. L'écran est vide entre « Itinhero » et la barre d'onglets (`uiautomator dump` : rien d'autre). Au premier glissement, Android ramène y à 572 (= 1393 − 821) et le contenu réapparaît. Confirme les points 2 et 3.
+
+## 6. Correction (2026-11-05)
+
+- `Ecran` reçoit une `ref` (React 19 : `ref` est une prop), passée au `ScrollView`.
+- `resultat.tsx` : `useEffect` sur `recherche.reponse` ⇒ `scrollTo({ y: 0, animated: false })`. « Arrêter le guidage » ne change pas la réponse : le Résultat garde alors sa position, comme avant.
+- Revérifié sur le téléphone, essai 2 du §5 refait avec la correction : le Résultat s'affiche en haut (« Votre trajet », « Ma position → Gare de Joigny », Possible, départ 06:17).
+- Test de régression : la logique tient dans un `useEffect` d'écran, que vitest ne monte pas (§4) ; le test est la reproduction du §5 sur le téléphone. Lint, types et 172 tests de l'app verts.
