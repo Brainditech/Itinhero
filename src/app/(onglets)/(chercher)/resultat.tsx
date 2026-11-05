@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Text, View, type ScrollViewInstance } from "react-native";
 import { Redirect, router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
@@ -21,6 +21,14 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
 export default function Resultat() {
   const { recherche } = useRecherche();
   const [verdictOuvert, setVerdictOuvert] = useState(false);
+  // Issue 0018 : après « Recalculer depuis ici », le Résultat déjà monté reçoit une nouvelle réponse et garde
+  // son défilement ; si la page raccourcit (cartes remontées repliées), Android le laisse sous la fin du
+  // contenu et l'écran paraît vide. Chaque nouvelle réponse se lit donc depuis le haut.
+  const defilement = useRef<ScrollViewInstance>(null);
+  const reponseCourante = recherche?.reponse;
+  useEffect(() => {
+    defilement.current?.scrollTo({ y: 0, animated: false });
+  }, [reponseCourante]);
   const depart = recherche?.depart.lieu;
   const arrivee = recherche?.arrivee.lieu;
   if (!recherche?.reponse || !depart || !arrivee) return <Redirect href="/formulaire" />;
@@ -33,7 +41,7 @@ export default function Resultat() {
   const modifier = () => router.dismissTo("/formulaire");
 
   return (
-    <Ecran>
+    <Ecran ref={defilement}>
       <VotreTrajet
         demande={demande}
         depart={{ nom: depart.nom, adresse: depart.adresse }}
