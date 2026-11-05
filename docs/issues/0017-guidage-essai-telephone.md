@@ -51,10 +51,11 @@ Fausse piste écartée : l'écart au chemin semblait ne jamais se déclencher en
 
 - Relecture indépendante du correctif (même jour), 6 remarques vérifiées et corrigées : seuil « à venir » qui laissait « En avance de 10 h » la veille au soir (désormais : plus de 12 h, ou un autre jour à plus de 3 h) ; gare reconnue par son type et non par le début de son nom (« Paris Gare de Lyon ») ; transport à la demande sans arrêts guidé comme un taxi (`vientVousChercher`) ; lieu d'un taxi sans « arrêt » (`nomLieuVehicule`, « Montez dans le taxi à Domicile ») ; trajet à venir qui commence par un véhicule (« Taxi le 12/11 à 08:46 », carte du bas « Départ prévu le 12/11 à 08:46 » au lieu de « 7 j 03 h restantes ») ; commentaire mal placé.
 - Deuxième tour de relecture, 4 remarques corrigées : en attente d'un véhicule à venir, une seule heure, celle du véhicule avec sa propre date (le bandeau disait 08:30 et la carte du bas 08:25, l'heure de départ de chez soi) ; la marche qui mène à un taxi ne dit plus « arrêt » (guidage et détail) ; la règle « réservé, donc en retard et non passé » renommée pour ne plus se confondre avec `vientVousChercher`.
+- Troisième tour, 1 remarque corrigée : « Ensuite : … à pied jusqu'à … » à la descente suit la même règle que la marche vers un taxi.
 
 ## 4. Tests de régression
 
-`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 16 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 168 tests verts ; lint et types sans erreur ; export Android réussi.
+`src/domaine/guidage.test.ts`, blocs « issue 0017 » : 17 tests ; les 10 premiers échouent sur l'ancien `guidage.ts` (10 échecs constatés) et passent sur le nouveau. Suite complète : 169 tests verts ; lint et types sans erreur ; export Android réussi.
 
 ## 5. Revérifié sur le téléphone
 

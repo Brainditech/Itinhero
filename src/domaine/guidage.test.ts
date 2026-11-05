@@ -380,6 +380,16 @@ describe("issue 0017 — taxi guidé comme un taxi, pas comme un bus", () => {
     expect(phraseMarche(taxi.etapes[0]!.etape, g.etape)).toContain(`jusqu'à ${g.etape.de.nom},`);
     expect(phraseMarche(taxi.etapes[0]!.etape)).toContain(`jusqu'à l'arrêt ${g.etape.de.nom}`);
   });
+  it("« Ensuite » à la descente d'un bus suivi d'une marche vers un taxi : pas « arrêt »", () => {
+    // TER K7 (3), puis la marche (4) qui mène à un taxi (5) : le serveur type sa fin en « arrêt ».
+    const priseEnCharge = { ...POSSIBILITE.etapes[4]!.a, nom: "Place Darcy", type: "arret" as const };
+    const etapes = POSSIBILITE.etapes.map((e, i) => (i === 4 ? { ...e, a: priseEnCharge } : e));
+    const p = preparer({ ...POSSIBILITE, etapes: [...etapes, { ...POSSIBILITE.etapes[1]!, mode: "taxi" as const, arrets: [], de: priseEnCharge }] });
+    const k = 3;
+    const gk = p.etapes[k]!;
+    const s = situer(p, { ...ETAT_INITIAL, etape: k, aBord: true }, null, gk.arriveeMs - 60_000);
+    expect(s.vue.type === "descente" && s.vue.ensuite).toMatch(/jusqu'à Place Darcy$/);
+  });
   it("en attente : « Vous êtes au point de rendez-vous », pas « à l'arrêt »", () => {
     expect(lieuMontee(g.etape).ici).toBe("Vous êtes au point de rendez-vous");
     expect(lieuMontee(g.etape).loin("300 m")).toBe("Le point de rendez-vous est à 300 m");

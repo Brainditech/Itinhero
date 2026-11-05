@@ -330,7 +330,7 @@ function capDevant(l: Ligne, abscisse: number): number {
 function phraseEnsuite(parcours: Parcours, k: number): string {
   const suivante = parcours.etapes[k + 1]?.etape;
   if (!suivante) return "Ensuite : vous êtes arrivé";
-  if (suivante.mode === "marche") return `Ensuite : ${suivante.duree_minutes} min à pied jusqu'${aLieu(nomLieuEtape(suivante.a))}`;
+  if (suivante.mode === "marche") return `Ensuite : ${suivante.duree_minutes} min à pied jusqu'${aLieu(nomFinMarche(parcours, k + 1))}`;
   return `Ensuite : ${vehiculeMinuscule(suivante)} à ${suivante.depart}`;
 }
 
