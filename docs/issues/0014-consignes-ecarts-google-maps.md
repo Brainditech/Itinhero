@@ -1,7 +1,7 @@
 # Issue 0014 — Consignes de marche : écarts avec Google Maps
 
 - **Date** : 2026-11-05
-- **État** : causes vérifiées, **analyse à approuver** par Brainditech avant correction.
+- **État** : analyse approuvée par Brainditech le 2026-11-05 (« j'approuve le plan ») ; **corrigée**, tests de régression verts, comparaison refaite (§5).
 - **Branche** : `phase-4/consignes-de-marche` (PR #19, spec 11). La PR attend la correction.
 
 ## 1. Reproduction
@@ -59,3 +59,41 @@ Dans `serveur/src/itineraires/consignes.test.ts`, des morceaux réduits tirés d
 - un vrai demi-tour (aller 51 m, revenir 12 m) reste un « demi-tour ».
 
 Puis on rejoue les 5 marches et on compare de nouveau à Google Maps (spec 11, critère 4).
+
+## 5. Correction (2026-11-05)
+
+Dans `serveur/src/itineraires/consignes.ts` (D71 complétée) :
+
+1. **Pas de fusion qui fabrique un demi-tour** : deux virages à moins de 25 m qui, fondus, dépasseraient 150° restent deux consignes. Le second n'est jamais retiré comme « répétition » (sinon deux « à gauche » de suite sur des chemins sans nom n'en feraient plus qu'un).
+2. **Un morceau court reste sur sa rue** : un morceau de moins de 10 m qui porte le nom de la rue suivie, juste avant une **autre rue nommée**, reste un tronçon de sa rue au lieu d'être collé à la rue suivante. Le virage est mesuré au vrai coin.
+   - Restreint en appliquant : avant un chemin sans nom, l'ancienne règle reste. Sans cette limite, la marche gare de Dijon → tribunal passait de 8 à 9 consignes (un « légèrement à droite sur le chemin » de 31 m dans le passage piéton de la place Darcy).
+   - Le bout court reste un tronçon à part au lieu d'être collé au précédent : collé, il effaçait la limite entre deux morceaux, et le décrochement de 16 m de la place Darcy n'était plus vu que d'un côté (10 consignes).
+3. **Numéro et nom d'une même route** : tout droit (moins de 25°) d'un nom à un numéro de route (A, N, D, M, RN, RD suivi d'un nombre), ou l'inverse, n'est pas une consigne ; la consigne précédente prend les deux : « N 77 (Avenue du 19 Mars 1962) ». L'app l'écrit « sur la N 77 (avenue du 19 Mars 1962) » (`src/domaine/consignes.ts`).
+4. **Trottoirs sans nom** : pas de correction (limite connue, spec 11 §9).
+
+Essai écarté : laisser deux virages de même sens de suite sur des chemins sans nom (retirer le filtre des répétitions pour les virages). Roubaix donnait alors « à gauche, à gauche, à gauche » dans des passages piétons en baïonnette (sud, est 15 m, sud) : le virage à droite qui suit chacun est **à l'intérieur** d'un morceau, et le calcul ne mesure les virages qu'entre deux morceaux. Le filtre reste. Mesurer les virages à l'intérieur d'un morceau serait une autre décision (limite connue, spec 11 §9).
+
+### Tests de régression (`serveur/src/itineraires/consignes.test.ts`)
+
+Morceaux bruts réduits dans `serveur/src/itineraires/__exemples__/marches-issue-0014.json` (MOTIS national, marche seule). Les 5 premiers échouent sur l'ancien calcul (vérifié) :
+
+- Marseille : « droite rue Saint-Saëns » (21 m), puis « droite », jamais « demi-tour » ;
+- Roubaix : départ Grand Place sur 80 m, puis « légèrement à droite avenue Jean Lebas » ;
+- Tonnerre : « droite rue de la République » (même cause que Roubaix, trouvée en rejouant la boucle) ;
+- Saint-Florentin (réponse enregistrée) : une seule consigne « N 77 (Avenue du 19 Mars 1962) » ;
+- numéros de route et noms doubles ;
+- un vrai demi-tour (aller 51 m, revenir 12 m) reste un demi-tour ; deux virages à gauche à 15 m donnent deux « gauche » ; un zigzag de trottoir est toujours fondu.
+
+### Comparaison refaite
+
+Outil : `npm run build && node dist/comparaison/consignes-marches.js src/comparaison/scenarios.json <dossier>` (toutes les marches d'au moins 3 min de la boucle : consignes de l'itinéraire et de la marche seule). Seules 5 marches changent :
+
+| Marche | Avant | Après | Google Maps |
+|---|---|---|---|
+| Roubaix, Grand-Place → La Piscine | « Continuez avenue Jean Lebas » | « Légèrement à droite avenue Jean Lebas » | « à droite avenue Jean Lebas », après « à gauche pour rester sur Grand Place » (7 m), décrochement que le tracé de MOTIS n'a pas |
+| Marseille, Saint-Charles → Vieux-Port | « à gauche cours Jean Ballard », « demi-tour », « à droite » | « à gauche rue Beauvau » (au lieu de « légèrement »), « à gauche cours Jean Ballard », « à droite rue Saint-Saëns », « à droite » | arrivée 27 m après le cours Jean Ballard : MOTIS fait le tour du pâté de maisons (chemin, pas consigne) |
+| Tonnerre, mairie → gare | « légèrement à droite rue de la République » | « à droite rue de la République » | « à droite sur Rue de la République/D43 » : **identique** |
+| Lyon, Saint-Jean → Fourvière | « légèrement à gauche rue de la Bombarde », « légèrement à droite rue du Bœuf » | « à gauche », « à droite » (caps mesurés : −83°, angle droit) | autre chemin (Google évite les escaliers) |
+| Paris, République (métro) | « demi-tour » | « à gauche », « à gauche » | sans objet (dans la station) |
+
+Dijon (critère 1) reste à 8 consignes. Les demi-tours restants (gare de l'Est, Strasbourg, Montparnasse dans les gares, Monaco « C ») sont des retours du tracé de MOTIS en un seul point ; plus aucun ne vient d'une fusion.

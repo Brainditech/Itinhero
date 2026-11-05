@@ -88,6 +88,11 @@ Les tracés sont des coordonnées : ils ne sont jamais écrits dans un journal n
 
 Le guidage en direct qui suit la position (spec 12), la voix, les consignes hors réseau (phase 5, trajet enregistré), le glossaire.
 
+**Limites connues (issue 0014)** :
+
+- **Trottoirs sans nom** : OSM dessine certains trottoirs comme des chemins à part, sans nom (`footway=sidewalk`), et MOTIS ne donne pas la rue qu'ils longent. La consigne dit alors « sur le chemin » (Auxerre, avenue de la Tournelle ; Paris, quai Jacques-Chirac), avec parfois un virage au départ du trottoir que Google ne dit pas. Retrouver la rue longée demanderait une autre source, donc une décision à part.
+- **Virages à l'intérieur d'un morceau** : le sens n'est mesuré qu'entre deux morceaux de MOTIS. Un décrochement de passage piéton contenu dans un seul morceau (Roubaix, rue de l'Espérance → La Piscine) n'est vu que d'un côté.
+
 ## 10. Étapes de vérification
 
 `npm test` (racine et `serveur/`), `npx expo lint`, `npx tsc --noEmit` ; `npm run test:national` ; puis Brainditech refait la recherche Brienon → Dijon sur le téléphone et compare les consignes à Google Maps.
@@ -114,4 +119,4 @@ Le guidage en direct qui suit la position (spec 12), la voix, les consignes hors
   Hors comparaison : Lyon Saint-Jean → Fourvière (Google évite les escaliers, 1,6 km contre 1 km). Le choix du chemin vient de MOTIS, pas des consignes.
 
   Défauts à traiter (issue à ouvrir, analyse approuvée avant correction) : (1) **« demi-tour »** au milieu d'une marche, vu aussi à Paris (rue de Rivoli), Lyon et Monaco (rue nommée « C ») ; (2) **trottoirs sans nom** : la consigne perd le nom de la rue qu'ils longent et parfois le bon sens du virage ; (3) **même route dite deux fois** (numéro puis nom) ; (4) un virage de moins de 25 m fondu en « tout droit » là où Google dit « à droite ».
-
+- **Issue 0014 corrigée le 2026-11-05** (analyse approuvée) : plus de « demi-tour » fabriqué par la fusion de deux virages ; un bout court de rue reste sur sa rue avant une autre rue nommée (virage mesuré au coin) ; numéro et nom d'une même route en une consigne (« N 77 (avenue du 19 Mars 1962) »). Comparaison refaite : Tonnerre identique à Google (« à droite rue de la République »), Roubaix « légèrement à droite avenue Jean Lebas » (Google « à droite » après un décrochement que le tracé de MOTIS n'a pas), Marseille sans demi-tour. Détail dans `docs/issues/0014-consignes-ecarts-google-maps.md` §5. **Critère 4** : même sens et même rue là où les chemins sont les mêmes ; les écarts restants viennent du chemin choisi par MOTIS ou des limites connues (§9).

@@ -32,9 +32,17 @@ describe("phrases des consignes (spec 11, §4.2)", () => {
     expect(designationRue("Rue de l'Est")).toBe("rue de l'Est");
     expect(designationRue("Grande Rue")).toBe("Grande Rue");
     expect(designationRue("Courtépée")).toBe("Courtépée");
+    expect(designationRue("RN 6")).toBe("la RN 6");
     expect(distanceConsigne(c({ manoeuvre: "droite", distance_metres: 123 }))).toBe("120 m");
     expect(distanceConsigne(c({ manoeuvre: "arrivee" }))).toBeNull();
     expect(libelleVoirChemin(1)).toBe("Voir le chemin (1 consigne)");
     expect(libelleVoirChemin(8)).toBe("Voir le chemin (8 consignes)");
+  });
+  it("issue 0014 : numéro et nom d'une même route", () => {
+    expect(designationRue("N 77 (Avenue du 19 Mars 1962)")).toBe("la N 77 (avenue du 19 Mars 1962)");
+    expect(phraseConsigne(c({ manoeuvre: "legerement_gauche", rue: "N 77 (Avenue du 19 Mars 1962)" }), "x")).toBe(
+      "Prenez légèrement à gauche sur la N 77 (avenue du 19 Mars 1962)",
+    );
+    expect(phraseConsigne(c({ manoeuvre: "tout_droit", rue: "D 43 (Route de la Gare)" }), "x")).toBe("Continuez sur la D 43 (route de la Gare)");
   });
 });

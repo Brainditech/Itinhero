@@ -167,6 +167,19 @@ export function manoeuvreDuVirage(ecart: number): Manoeuvre {
   return ecart < 0 ? "gauche" : "droite";
 }
 
+/** Numéro de route : une lettre ou un sigle (A, N, D, M, RN, RD) suivi d'un nombre (« N 77 », « D 61A », « N033 »). */
+export function estNumeroDeRoute(nom: string): boolean {
+  return /^(A|N|D|M|RN|RD) ?\d+ ?[A-Za-z]?$/.test(nom.trim());
+}
+
+/** « N 77 » et « Avenue du 19 Mars 1962 », dans un ordre ou dans l'autre ⇒ « N 77 (Avenue du 19 Mars 1962) » ; sinon null. */
+export function nomEtNumero(a: string | null, b: string | null): string | null {
+  if (!a || !b) return null;
+  if (estNumeroDeRoute(a) && !estNumeroDeRoute(b)) return `${a} (${b})`;
+  if (estNumeroDeRoute(b) && !estNumeroDeRoute(a)) return `${b} (${a})`;
+  return null;
+}
+
 // ——— Calcul des consignes (D71) ———
 
 type Troncon = {
@@ -195,16 +208,25 @@ function troncons(morceaux: Morceau[]): Troncon[] {
     };
   });
   // 1. Un morceau de moins de 10 m (ni escalier ni ascenseur) est rattaché au suivant ; le dernier, au précédent.
+  //    Sauf un bout de la rue qu'on suit juste avant une autre rue nommée : il reste un tronçon de sa rue, pour que
+  //    le virage vers la rue suivante soit mesuré au vrai coin (issue 0014).
+  const court = (t: Troncon) => t.distance < MORCEAU_COURT_METRES && !t.special;
   const rattaches: Troncon[] = [];
   let enAttente: Troncon | null = null;
-  for (const t of tous) {
+  for (const [i, t] of tous.entries()) {
+    const absorbe = enAttente !== null;
     if (enAttente) {
       t.points = [...enAttente.points, ...t.points];
       t.distance += enAttente.distance;
       enAttente = null;
     }
-    if (t.distance < MORCEAU_COURT_METRES && !t.special) enAttente = t;
-    else rattaches.push(t);
+    const precedent = rattaches[rattaches.length - 1];
+    if (court(t)) {
+      const ensuite = tous.slice(i + 1).find((x) => !court(x));
+      const avantRueNommee = ensuite !== undefined && ensuite.rue !== null && ensuite.rue !== t.rue;
+      if (!absorbe && avantRueNommee && t.rue !== null && precedent && !precedent.special && precedent.rue === t.rue) rattaches.push(t);
+      else enAttente = t;
+    } else rattaches.push(t);
   }
   if (enAttente) {
     const dernier = rattaches[rattaches.length - 1];
@@ -247,6 +269,8 @@ export function calculerConsignes(morceaux: Morceau[], arrivee: Coord): Consigne
   type Brouillon = Omit<Consigne, "distance_metres"> & {
     metres: number /* distance MOTIS depuis le départ */;
     d: number /* position sur la géométrie */;
+    /** Second virage d'une paire gardée pour ne pas fabriquer un demi-tour : jamais retiré comme répétition. */
+    paire?: true;
   };
   const brouillons: Brouillon[] = [];
   const depart = points[0]!;
@@ -261,24 +285,40 @@ export function calculerConsignes(morceaux: Morceau[], arrivee: Coord): Consigne
   });
 
   let metres = ts[0]!.distance;
-  let rueCourante = ts[0]!.rue;
+  // Noms de la voie suivie : un seul, ou le numéro et le nom d'une même route (issue 0014).
+  let rueCourante = new Set<string | null>([ts[0]!.rue]);
+  let nomVoie = ts[0]!.rue; // nom affiché de la voie suivie
   for (let k = 1; k < ts.length; k++) {
     const t = ts[k]!;
     const d = debuts[k]!;
     const p = pointA(l, d);
+    let memeVoie = rueCourante.has(t.rue);
     if (t.special) {
       brouillons.push({ manoeuvre: t.special, rue: null, niveau: t.niveau, lat: p.lat, lon: p.lon, metres, d });
     } else {
       const ecart = ecartCap(capEntrant(d), capSortant(d));
       const m = manoeuvreDuVirage(ecart);
-      const memeRue = t.rue === rueCourante;
       const virage = m === "gauche" || m === "droite" || m === "demi_tour";
+      const derniere = brouillons[brouillons.length - 1]!;
+      if (!memeVoie && m === "tout_droit" && rueCourante.size === 1 && derniere.rue !== null && rueCourante.has(derniere.rue)) {
+        // Tout droit d'un nom à un numéro de route, ou l'inverse : même route, la consigne précédente prend les deux.
+        const deuxNoms = nomEtNumero(derniere.rue, t.rue);
+        if (deuxNoms) {
+          derniere.rue = deuxNoms;
+          nomVoie = deuxNoms;
+          rueCourante.add(t.rue);
+          memeVoie = true;
+        }
+      }
       // Même rue (ou deux morceaux sans nom) : seul un vrai virage compte. Autre rue : dès 25°,
       // et « continuez » seulement vers une rue nommée.
-      const garder = memeRue ? virage : m !== "tout_droit" || t.rue !== null;
-      if (garder) brouillons.push({ manoeuvre: m, rue: t.rue, lat: p.lat, lon: p.lon, metres, d });
+      const garder = memeVoie ? virage : m !== "tout_droit" || t.rue !== null;
+      if (garder) brouillons.push({ manoeuvre: m, rue: memeVoie ? nomVoie : t.rue, lat: p.lat, lon: p.lon, metres, d });
     }
-    rueCourante = t.rue;
+    if (!memeVoie) {
+      nomVoie = t.rue;
+      rueCourante = new Set([t.rue]);
+    }
     metres += t.distance;
   }
 
@@ -310,6 +350,12 @@ export function calculerConsignes(morceaux: Morceau[], arrivee: Coord): Consigne
       continue;
     }
     const m = manoeuvreDuVirage(ecartCap(capEntrant(a.d), capSortant(b.d)));
+    if (m === "demi_tour") {
+      // Deux virages proches qui, fondus, feraient un demi-tour (le tour d'un pâté de maisons) : on garde les deux (issue 0014).
+      b.paire = true;
+      i++;
+      continue;
+    }
     const avant = brouillons[i - 1]!;
     if (m === "tout_droit" && (b.rue === null || b.rue === avant.rue)) {
       brouillons.splice(i, 2); // zigzag sans effet : on continue
@@ -322,11 +368,11 @@ export function calculerConsignes(morceaux: Morceau[], arrivee: Coord): Consigne
   // Aucune consigne ne répète la précédente (même manœuvre, même rue).
   const uniques = brouillons.filter((b, i) => {
     const avant = brouillons[i - 1];
-    return !avant || i === brouillons.length - 1 || b.manoeuvre !== avant.manoeuvre || b.rue !== avant.rue || b.manoeuvre === "depart";
+    return !avant || i === brouillons.length - 1 || b.paire || b.manoeuvre !== avant.manoeuvre || b.rue !== avant.rue || b.manoeuvre === "depart";
   });
   return uniques.map((b, i) => {
     const suivante = uniques[i + 1];
-    const { metres: m, d: _d, ...reste } = b;
+    const { metres: m, d: _d, paire: _p, ...reste } = b;
     return { ...reste, distance_metres: suivante ? Math.round(suivante.metres - m) : 0 };
   });
 }

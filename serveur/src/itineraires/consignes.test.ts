@@ -8,7 +8,9 @@ import {
   decoderTrace,
   ecartCap,
   encoderTrace,
+  estNumeroDeRoute,
   manoeuvreDuVirage,
+  nomEtNumero,
   pointCardinal,
   type Consigne,
   type Coord,
@@ -128,10 +130,16 @@ describe("Brienon → Dijon (réponse enregistrée)", () => {
     const marche = legs[3]![2]!;
     expect(marche.from.name).toBe("SAINT FLORENTIN-VERGIGNY 3 RUE DE LA GARE");
     const rues = consignesDe(marche).map((x) => x.rue).filter((r): r is string => r !== null);
-    const i = (r: string) => rues.indexOf(r);
+    const i = (r: string) => rues.findIndex((x) => x.includes(r));
     expect(i("Route de la Gare")).toBeGreaterThanOrEqual(0);
-    expect(i("Route de la Gare")).toBeLessThan(i("D 43"));
+    expect(i("Route de la Gare")).toBeLessThanOrEqual(i("D 43"));
     expect(i("D 43")).toBeLessThan(i("N 77"));
+  });
+
+  it("issue 0014 : « N 77 » puis « Avenue du 19 Mars 1962 », tout droit, ne font qu'une consigne nommée avec les deux", () => {
+    const cs = consignesDe(legs[3]![2]!);
+    const n77 = cs.filter((x) => x.rue?.includes("N 77") || x.rue?.includes("19 Mars"));
+    expect(n77.map((x) => [x.manoeuvre, x.rue])).toEqual([["legerement_gauche", "N 77 (Avenue du 19 Mars 1962)"]]);
   });
 
   it("critère 3 : un morceau sans nom ne produit jamais un nom de rue", () => {
@@ -139,7 +147,9 @@ describe("Brienon → Dijon (réponse enregistrée)", () => {
       for (const l of it) {
         if (l.mode !== "WALK" || !l.steps) continue;
         const noms = new Set(l.steps.map((s) => s.streetName?.trim()).filter(Boolean));
-        for (const c of consignesDe(l)) if (c.rue !== null) expect(noms.has(c.rue)).toBe(true);
+        // « N 77 (Avenue du 19 Mars 1962) » : les deux noms viennent des morceaux (issue 0014).
+        const parties = (r: string) => /^(.+) \((.+)\)$/.exec(r)?.slice(1) ?? [r];
+        for (const c of consignesDe(l)) if (c.rue !== null) for (const r of parties(c.rue)) expect(noms.has(r)).toBe(true);
       }
     }
   });
@@ -149,5 +159,97 @@ describe("Brienon → Dijon (réponse enregistrée)", () => {
     const cs = consignesDe(marche);
     const total = (marche.steps ?? []).reduce((n, s) => n + s.distance, 0);
     expect(Math.abs(cs.reduce((n, c) => n + c.distance_metres, 0) - total)).toBeLessThanOrEqual(cs.length);
+  });
+});
+
+/**
+ * Issue 0014 : morceaux bruts du MOTIS national (2026-11-05, marche seule `directModes=WALK`), réduits aux virages en cause.
+ */
+describe("issue 0014 : écarts avec Google Maps", () => {
+  type Marche = { a: Coord; morceaux: Morceau[] };
+  let ex: Record<"roubaix" | "marseille" | "tonnerre", Marche>;
+  beforeAll(async () => {
+    ex = JSON.parse(await readFile(path.join(ICI, "__exemples__/marches-issue-0014.json"), "utf8"));
+  });
+  const resume = (cs: Consigne[]) => cs.map((x) => [x.manoeuvre, x.rue]);
+
+  it("Marseille : deux virages à droite séparés de 21 m restent deux virages, jamais un demi-tour", () => {
+    const cs = calculerConsignes(ex.marseille.morceaux, ex.marseille.a);
+    expect(cs.some((x) => x.manoeuvre === "demi_tour")).toBe(false);
+    expect(resume(cs).slice(0, 3)).toEqual([
+      ["depart", "Cours Jean Ballard"],
+      ["droite", "Rue Saint-Saëns"],
+      ["droite", null],
+    ]);
+    expect(cs[1]!.distance_metres).toBe(21);
+  });
+
+  it("Roubaix : les bouts courts de Grand Place restent sur Grand Place, le virage est mesuré au coin", () => {
+    const cs = calculerConsignes(ex.roubaix.morceaux, ex.roubaix.a);
+    expect(resume(cs).slice(0, 3)).toEqual([
+      ["depart", "Grand Place"],
+      ["legerement_droite", "Avenue Jean Lebas"],
+      ["gauche", "Rue de l'Hospice"],
+    ]);
+    expect(cs[0]!.distance_metres).toBe(80);
+  });
+
+  it("Tonnerre : rue François Mitterrand puis rue de la République, à angle droit, donne « à droite »", () => {
+    const cs = calculerConsignes(ex.tonnerre.morceaux, ex.tonnerre.a);
+    expect(resume(cs)).toContainEqual(["droite", "Rue de la République"]);
+  });
+
+  it("deux virages à gauche à 15 m sur des chemins sans nom : deux consignes « gauche », pas une seule", () => {
+    // Nord 60 m, ouest 15 m, sud 60 m (le tour d'un bloc, ou un escalier en lacet).
+    const p = [
+      { lat: 47, lon: 5 },
+      { lat: 47.00054, lon: 5 },
+      { lat: 47.00054, lon: 4.9998 },
+      { lat: 47, lon: 4.9998 },
+    ];
+    const cs = calculerConsignes([morceau([p[0]!, p[1]!]), morceau([p[1]!, p[2]!], "", 15), morceau([p[2]!, p[3]!])], p[3]!);
+    expect(cs.map((x) => x.manoeuvre)).toEqual(["depart", "gauche", "gauche", "arrivee"]);
+  });
+
+  it("un vrai demi-tour (aller 51 m, revenir 12 m, comme rue de Rivoli) reste un demi-tour", () => {
+    const a = { lat: 48.86, lon: 2.34 };
+    const b = { lat: 48.86046, lon: 2.34 }; // 51 m au nord
+    const c = { lat: 48.86035, lon: 2.34 }; // 12 m vers le sud
+    const cs = calculerConsignes([morceau([a, b], "Rue de Rivoli"), morceau([b, c], "Rue de Rivoli")], c);
+    expect(cs.map((x) => x.manoeuvre)).toEqual(["depart", "demi_tour", "arrivee"]);
+  });
+
+  it("deux virages proches qui ne font pas un demi-tour sont toujours fondus (zigzag de trottoir)", () => {
+    // Nord 100 m, est 10 m, nord 100 m : gauche puis droite à 10 m ⇒ on continue.
+    const p = [
+      { lat: 47, lon: 5 },
+      { lat: 47.0009, lon: 5 },
+      { lat: 47.0009, lon: 5.00013 },
+      { lat: 47.0018, lon: 5.00013 },
+    ];
+    const cs = calculerConsignes([morceau([p[0]!, p[1]!]), morceau([p[1]!, p[2]!], "", 10), morceau([p[2]!, p[3]!])], p[3]!);
+    expect(cs.map((x) => x.manoeuvre)).toEqual(["depart", "arrivee"]);
+  });
+
+  it("numéro de route et nom", () => {
+    for (const n of ["N 77", "D 61A", "N033", "RN 7", "A 6", "M 383"]) expect(estNumeroDeRoute(n)).toBe(true);
+    for (const n of ["Avenue du 19 Mars 1962", "C", "Rue 12", "Allée des Refuzniks"]) expect(estNumeroDeRoute(n)).toBe(false);
+    expect(nomEtNumero("Avenue du 19 Mars 1962", "N 77")).toBe("N 77 (Avenue du 19 Mars 1962)");
+    expect(nomEtNumero("N 77", "Avenue du 19 Mars 1962")).toBe("N 77 (Avenue du 19 Mars 1962)");
+    expect(nomEtNumero("D 43", "N 77")).toBeNull();
+    expect(nomEtNumero("Rue A", "Rue B")).toBeNull();
+    expect(nomEtNumero(null, "N 77")).toBeNull();
+  });
+
+  it("d'une rue nommée à une autre, tout droit, sans numéro de route : toujours « continuez »", () => {
+    const a = { lat: 47, lon: 5 };
+    const m = { lat: 47.0009, lon: 5 };
+    const b = { lat: 47.0018, lon: 5 };
+    const cs = calculerConsignes([morceau([a, m], "Rue A"), morceau([m, b], "Rue B")], b);
+    expect(resume(cs)).toEqual([
+      ["depart", "Rue A"],
+      ["tout_droit", "Rue B"],
+      ["arrivee", null],
+    ]);
   });
 });
