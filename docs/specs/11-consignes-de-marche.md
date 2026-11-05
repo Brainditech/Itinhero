@@ -1,7 +1,7 @@
 # Spec 11 — Consignes de marche virage par virage et tracé du trajet
 
 - **Date** : 2026-11-04
-- **État** : **à approuver par Brainditech.**
+- **État** : **approuvée le 2026-11-05 par Brainditech (« implemente »), appliquée sur `phase-4/consignes-de-marche`.** Critères 4 (Google Maps) et 5 (sur le téléphone, par Brainditech) restent à constater.
 - **Branche prévue** : `phase-4/consignes-de-marche`
 - **Cases du PLAN** : phase 4 · « Gabarits de consignes et glossaire à la première occurrence » (consignes seulement, le glossaire reste à faire) ; phase 4 · « Carte MapLibre : arrêts, tracé de marche… » (tracé seulement).
 - **Prérequis** : issue 0010 corrigée (noms de lieux, adresse d'arrivée, attente), car les consignes s'appuient dessus.
@@ -91,3 +91,15 @@ Le guidage en direct qui suit la position (spec 12), la voix, les consignes hors
 ## 10. Étapes de vérification
 
 `npm test` (racine et `serveur/`), `npx expo lint`, `npx tsc --noEmit` ; `npm run test:national` ; puis Brainditech refait la recherche Brienon → Dijon sur le téléphone et compare les consignes à Google Maps.
+
+## 11. Résultats (2026-11-05)
+
+- **Seuil ajouté à D71 en appliquant** : deux manœuvres à moins de 25 m l'une de l'autre n'en font qu'une, mesurée avant la première et après la seconde ; un virage à moins de 25 m du départ donne au départ sa rue et son cap. Sans lui, la marche gare de Dijon → tribunal donnait 14 consignes (zigzags de trottoir de 11 à 19 m, sans nom) ; avec, 8.
+- **Critère 1** (test `consignes.test.ts`) : gare de Dijon → tribunal, 8 consignes : « Partez vers l'est cour de la Gare Pierre Semard », « Prenez légèrement à gauche avenue Maréchal Foch », « Continuez place Darcy », « Tournez à droite place Darcy », trois virages « sur le chemin » (trottoirs sans nom dans OSM), « Tribunal administratif de Dijon est sur votre gauche ».
+- **Critère 2** : marche de Saint-Florentin : route de la Gare, D 43, N 77, avenue du 19 Mars 1962, rue de la Gare, place de la Gare, dans cet ordre.
+- **Critère 3** : vérifié sur toutes les marches de la réponse enregistrée.
+- **Critère 5, constaté par `adb` le 2026-11-05** (Domicile → tribunal administratif de Dijon, jeudi 12/11, arriver avant 10:00) : « Voir le chemin (8 consignes) » déplie la carte du tracé et la liste fléchée ; à revoir par Brainditech (toucher une consigne centre la carte).
+- **Critère 6** : MOTIS national, Brienon → Dijon, trois essais : 1,15 à 1,23 s sans détail, 1,14 à 1,19 s avec (pas plus long) ; réponse de MOTIS 72 ko ⇒ 202 ko ; une possibilité de l'API 3,0 ko ⇒ 8,6 ko (tracés, consignes, arrêts et instants de la spec 12).
+- Flèches : symboles Material d'Android (`expo-symbols`, déjà utilisé partout dans l'app) au lieu de SVG dessinés : `react-native-svg` n'est pas installé, et aucun tiers n'est en cause (invariant 20).
+- **Reste** : critère 4 (5 marches comparées à Google Maps).
+
