@@ -46,6 +46,8 @@ example
 
 # captures de preuve : gardées sur le PC, jamais versionnées (D38)
 /docs/preuves/
+# captures adb et d'écran : seul endroit autorisé, jamais versionnées (D93)
+/docs/screenshots/
 
 # Android Studio
 /.idea/
