@@ -179,7 +179,7 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
 - Serveur, `ign-geocode.ts` :
   - **En plus** : `transportDesCategories` donne aussi un transport aux gares de la BD TOPO (`category` de l'IGN : « gare voyageurs… » ⇒ train, « gare routière » ⇒ car, « station de métro » ⇒ métro). Sans cela, « Gare d'Auxerre-Saint-Gervais », que seule l'IGN rend, gardait l'icône d'un lieu.
   - **En plus, doublons écartés** (constaté sur le téléphone : « saint michel sur orge » ⇒ 5 lignes, toutes la commune ou presque). Deux candidats sont le même lieu : noms proches à moins de 80 m (règle d'avant), noms comparés sans les petits mots (« de », « la ») ; même nom à moins de 300 m s'ils sont tous deux desservis par un transport, ou de même nature dans la même commune ; la commune elle-même à moins de 5 km.
-  - **En plus, classement** : le bonus de 0,2 du nom exact vaut aussi pour un arrêt (« gare de lyon » : la gare avant son parking) ; un transport lourd ajoute 0,15 (train, métro) ou 0,06 (tram). Depuis l'Yonne, « chatelet » montre le métro de Paris en 4e, après le lieu-dit voisin et deux arrêts de bus que MOTIS place lui-même devant (rang de MOTIS compté dans la note) : laissé tel quel, il est dans les 5.
+  - **En plus, classement** : le bonus de 0,2 du nom exact vaut aussi pour un arrêt (« gare de lyon » : la gare avant son parking) ; un transport lourd ajoute 0,15 (train, métro) ou 0,06 (tram). Depuis l'Yonne, « chatelet » montre le métro de Paris en 4e, après le lieu-dit voisin et deux arrêts de bus que MOTIS place lui-même devant (rang de MOTIS compté dans la note) : laissé tel quel, il est dans les 5. **Corrigé, §12.7 : 1er.**
 - App, `api.ts`, `demande.ts` : `transport` facultatif dans le candidat et le lieu choisi ; une valeur inconnue est oubliée (`.catch`), le candidat reste valable.
 - App, `suggestions.ts` : `iconeCandidat`, `natureLue`. **Écart** : le métro est un « M » en gras dans le rond, pas le pictogramme `subway`, qui se confondait avec le bus à 22 dp sur le téléphone.
 - App, `resultat.ts`, `detailCandidat` : **écart** : la ligne de détail écrite dit ce qu'est le lieu (« Gare, Paris, 75012 », « Métro, Paris, 75004 », « Arrêt de bus, … », « Adresse, … ») au lieu de « Arrêt » pour tous, et ne redit pas la commune sous un lieu qui porte son nom (« Saint-Michel-sur-Orge » ⇒ « 91240 · à 120 km »). Le libellé lu par TalkBack est le nom puis cette ligne (« Joigny, Gare, 89300, à 17 km »).
@@ -190,7 +190,25 @@ Les lieux récents ou favoris proposés avant la frappe ; les suggestions hors l
 
 - « gare de lyon » ⇒ Gare de Lyon (Paris), Paris-Gare-de-Lyon, Lyon Part-Dieu, Lyon Perrache : icône train, « Gare, … » ; la station de métro de l'IGN du même nom n'apparaît plus en double.
 - « chatelet » ⇒ Châtelet, Paris avec le « M », « Métro, Paris, 75004 » ; arrêts de bus de Montereau et Corquilleroy avec l'icône bus. Touché ⇒ le champ montre « Châtelet », « Métro, Paris, 75004 » dessous.
-- « 3 rue de la gare joigny » ⇒ icône adresse. **Limite connue, antérieure à ce complément** (même classement avant) : l'IGN n'a pas de n° 3 rue de la Gare à Joigny (89), seulement la rue ; le « 3 » tapé fait passer les adresses numérotées de Joigny-sur-Meuse devant. À traiter à part si Brainditech le juge utile.
+- « 3 rue de la gare joigny » ⇒ icône adresse. **Limite connue, antérieure à ce complément** (même classement avant) : l'IGN n'a pas de n° 3 rue de la Gare à Joigny (89), seulement la rue ; le « 3 » tapé fait passer les adresses numérotées de Joigny-sur-Meuse devant. À traiter à part si Brainditech le juge utile. **Corrigée, §12.7.**
 - « joigny » tapé sans choisir, « Chercher » ⇒ « Choisissez le lieu dans la liste. » sous l'Arrivée, Joigny (commune, une seule fois) puis Joigny (Gare, icône train) ; aucun autre écran ; la gare touchée, « Chercher » ⇒ Résultat directement (« Possible », départ 06:18).
 - Saint-Michel-sur-Orge (arrêt) → Basilique de Saint-Denis ⇒ Résultat « Possible » (07:49 → 09:03) ; l'API n'a jamais redémarré (issue 0020).
 - Reste du critère 10 (TalkBack, serveur arrêté, capture côte à côte avec la maquette 02) et critère 11 (comparaison avec Google Maps) : par Brainditech.
+
+### 12.7 Les deux limites corrigées (2026-11-05, demande de Brainditech : « règle les micro détails »)
+
+Constaté contre l'IGN et le MOTIS national, depuis un point de l'Yonne (Saint-Florentin) :
+
+- « 3 rue de la gare joigny » ⇒ 1. 3 Rue de la Gare, Joigny-sur-Meuse ; 2. Rue de la Gare 31, Joigny-sur-Meuse ; 3. l'arrêt « 3 RUE DE LA GARE », Joigny ; la rue de Joigny (89) **absente**. Trois causes : l'arrêt, à moins de 80 m et au nom qui contient « Rue de la Gare », avalait la rue comme doublon ; « 3 » comptait comme le début de « 31 » ; le mot « joigny » comptait autant pour Joigny-sur-Meuse que pour Joigny.
+- « chatelet » ⇒ le métro de Paris 3e, à 0,03 derrière l'arrêt de bus de Montereau (rang 8 chez MOTIS, −0,14).
+
+Corrigé dans `fusionner` (`serveur/src/lieux/ign-geocode.ts`) :
+
+1. Un arrêt et une adresse ne sont jamais le même lieu.
+2. Un numéro se retrouve en entier (« 3 » ≠ « 31 ») et compte pour moitié dans la part des mots retrouvés : la bonne rue sans ce numéro passe devant une autre rue qui l'a.
+3. La commune ne compte dans les mots retrouvés que si tous ses mots sont dans la recherche (« Paris 12e Arrondissement » se lit « Paris »).
+4. Une station de métro gagne 0,2 au lieu de 0,15. La gare reste à 0,15 : à 0,2, la gare de Sens passait devant la ville de Sens.
+
+Résultat (même point) : « 3 rue de la gare joigny » ⇒ 1. l'arrêt 3 RUE DE LA GARE, Joigny ; 2. Rue de la Gare, Joigny ; Joigny-sur-Meuse en 4e. « chatelet » ⇒ 1. Châtelet, Paris (métro), puis Montereau et Corquilleroy. « 10 rue de rivoli paris » : les rues de Rivoli passent devant « Rue de Paris à Genève 10 » (Dannemoine). 17 autres recherches comparées avant et après (joigny, auxerre, sens, migennes, saint michel sur orge, gare de lyon, basilique saint denis, tribunal judiciaire dijon, musee du louvre paris, gare d auxerre, place de la republique, mairie auxerre, hopital auxerre, saint florentin, orly, chatelet depuis Paris, rue de la gare joigny) : premières places inchangées.
+
+Tests : trois tests de régression dans `ign-geocode.test.ts` ; les deux premiers échouent sur l'ancien code. Serveur : 224 tests verts.

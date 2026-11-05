@@ -152,6 +152,36 @@ describe("classement IGN + MOTIS (D60)", () => {
     expect(fusionner([], [bus, gare], { lat: 47.9, lon: 3.0 }, "centre")[0]!.transport).toBe("train");
   });
 
+  // Constaté le 2026-11-05 depuis l'Yonne (spec 18, §12) : la rue de Joigny absente des suggestions.
+  it("« 3 rue de la gare joigny » : Joigny (89) avant Joigny-sur-Meuse, la rue gardée à côté de l'arrêt du même nom", () => {
+    const yonne = { lat: 47.9997, lon: 3.7272 };
+    const adresse = (nom: string, score: number, lat: number, lon: number, commune: string) => ({ ...ign(nom, score, lat, lon, commune), type: "adresse" as const });
+    const meuse = adresse("3 Rue de la Gare", 0.788, 49.81, 4.83, "Joigny-sur-Meuse");
+    const meuse31 = { ...motis("Rue de la Gare 31", 49.81, 4.831), type: "adresse" as const, commune: "Joigny-sur-Meuse" };
+    const rue = adresse("Rue de la Gare", 0.785, 47.9785, 3.3966, "Joigny");
+    const arret = { ...motis("3 RUE DE LA GARE", 47.9787, 3.3968), commune: "Joigny", transport: "bus" as const };
+    const r = fusionner([meuse, rue], [arret, meuse31], yonne, "3 rue de la gare joigny");
+    expect(r.slice(0, 2).map((c) => c.commune)).toEqual(["Joigny", "Joigny"]);
+    expect(r.map((c) => c.nom)).toContain("Rue de la Gare");
+  });
+
+  it("un numéro se retrouve en entier et compte pour moitié : la rue de Rivoli avant la rue de Paris au 10", () => {
+    const rivoli107 = { ...ign("Rue de Rivoli 107", 0.6, 48.8606, 2.3376, "Paris"), type: "adresse" as const };
+    const dannemoine = { ...ign("Rue de Paris à Genève 10", 0.7, 47.89, 3.96, "Dannemoine"), type: "adresse" as const };
+    expect(fusionner([dannemoine, rivoli107], [], { lat: 47.9997, lon: 3.7272 }, "10 rue de rivoli paris")[0]!.nom).toBe("Rue de Rivoli 107");
+  });
+
+  it("« chatelet » depuis l'Yonne : le métro de Paris avant les arrêts de bus plus proches du même nom", () => {
+    const montereau = { ...motis("Châtelet", 48.385, 2.95), commune: "Montereau-Fault-Yonne", transport: "bus" as const };
+    const corquilleroy = { ...motis("Châtelet", 48.04, 2.71), commune: "Corquilleroy", transport: "bus" as const };
+    const rouen = { ...motis("Châtelet", 49.44, 1.09), commune: "Rouen", transport: "bus" as const };
+    const champetieres = { ...motis("Châtelet", 45.51, 3.69), commune: "Champétières", transport: "bus" as const };
+    const lieux = [1, 2, 3].map((i) => ({ ...motis(`Le Châtelet ${i}`, 47.6, 3.3 + i), type: "lieu" as const }));
+    const paris = { ...motis("Châtelet", 48.8584, 2.3485), commune: "Paris", transport: "metro" as const };
+    const r = fusionner([], [montereau, corquilleroy, ...lieux, champetieres, rouen, paris], { lat: 47.9997, lon: 3.7272 }, "chatelet");
+    expect(r[0]!.commune).toBe("Paris");
+  });
+
   it("un arrêt au nom exact passe devant le parking du même nom", () => {
     const parking = ign("Parking Gare de Lyon", 0.9, 48.8438, 2.373, "Paris");
     const arret = motis("Gare de Lyon", 48.8446, 2.3751);

@@ -109,10 +109,10 @@ export const NOTE_MOTIS = 0.75;
  */
 export const NOTE_LIEU_OSM = 0.6;
 /**
- * Une gare ou une station de métro compte plus qu'un arrêt de bus du même nom (D92) : « Châtelet » depuis
+ * Une gare ou une station de métro compte plus qu'un arrêt de bus du même nom (D92, spec 18 §12.7) : « Châtelet » depuis
  * l'Yonne ⇒ le métro de Paris avant les arrêts de bus de Montereau et Corquilleroy (constaté le 2026-11-05).
  */
-export const IMPORTANCE_TRANSPORT: Record<Transport, number> = { train: 0.15, metro: 0.15, tram: 0.06, car: 0, bus: 0, bateau: 0 };
+export const IMPORTANCE_TRANSPORT: Record<Transport, number> = { train: 0.15, metro: 0.2, tram: 0.06, car: 0, bus: 0, bateau: 0 };
 /** Une recherche qui commence par un type de voie vise une adresse (« Place de la République »). */
 const TYPES_DE_VOIE = /^(rue|avenue|av|boulevard|bd|place|pl|route|chemin|allee|impasse|quai|cours|square|passage|rond point|faubourg)\b/;
 const ARTICLE = /^(le|la|les|l) /;
@@ -130,12 +130,27 @@ export const simplifier = (s: string) =>
 
 const mots = (s: string) => simplifier(s).split(" ").filter((m) => m && !MOTS_VIDES.has(m));
 
-/** Part des mots de la recherche retrouvés (en début de mot) dans le nom et la commune du candidat. */
+/** Un mot de la recherche retrouvé dans un mot du lieu : en début de mot, mais un numéro en entier (« 3 » ≠ « 31 »). */
+const retrouve = (cherche: string, present: string) => (/^\d+$/.test(cherche) ? present === cherche : present.startsWith(cherche));
+
+/** « Paris 12e Arrondissement » ⇒ « Paris » : l'arrondissement ne se tape pas. */
+const sansArrondissement = (commune: string) => commune.replace(/\s+\d+(er|e)\s+arrondissement$/i, "");
+
+/**
+ * Part des mots de la recherche retrouvés dans le nom et la commune du candidat. La commune ne compte que si
+ * tous ses mots sont dans la recherche (D92) : « 3 rue de la gare joigny » nomme Joigny, pas Joigny-sur-Meuse.
+ * Un numéro compte pour moitié : la bonne rue sans ce numéro passe devant une autre rue qui l'a
+ * (« 10 rue de rivoli paris » : la rue de Rivoli avant « Rue de Paris à Genève 10 »).
+ */
 export function couverture(recherche: string, c: Candidat): number {
   const cherches = mots(recherche);
   if (cherches.length === 0) return 0;
-  const presents = mots(`${c.nom} ${c.commune ?? ""}`);
-  return cherches.filter((m) => presents.some((p) => p.startsWith(m))).length / cherches.length;
+  const commune = mots(sansArrondissement(c.commune ?? ""));
+  const communeNommee = commune.length > 0 && commune.every((p) => cherches.some((m) => retrouve(m, p)));
+  const presents = [...mots(c.nom), ...(communeNommee ? commune : [])];
+  const poids = (m: string) => (/^\d+$/.test(m) ? 0.5 : 1);
+  const total = cherches.reduce((s, m) => s + poids(m), 0);
+  return cherches.filter((m) => presents.some((p) => retrouve(m, p))).reduce((s, m) => s + poids(m), 0) / total;
 }
 
 /**
@@ -212,6 +227,8 @@ function memeCommune(a: Candidat, b: Candidat): boolean {
  * 3. la commune elle-même (lieu nommé comme sa commune), même commune, à moins de 5 km.
  */
 function memeLieu(a: Candidat, b: Candidat): boolean {
+  // Un arrêt nommé d'après sa rue n'est pas l'adresse (« 3 RUE DE LA GARE » à Joigny avalait « Rue de la Gare »).
+  if ((a.type === "arret" && b.type === "adresse") || (a.type === "adresse" && b.type === "arret")) return false;
   const d = distanceMetres(a, b);
   if (d < MEME_LIEU_METRES && memeNom(a.nom, b.nom)) return true;
   if (nomReduit(a.nom) !== nomReduit(b.nom)) return false;
