@@ -12,6 +12,7 @@ type Requete = { method: "GET" | "POST" | "DELETE"; url: string; payload?: strin
 const INVALIDES: Record<string, Requete> = {
   "GET /v1/lieux": { method: "GET", url: "/v1/lieux?q=Joigny&inconnu=1" },
   "GET /v1/course": { method: "GET", url: "/v1/course?id=abc" },
+  "POST /v1/etat-courses": { method: "POST", url: "/v1/etat-courses", payload: JSON.stringify({ courses: [] }) },
   "POST /v1/itineraires": { method: "POST", url: "/v1/itineraires", payload: JSON.stringify({ date: "2026-13-01" }) },
   "POST /v1/marche": { method: "POST", url: "/v1/marche", payload: JSON.stringify({ de: { lat: 95, lon: 0 } }) },
   "POST /v1/comprendre": { method: "POST", url: "/v1/comprendre", payload: JSON.stringify({ phrase: "jeudi", lat: 47 }) },

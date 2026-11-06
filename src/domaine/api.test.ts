@@ -180,3 +180,16 @@ describe("hors de la zone couverte (spec 27, critère 3)", () => {
     expect(messageEchec({ etat: "hors_zone", points: ["depart", "arrivee"] })).toMatch(/^Le départ et l'arrivée sont hors/);
   });
 });
+
+describe("clientApi.etatCourses (spec 33, critère 5)", () => {
+  it("POST des identifiants ; états lus ; état inconnu du schéma ⇒ erreur_serveur", async () => {
+    const etats = [{ course: "c1", etat: "retard", retard_minutes: 7 }, { course: "c2", etat: "prevu" }];
+    const fetch = repondre(200, { etats });
+    const r = await clientApi({ urlApi: URL_API, cle: CLE, fetch }).etatCourses(["c1", "c2"]);
+    expect(r).toEqual({ etat: "ok", donnees: etats });
+    expect(fetch.mock.calls[0]![0]).toBe("http://localhost:3000/v1/etat-courses");
+    expect(JSON.parse(fetch.mock.calls[0]![1].body as string)).toEqual({ courses: ["c1", "c2"] });
+    const bizarre = repondre(200, { etats: [{ course: "c1", etat: "en_avance" }] });
+    expect(await clientApi({ urlApi: URL_API, cle: CLE, fetch: bizarre }).etatCourses(["c1"])).toEqual({ etat: "erreur_serveur" });
+  });
+});

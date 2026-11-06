@@ -392,8 +392,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (spec 29, D107) : `serveur/src/abonnements/abonnements.ts` (SQLite `node:sqlite`, volume `abonnements`), `POST`/`DELETE /v1/abonnements`, purge au démarrage puis chaque heure ; `serveur/src/routes/abonnements.test.ts` (colonnes exactes, purge à la fin de J+1 heure de Paris, 400/401/503, canaris), 2026-11-06. L'abonnement depuis l'app viendra avec `suivi-retards` (jeton Expo Push).
 - [ ] `suivi-retards` : seuils de D21, Expo Push et FCM.
   Preuve : flux GTFS-RT simulé ⇒ notification reçue, app fermée.
-- [ ] Rafraîchissement d'un trajet enregistré (`/v1/etat-courses`).
+- [x] Rafraîchissement d'un trajet enregistré (`/v1/etat-courses`).
   Preuve : test.
+  Fait (spec 33, D111) : `POST /v1/etat-courses` (prévu, en direct, retard ≥ 5 min, supprimé, inconnu), `client.etatCourses` ; `serveur/src/routes/etat-courses.test.ts`, `src/domaine/api.test.ts`, 2026-11-06. L'affichage dans Mes trajets viendra avec le flux GTFS-RT (sans lui, tout est « prévu »).
 - [ ] Replanification (D51) : course supprimée ou correspondance cassée ⇒ alternative depuis le prochain arrêt prévu, envoyée par notification, rien remplacé sans accord.
   Preuve : suppression simulée dans un flux GTFS-RT de test ⇒ alternative reçue, app fermée.
 
