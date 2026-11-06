@@ -167,3 +167,34 @@ Captures `docs/screenshots/spec-24/2026-11-06-00` à `10` (non versionnées, D93
 
 - **Pas vu sur le téléphone** : le tri gardé (chaque sens de cette recherche n'a qu'une possibilité, donc pas de puces) ; couvert par le test « le tri gardé choisit la possibilité montrée ». La pastille de carte attend le nouveau build (spec 23).
 - Vu en passant : le retour 11:42 part avant l'arrivée de l'aller modifié (défaut du formulaire déjà signalé, pas encore ouvert dans `docs/issues/`).
+
+## 8. Révision du 2026-11-06 : une disquette par trajet proposé
+
+- **État** : **approuvée** par Brainditech le 2026-11-06 (« vasy »), après l'essai du §7. Elle remplace le §7.2 et la partie « tri gardé » du §7.1.
+- **Origine** : « l'enregistrement ne doit pas être tout en haut mais pour chaque trajet proposé, à la place du chevron, pas global, car on veut pouvoir enregistrer un seul trajet ; là c'est toujours la totalité qui est enregistrée, et quand je veux modifier, ça recherche plusieurs trajets alors qu'on n'en a enregistré qu'un seul parmi les 7 proposés ».
+
+### 8.1 Décision D102
+
+- La disquette de « Votre trajet » **disparaît** ; « Votre trajet » retrouve son chevron.
+- **Chaque carte de trajet proposé** (aller comme retour) a une disquette (`save`, 48 dp) **à la place de son chevron**. Toucher la carte ailleurs déplie toujours ses étapes (« Voir les étapes »).
+- Un toucher enregistre **ce trajet seul**, dans son sens : la réponse gardée ne contient que cette possibilité, telle que le serveur l'a donnée (invariant 3). Rouvert, le trajet ne montre qu'elle, et le verdict s'appuie sur elle ; le rectangle de Mes trajets aussi.
+- Une fois enregistrée, la disquette de cette carte devient une **coche verte**, et la carte montre en bas « Enregistré dans Mes trajets · Voir Mes trajets » puis l'état de sa carte de zone (spec 23).
+- **Une possibilité par sens et par recherche** : enregistrer une autre carte du même sens la remplace (même clé, D98 §3.3) ; la coche passe sur la nouvelle carte. L'aller et le retour restent deux trajets à part (D101).
+- « Modifier » (crayon du trajet rouvert) relance une recherche : elle propose de nouveau plusieurs trajets, puisque les horaires peuvent avoir changé ; on en garde un avec sa disquette, qui remplace l'ancien.
+- Les trajets enregistrés avant D102 gardent toutes leurs possibilités ; ils passent à une seule dès qu'on les réenregistre.
+- Le tri n'est plus enregistré : la possibilité gardée est celle qu'on a touchée.
+
+**Écarté** :
+- Garder la disquette de « Votre trajet » à côté : deux façons d'enregistrer, dont une qui garde tout.
+- Garder plusieurs possibilités du même sens comme trajets distincts : la liste se remplirait de variantes du même rendez-vous.
+
+### 8.2 Critères d'acceptation
+
+1. Tests du domaine, rouges avant le code : aller ⇒ seule la possibilité touchée ; retour ⇒ lieux échangés, seule la possibilité touchée ; deux possibilités du même sens ⇒ même clé ; rang absent, sens impossible ou lieu manquant ⇒ rien.
+2. Téléphone (adb) : une disquette par carte, plus de disquette en haut ; toucher ⇒ coche verte et « Enregistré dans Mes trajets » sur cette carte ; Mes trajets ⇒ le trajet remplacé ; rouvert ⇒ une seule carte.
+
+### 8.3 Constats (2026-11-06)
+
+- **Code** : `src/domaine/voyages.test.ts`, 4 tests nouveaux, rouges avant le code (fonction absente), puis verts. App : 322 tests, `npx expo lint` et `npx tsc --noEmit` verts.
+- **Téléphone** (adb, MOTIS national), captures `docs/screenshots/spec-24/2026-11-06-40` à `52` (non versionnées, D93) : trajet « Domicile → Gifi Joigny 2 » rouvert, crayon, « Chercher » ⇒ une disquette sur chaque carte, chevron revenu dans « Votre trajet » (48, 49) ; disquette du 06:18 ⇒ coche verte, « Enregistré dans Mes trajets · Voir Mes trajets » dans la carte (50) ; Mes trajets ⇒ toujours trois rectangles, celui-ci remplacé (51) ; rouvert ⇒ une seule carte, 06:18 → 08:32 (52).
+- **Tri « Moins de marche » vérifié** sur « Domicile → Préfecture de l'Yonne » (41) : 12 min, 17 min, 19 min, puis 73 min de marche, dans cet ordre. Le 06:18 (bus, 48 min à pied, train) n'est en tête qu'avec « Arrivée la plus tôt », parce qu'il arrive le plus tôt ; le verdict « Départ 06:18 » s'appuie aussi sur lui (D80). Le tri range seulement les trajets reçus du serveur.

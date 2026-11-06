@@ -133,6 +133,21 @@ export function voyagesDepuisRecherche(r: RechercheAEnregistrer, choix: ChoixEnr
 }
 
 /**
+ * La disquette d'une possibilité (spec 24 §8, D102) : le sens touché, avec cette seule possibilité, telle que le
+ * serveur l'a donnée (invariant 3). Rouvert, le trajet ne montre qu'elle ; son verdict s'appuie sur elle.
+ * Même clé pour toutes les possibilités d'un sens : en enregistrer une autre remplace la première.
+ */
+export function voyageDePossibilite(r: RechercheAEnregistrer, trajet: Trajet, index: number, maintenant: Date): Voyage | null {
+  const sensTouche = trajet === "retour" ? r.reponse?.retour : r.reponse;
+  const p = sensTouche?.possibilites[index];
+  if (!p) return null;
+  const [v] = voyagesDepuisRecherche(r, trajet, { aller: "arrivee", retour: "arrivee" }, maintenant);
+  if (!v) return null;
+  const { tri: _tri, ...sansTri } = v;
+  return { ...sansTri, reponse: { ...v.reponse, verdict: "possible", possibilites: [p] } };
+}
+
+/**
  * Voyage d'avant D101, enregistré avec son retour ⇒ l'aller et le retour à part (un sens sans possibilité part).
  * Sans retour, il reste tel quel.
  */

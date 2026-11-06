@@ -14,6 +14,7 @@ import {
   rangerVoyages,
   resumeVoyage,
   separerVoyage,
+  voyageDePossibilite,
   voyagesDepuisRecherche,
   type LieuVoyage,
   type TrisVoyage,
@@ -262,5 +263,51 @@ describe("un trajet par sens (spec 24 §7, D101)", () => {
     expect(montre("marche")).toBe("07:02");
     // Le bus de l'exemple est à réserver : « Sans réservation » ne garde rien ⇒ la possibilité du verdict.
     expect(montre("sans_reservation")).toBe("08:14");
+  });
+});
+
+describe("un trajet choisi parmi les possibilités (spec 24 §8, D102)", () => {
+  const AUTRE: Possibilite = {
+    ...POSSIBILITE,
+    depart: "07:02",
+    arrivee: "09:40",
+    depart_utc: "2026-11-12T06:02:00.000Z",
+    arrivee_utc: "2026-11-12T08:40:00.000Z",
+  };
+  const DEUX: ReponseItineraires = { ...REPONSE, possibilites: [POSSIBILITE, AUTRE] };
+  const R = { ...RECHERCHE, reponse: DEUX };
+
+  it("aller : seule la possibilité touchée est gardée, telle que le serveur l'a donnée", () => {
+    const v = voyageDePossibilite(R, "aller", 1, MAINTENANT)!;
+    expect(v).toMatchObject({ trajet: "aller", depart: DEPART, arrivee: ARRIVEE });
+    expect(v.tri).toBeUndefined();
+    expect(v.demande.retour).toBeNull();
+    expect(v.reponse.retour).toBeNull();
+    expect(v.reponse.verdict).toBe("possible");
+    expect(v.reponse.possibilites).toEqual([AUTRE]);
+    // Rouvert ou dans Mes trajets, c'est elle qu'on voit.
+    const h = resumeVoyage(v).horaires;
+    expect(h.possible && h.depart).toBe("07:02");
+  });
+
+  it("retour : lieux échangés, seule la possibilité touchée du retour", () => {
+    const retours = [REPONSE.retour!.possibilites[0]!, { ...AUTRE, depart: "17:05", arrivee: "18:20" }];
+    const r = { ...R, reponse: { ...DEUX, retour: { ...REPONSE.retour!, possibilites: retours } } };
+    const v = voyageDePossibilite(r, "retour", 1, MAINTENANT)!;
+    expect(v).toMatchObject({ trajet: "retour", depart: ARRIVEE, arrivee: DEPART });
+    expect(v.demande).toMatchObject({ sens: "partir_a", heure: "16:00", retour: null });
+    expect(v.reponse.possibilites).toEqual([retours[1]]);
+  });
+
+  it("deux possibilités du même sens ⇒ même clé : la seconde remplace la première", () => {
+    const a = voyageDePossibilite(R, "aller", 0, MAINTENANT)!;
+    const b = voyageDePossibilite(R, "aller", 1, MAINTENANT)!;
+    expect(cleVoyage(a.demande, a.depart, a.arrivee)).toBe(cleVoyage(b.demande, b.depart, b.arrivee));
+  });
+
+  it("rang absent, sens impossible ou lieu manquant ⇒ rien", () => {
+    expect(voyageDePossibilite(R, "aller", 2, MAINTENANT)).toBeNull();
+    expect(voyageDePossibilite({ ...R, reponse: RETOUR_IMPOSSIBLE }, "retour", 0, MAINTENANT)).toBeNull();
+    expect(voyageDePossibilite({ ...R, depart: { lieu: null } }, "aller", 0, MAINTENANT)).toBeNull();
   });
 });

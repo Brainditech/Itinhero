@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
+import { AccessibilityInfo, Pressable, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
 import { Redirect, router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { SymbolView, type AndroidSymbol } from "expo-symbols";
+import { SymbolView } from "expo-symbols";
 
 import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { BandeauInfo, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
-import { MenuActions } from "@/composants/MenuActions";
 import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
 import { VotreTrajet } from "@/composants/VotreTrajet";
@@ -17,15 +16,7 @@ import type { ReponseSens } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
 import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
-import {
-  bandeauVoyage,
-  choixPossibles,
-  peutEnregistrer,
-  voyagesDepuisRecherche,
-  type ChoixEnregistrement,
-  type TrisVoyage,
-  type Voyage,
-} from "@/domaine/voyages";
+import { bandeauVoyage, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
 import { useModifierVoyage, useRecherche, type Recherche } from "@/recherche";
 import { enregistrerVoyage, supprimerVoyage } from "@/stockage/voyages";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -36,7 +27,7 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
  * Pas de « Moins cher », de prix ni de « Voir le trajet » ici ; toucher une carte déplie ses étapes.
  * Chaque bloc a un chevron qui le replie (spec 14 §11).
  * Avec une fin de rendez-vous (spec 19, D94) : l'aller, puis « Retour », son verdict et ses possibilités.
- * La disquette de « Votre trajet » enregistre l'aller, le retour ou les deux, chacun avec son tri (spec 24 §7, D101).
+ * Chaque carte porte une disquette qui enregistre ce trajet seul, dans son sens (spec 24 §8, D102).
  * Un trajet rouvert depuis Mes trajets porte un bandeau et le crayon, sans disquette ni « Modifier la recherche ».
  */
 export default function Resultat() {
@@ -54,7 +45,7 @@ export default function Resultat() {
   const triDepart: TrisVoyage = { aller: recherche?.rouvert?.voyage.tri ?? "arrivee", retour: "arrivee" };
   const [choixTris, setChoixTris] = useState<{ pour: unknown; tris: TrisVoyage }>({ pour: reponseCourante, tris: triDepart });
   const tris = choixTris.pour === reponseCourante ? choixTris.tris : triDepart;
-  const enregistrement = useEnregistrement(recherche, tris);
+  const enregistrement = useEnregistrement(recherche);
 
   const depart = recherche?.depart.lieu;
   const arrivee = recherche?.arrivee.lieu;
@@ -75,9 +66,7 @@ export default function Resultat() {
         depart={{ nom: depart.nom, adresse: depart.adresse }}
         arrivee={{ nom: arrivee.nom, adresse: adresseArrivee(demande.arrivee, arrivee.adresse, reponse.arrivee.adresse) }}
         onModifier={rouvert ? () => modifierVoyage(rouvert.cle, rouvert.voyage) : modifier}
-        action={!rouvert && peutEnregistrer(reponse) ? <Disquette enregistrement={enregistrement} reponse={reponse} /> : undefined}
       />
-      {rouvert ? null : <EtatEnregistrement enregistrement={enregistrement} />}
       <Sens
         reponse={reponse}
         trajet="aller"
@@ -86,6 +75,7 @@ export default function Resultat() {
         adresse={reponse.arrivee.adresse}
         tri={tris.aller}
         onChoisir={(t) => choisirTri("aller", t)}
+        enregistrement={rouvert ? null : enregistrement}
       />
 
       {reponse.retour ? (
@@ -102,6 +92,7 @@ export default function Resultat() {
             adresse={depart.adresse}
             tri={tris.retour}
             onChoisir={(t) => choisirTri("retour", t)}
+            enregistrement={rouvert ? null : enregistrement}
           />
         </>
       ) : null}
@@ -118,105 +109,97 @@ export default function Resultat() {
   );
 }
 
-type Enregistre = { cle: string; voyage: Voyage };
-type EtatDisquette =
-  { pour: unknown; etat: "enCours" | "echec" } | { pour: unknown; etat: "fait"; enregistres: Enregistre[]; jeton: number };
+type Enregistre = { cle: string; voyage: Voyage; index: number; jeton: number };
+/** Par sens : la possibilité enregistrée, l'enregistrement en cours ou l'échec, avec le rang touché. */
+type EtatSens = { etat: "enCours" | "echec"; index: number } | ({ etat: "fait" } & Enregistre);
+type EtatDisquettes = { pour: unknown; sens: Partial<Record<Trajet, EtatSens>> };
 
 /**
- * Enregistrement des trajets (spec 24 §7, D101) : chaque sens choisi va dans la base du téléphone avec son tri ;
- * le même trajet remplace l'ancien (D98, §3.3), et le trajet modifié part s'il n'a pas été remplacé sur place.
- * L'état vaut pour cette réponse : une nouvelle réponse remet la disquette.
+ * Enregistrement d'une possibilité (spec 24 §8, D102) : le sens touché va dans la base du téléphone avec cette
+ * seule possibilité. Une autre possibilité du même sens a la même clé et remplace la première (D98, §3.3) ; le
+ * trajet modifié part s'il n'a pas été remplacé sur place. L'état vaut pour cette réponse.
  */
-function useEnregistrement(recherche: Recherche | null, tris: TrisVoyage) {
+function useEnregistrement(recherche: Recherche | null) {
   const db = useSQLiteContext();
-  const [etat, setEtat] = useState<EtatDisquette | null>(null);
-  const courant = etat && etat.pour === recherche?.reponse ? etat : null;
+  const [etat, setEtat] = useState<EtatDisquettes | null>(null);
+  const courant: EtatDisquettes["sens"] = etat && etat.pour === recherche?.reponse ? etat.sens : {};
 
-  async function enregistrer(choix: ChoixEnregistrement) {
+  async function enregistrer(trajet: Trajet, index: number) {
     if (!recherche) return;
     const pour = recherche.reponse;
-    const voyages = voyagesDepuisRecherche(recherche, choix, tris, new Date());
-    if (voyages.length === 0) return;
-    setEtat({ pour, etat: "enCours" });
+    const voyage = voyageDePossibilite(recherche, trajet, index, new Date());
+    if (!voyage) return;
+    const poser = (e: EtatSens) =>
+      setEtat((avant) => ({ pour, sens: { ...(avant && avant.pour === pour ? avant.sens : {}), [trajet]: e } }));
+    poser({ etat: "enCours", index });
     try {
-      const enregistres: Enregistre[] = [];
-      for (const voyage of voyages) enregistres.push({ cle: await enregistrerVoyage(db, voyage), voyage });
+      const cle = await enregistrerVoyage(db, voyage);
       const ancien = recherche.remplace;
-      // Un échec ici laisse l'ancien trajet dans la liste, sans perdre les nouveaux.
-      if (ancien && !enregistres.some((e) => e.cle === ancien)) {
+      // Un échec ici laisse l'ancien trajet dans la liste, sans perdre le nouveau.
+      if (ancien && ancien !== cle) {
         await supprimerVoyage(db, ancien)
           .then(() => supprimerCarte(ancien))
           .catch(() => undefined);
       }
-      setEtat({ pour, etat: "fait", enregistres, jeton: Date.now() });
-      AccessibilityInfo.announceForAccessibility(
-        enregistres.length > 1 ? "Aller et retour enregistrés dans Mes trajets" : "Trajet enregistré dans Mes trajets",
-      );
+      poser({ etat: "fait", cle, voyage, index, jeton: Date.now() });
+      AccessibilityInfo.announceForAccessibility("Trajet enregistré dans Mes trajets");
     } catch {
-      setEtat({ pour, etat: "echec" });
+      poser({ etat: "echec", index });
     }
   }
 
-  return { etat: courant, enregistrer };
+  return { sens: courant, enregistrer };
 }
 
 type Enregistrement = ReturnType<typeof useEnregistrement>;
 
-const ACTIONS_CHOIX: Record<ChoixEnregistrement, { icone: AndroidSymbol; libelle: string }> = {
-  aller_retour: { icone: "sync_alt", libelle: "Aller et retour" },
-  aller: { icone: "arrow_forward", libelle: "Aller seulement" },
-  retour: { icone: "arrow_back", libelle: "Retour seulement" },
-};
-
-/** Disquette à la place du chevron de « Votre trajet » (spec 24 §7.2) : un toucher, ou le choix du sens. */
-function Disquette({ enregistrement, reponse }: { enregistrement: Enregistrement; reponse: Recherche["reponse"] }) {
-  const { etat, enregistrer } = enregistrement;
+/** Disquette d'une carte (spec 24 §8) : enregistre ce trajet seul ; une fois fait, une coche verte. */
+function Disquette({ etat, onPress }: { etat: EtatSens | undefined; onPress: () => void }) {
   const fait = etat?.etat === "fait";
-  const choix = choixPossibles(reponse);
+  const enCours = etat?.etat === "enCours";
+  const icone = fait ? "check_circle" : "save";
   return (
-    <MenuActions
-      nom={fait ? "Trajet enregistré. Enregistrer de nouveau" : "Enregistrer le trajet"}
-      icone={fait ? "check_circle" : "save"}
-      teinte={fait ? couleurs.possible : couleurs.primaire}
-      desactive={etat?.etat === "enCours"}
-      actions={choix.map((c) => ({ ...ACTIONS_CHOIX[c], onPress: () => void enregistrer(c) }))}
-    />
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={fait ? "Trajet enregistré dans Mes trajets. Enregistrer de nouveau" : "Enregistrer ce trajet"}
+      accessibilityState={{ disabled: enCours }}
+      disabled={enCours}
+      onPress={onPress}
+      hitSlop={4}
+      style={{ minHeight: 48, minWidth: 48 }}
+      className="items-center justify-center rounded-full active:bg-primaire-doux"
+    >
+      <SymbolView name={{ android: icone, web: icone }} size={26} tintColor={fait ? couleurs.possible : couleurs.primaire} />
+    </Pressable>
   );
 }
 
-/** Sous « Votre trajet » : « Enregistré dans Mes trajets » et la carte de chaque trajet (spec 23), ou l'échec. */
-function EtatEnregistrement({ enregistrement }: { enregistrement: Enregistrement }) {
-  const { etat } = enregistrement;
-  if (etat?.etat === "echec") {
+/** Dans la carte enregistrée : « Enregistré dans Mes trajets » et la carte de sa zone (spec 23), ou l'échec. */
+function EtatEnregistrement({ etat }: { etat: EtatSens }) {
+  if (etat.etat === "echec") {
     return (
       <Text accessibilityLiveRegion="polite" className="font-inter-medium text-badge text-erreur">
         Le trajet n&apos;a pas pu être enregistré sur le téléphone.
       </Text>
     );
   }
-  if (etat?.etat !== "fait") return null;
-  const plusieurs = etat.enregistres.length > 1;
+  if (etat.etat !== "fait") return null;
   return (
-    <View className="gap-3 rounded-bouton border border-bordure-carte bg-fond p-4">
+    <View className="gap-3 border-t border-bordure-carte pt-3">
       <View className="flex-row items-center gap-3">
-        <SymbolView name={{ android: "check_circle", web: "check_circle" }} size={24} tintColor={couleurs.possible} />
-        <Text className="flex-1 font-inter-medium text-corps text-texte">Enregistré dans Mes trajets</Text>
+        <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.possible }}>
+          Enregistré dans Mes trajets
+        </Text>
         <Lien libelle="Voir Mes trajets" onPress={() => router.navigate("/mes-trajets")} />
       </View>
-      {etat.enregistres.map((e) => (
-        // Clé avec le jeton : enregistrer de nouveau relance le téléchargement de la carte (D99, §3.5).
-        <CarteEnregistree
-          key={`${e.cle}-${etat.jeton}`}
-          enregistre={e}
-          libelle={plusieurs ? (e.voyage.trajet === "retour" ? "Retour" : "Aller") : null}
-        />
-      ))}
+      {/* Clé avec le jeton : enregistrer de nouveau relance le téléchargement de la carte (D99, §3.5). */}
+      <CarteEnregistree key={`${etat.cle}-${etat.jeton}`} enregistre={etat} />
     </View>
   );
 }
 
 /** La carte de la zone d'un trajet qui vient d'être enregistré : son téléchargement part tout de suite (D99). */
-function CarteEnregistree({ enregistre, libelle }: { enregistre: Enregistre; libelle: string | null }) {
+function CarteEnregistree({ enregistre }: { enregistre: Enregistre }) {
   const carte = useCarteVoyage(enregistre.cle, enregistre.voyage);
   const { lancer } = carte;
   const lance = useRef(false);
@@ -227,18 +210,14 @@ function CarteEnregistree({ enregistre, libelle }: { enregistre: Enregistre; lib
     lancer(true);
   }, [lancer]);
   if (!carte.etat) return null;
-  return (
-    <View className="gap-1">
-      {libelle ? <Text className="font-inter-medium text-badge text-texte-secondaire">{libelle}</Text> : null}
-      <LigneCarte etat={carte.etat} onEnregistrer={() => carte.lancer(false)} />
-    </View>
-  );
+  return <LigneCarte etat={carte.etat} onEnregistrer={() => carte.lancer(false)} />;
 }
 
 /**
  * Un sens du voyage : son verdict, ses puces de tri, puis une carte par possibilité dans l'ordre choisi (D97).
  * Le verdict ne bouge pas avec le tri. Chaque carte garde son rang dans la réponse : l'Étape et le Guidage
- * retrouvent la possibilité par lui. Le tri est tenu par le Résultat : la disquette l'enregistre (D101).
+ * retrouvent la possibilité par lui, et sa disquette l'enregistre seule (D102) ; pas de disquette sur un
+ * trajet rouvert (`enregistrement` nul).
  */
 function Sens({
   reponse,
@@ -248,6 +227,7 @@ function Sens({
   adresse,
   tri,
   onChoisir,
+  enregistrement,
 }: {
   reponse: ReponseSens;
   trajet: Trajet;
@@ -256,8 +236,10 @@ function Sens({
   adresse: string | null;
   tri: Tri;
   onChoisir: (t: Tri) => void;
+  enregistrement: Enregistrement | null;
 }) {
   const rangees = trier(reponse.possibilites, tri);
+  const etat = enregistrement?.sens[trajet];
   return (
     <>
       <BlocVerdict reponse={reponse} trajet={trajet} />
@@ -274,6 +256,12 @@ function Sens({
           destination={destination}
           date={date}
           adresse={adresse}
+          action={
+            enregistrement ? (
+              <Disquette etat={etat?.index === i ? etat : undefined} onPress={() => void enregistrement.enregistrer(trajet, i)} />
+            ) : undefined
+          }
+          pied={etat?.index === i ? <EtatEnregistrement etat={etat} /> : undefined}
         />
       ))}
     </>
