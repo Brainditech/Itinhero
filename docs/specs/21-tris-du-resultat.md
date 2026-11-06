@@ -1,7 +1,7 @@
 # Spec 21 — Tris du Résultat : arrivée la plus tôt, moins de marche, sans réservation
 
 - **Date** : 2026-11-05
-- **État** : **approuvée** par Brainditech le 2026-11-06 (« j'approuve vas y implémente »). Règle : D97. **Appliquée** sur `phase-3/tris` ; critère 3 (téléphone) à constater.
+- **État** : **approuvée** par Brainditech le 2026-11-06 (« j'approuve vas y implémente »). Règle : D97. **Appliquée** sur `phase-3/tris` ; critère 3 constaté par adb (§6.2) sauf l'annonce TalkBack.
 - **Branche** : `phase-3/tris` (spec, puis code sur la même branche après approbation).
 - **Case de PLAN.md** : phase 3, « Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21) » ; « Moins cher » passe dans la case de `data/tarifs.json` (§3).
 - **Invariants** : 3 par extension (l'app ne calcule aucune heure : elle range les possibilités du serveur avec leurs valeurs), 4 (aucune étape ne perd sa source), 5 (aucun prix), 13 (le verdict ne change pas de jour), 20 (jetons du design system seulement).
@@ -76,9 +76,22 @@ Aucun service nouveau n'est branché : le tri se fait sur la réponse déjà re�
 - Le choix du tri est gardé avec la réponse à laquelle il s'applique : une autre réponse (« Modifier la recherche », « Recalculer depuis ici ») repart d'« Arrivée la plus tôt » sans effet ni clé à changer.
 - La phrase « Aucun trajet sans réservation ce jour-là. » n'apparaît qu'avec « Sans réservation » : les deux autres tris gardent toutes les possibilités.
 
-### 6.2 Téléphone
+### 6.2 Téléphone (2026-11-06, adb, MOTIS national)
 
-(Critère 3, à constater par adb.)
+Captures `docs/screenshots/spec-21/01` à `07` (non versionnées, D93).
+
+| Point du critère 3 | Constaté |
+|---|---|
+| Brienon → France Travail Joigny, jeudi 12/11, arriver avant 10:00 | Trois puces, « Arrivée la plus tôt » cochée. Ordre : 06:18 → 08:27, puis 08:46 → 09:25, puis 08:53 → 09:33 (01) |
+| « Moins de marche » | Les deux trajets en taxi (16 min de marche) passent devant la voie de Saint-Florentin (70 min de marche). Le verdict reste « Possible, Départ 06:18 » (02) |
+| Carte rangée ⇒ Étape ⇒ Guidage | La 1re carte après tri (taxi de 08:46) ouvre l'Étape « Taxi 08:46 → 08:58 », puis le Guidage « Taxi à 08:46, arrivée 09:25 » : ce trajet, pas le 06:18, 1er dans la réponse du serveur (03, 04) |
+| « Sans réservation », Gifi Joigny 2 → Domicile à 17:00 | Les deux trajets avec un taxi disparaissent, reste celui de 23:07 (nuit dehors). Le verdict reste « Possible, Départ 17:22 » (05) |
+| Aller et retour, fin du rendez-vous 16:00 | Deux rangées. « Sans réservation » au retour garde 16:28 → 18:39 et 23:12 ; l'aller reste sur « Arrivée la plus tôt » avec ses trois trajets (06, 07) |
+| TalkBack | Android voit les puces comme des boutons radio, et l'état coché suit le choix (arbre d'accessibilité lu par adb). **L'annonce au changement de tri reste à entendre** : TalkBack n'a pas été activé sans l'accord de Brainditech |
+
+- La phrase « Aucun trajet sans réservation ce jour-là. » n'est pas apparue : chaque recherche essayée gardait au moins un trajet sans réservation. Ce cas n'est vérifié que par les tests.
+- La puce « Sans réservation » est coupée par le bord droit et la rangée défile de côté : c'est voulu (maquette 04, §4).
+- **Case non cochée** : il manque l'annonce TalkBack.
 
 ## 7. Ce qui n'est pas fait ici
 
