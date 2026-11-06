@@ -133,23 +133,39 @@ export function formaterDistance(metres: number): string {
 export type EtatVerdict = "possible" | "nuit" | "impossible";
 export type PhraseVerdict = { possible: boolean; etat: EtatVerdict; titre: string; heureDepart: string | null; detail: string };
 
+/** Comparaison de deux possibilités pour un rangement de la liste (spec 21, D97). */
+export type ComparerPossibilites = (a: Possibilite, b: Possibilite) => number;
+
+/** Minutes à pied au total : somme des étapes `marche`. */
+export function minutesDeMarche(p: Possibilite): number {
+  return p.etapes.reduce((n, e) => (e.mode === "marche" ? n + e.duree_minutes : n), 0);
+}
+
+/** Arrivée la plus tôt ; puis départ le plus tard ; puis moins de correspondances. */
+const parHeures: ComparerPossibilites = (a, b) =>
+  a.arrivee_utc.localeCompare(b.arrivee_utc) || b.depart_utc.localeCompare(a.depart_utc) || a.correspondances - b.correspondances;
+
+/** D114 : une nuit dehors (D79) passe après toutes les autres, dans tous les tris. */
+const sansNuitDAbord: ComparerPossibilites = (a, b) => Number(nuitDehors(a) !== null) - Number(nuitDehors(b) !== null);
+
+/** « Arrivée la plus tôt » (D103, D114) : sans nuit, puis sans marche longue (D3), puis les heures. */
+export const parArrivee: ComparerPossibilites = (a, b) =>
+  sansNuitDAbord(a, b) || Number(aMarcheLongue(a)) - Number(aMarcheLongue(b)) || parHeures(a, b);
+
+/** « Moins de marche » (D114) : sans nuit, puis la marche, puis les heures. */
+export const parMarche: ComparerPossibilites = (a, b) => sansNuitDAbord(a, b) || minutesDeMarche(a) - minutesDeMarche(b) || parHeures(a, b);
+
 /**
- * La possibilité du verdict (D80, D103) : sans nuit, sans taxi et sans marche longue d'abord ; puis sans nuit
- * et sans taxi ; puis sans nuit ; puis la première. Toutes ont été retenues par le serveur : elles conviennent.
+ * La possibilité du verdict (D114) : la première de « Arrivée la plus tôt », celle en tête de la liste rangée par
+ * défaut ; à égalité, l'ordre du serveur. Toutes ont été retenues par le serveur : elles conviennent.
  */
 export function possibiliteDuVerdict(r: ReponseSens): Possibilite | undefined {
-  const ps = r.possibilites;
-  return (
-    ps.find((p) => !nuitDehors(p) && !avecTaxi(p) && !aMarcheLongue(p)) ??
-    ps.find((p) => !nuitDehors(p) && !avecTaxi(p)) ??
-    ps.find((p) => !nuitDehors(p)) ??
-    ps[0]
-  );
+  return r.possibilites.reduce<Possibilite | undefined>((meilleure, p) => (!meilleure || parArrivee(p, meilleure) < 0 ? p : meilleure), undefined);
 }
 
 /**
- * Verdict dit en mots (spec 10 §4.2, spec 15) : il s'appuie sur la première possibilité sans nuit dehors,
- * sinon sur la première. Une nuit dehors n'est jamais « Possible » en vert (D79) ; une arrivée le lendemain
+ * Verdict dit en mots (spec 10 §4.2, spec 15) : il s'appuie sur la première possibilité de la liste rangée par
+ * défaut (D114), qui n'a une nuit dehors que si toutes en ont une. Une nuit dehors n'est jamais « Possible » en vert (D79) ; une arrivée le lendemain
  * est toujours dite.
  */
 export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller"): PhraseVerdict {
