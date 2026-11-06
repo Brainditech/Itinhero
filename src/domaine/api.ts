@@ -440,7 +440,9 @@ export function clientApi({
       const arreter = () => controle.abort();
       if (signal.aborted) return { etat: "arretee" };
       signal.addEventListener("abort", arreter);
-      const minuterie = setTimeout(arreter, delaiMs);
+      // Revue : une pièce jointe (jusqu'à 2,7 Mo) monte lentement sur un réseau mobile : 90 s pour obtenir la réponse.
+      const avecPiece = corps.messages.some((m) => m.piece_jointe);
+      const minuterie = setTimeout(arreter, avecPiece ? Math.max(delaiMs, 90_000) : delaiMs);
       const issueCoupure = (): IssueDiscussion => (signal.aborted ? { etat: "arretee" } : { etat: "coupee" });
       try {
         let reponse;

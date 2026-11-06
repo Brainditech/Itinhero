@@ -31,6 +31,15 @@ export function RechercheAssistant({ proposition }: { proposition: PropositionRe
   const { setRecherche } = useRecherche();
   const [etat, setEtat] = useState<Etat>({ etat: "en_cours" });
   const demande = useRef<Demande>(demandeDeProposition(proposition));
+  // Revue : seule la dernière recherche lancée écrit son résultat, et jamais après le démontage.
+  const tour = useRef(0);
+  const monte = useRef(true);
+  useEffect(
+    () => () => {
+      monte.current = false;
+    },
+    [],
+  );
 
   // La recherche ne touche l'état qu'une fois finie ; `lancer` remet d'abord « en cours » (bouton, choix d'un lieu).
   const executer = async (): Promise<Etat> => {
@@ -43,14 +52,18 @@ export function RechercheAssistant({ proposition }: { proposition: PropositionRe
     return { etat: "echec", message: echec?.message ?? "La recherche a échoué." };
   };
   const lancer = () => {
+    const n = ++tour.current;
     setEtat({ etat: "en_cours" });
-    void executer().then(setEtat);
+    void executer().then((e) => {
+      if (monte.current && n === tour.current) setEtat(e);
+    });
   };
 
   useEffect(() => {
     let actif = true;
+    const n = ++tour.current;
     void executer().then((e) => {
-      if (actif) setEtat(e);
+      if (actif && n === tour.current) setEtat(e);
     });
     return () => {
       actif = false;

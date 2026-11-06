@@ -27,6 +27,17 @@ export const schemaPropositionRecherche = z.object({
 });
 export type PropositionRecherche = z.infer<typeof schemaPropositionRecherche>;
 
+/** Ce que Claude relit d'une recherche proposée : la demande, sans les trajets (ils sont dans les cartes). */
+export function texteRechercheProposee(p: PropositionRecherche): string {
+  const quand = p.sens === "arriver_avant" ? `arriver avant ${p.heure}` : `partir à ${p.heure}`;
+  return `[Recherche proposée et lancée par l'app : de ${p.depart} à ${p.arrivee}, le ${p.date}, ${quand}. Les trajets trouvés sont affichés en cartes.]`;
+}
+
+/** Revue : après une réponse, les pièces déjà envoyées ne gardent que leur nom (rien de lourd en mémoire). */
+export function allegerPieces(fil: MessageFil[]): MessageFil[] {
+  return fil.map((m) => (m.role === "personne" && m.piece_jointe && m.piece_jointe.donnees !== "" ? { ...m, piece_jointe: { ...m.piece_jointe, donnees: "" } } : m));
+}
+
 /** « domicile » / « position » / un lieu à chercher ⇒ la demande que lance la recherche ordinaire (D78). */
 export function demandeDeProposition(p: PropositionRecherche): Demande {
   const bout = (t: string): Bout => {
@@ -106,14 +117,19 @@ export type MessageFil =
  * 1 000 caractères, et seuls les 20 derniers partent (le dernier est la question de la personne).
  */
 export function messagesAEnvoyer(fil: MessageFil[]): MessageEnvoye[] {
+  // Revue : une recherche proposée reste dans la discussion, résumée côté Assistant (Claude sait ce qui a été montré).
   const envoyes = fil
-    .flatMap((m) => (m.role === "recherche" ? [] : [m]))
+    .flatMap((m): Exclude<MessageFil, { role: "recherche" }>[] =>
+      m.role === "recherche"
+        ? [{ id: m.id, role: "assistant", texte: texteRechercheProposee(m.proposition), etat: "complete" }]
+        : [m],
+    )
     .filter((m) => m.texte.trim() !== "" && !(m.role === "assistant" && m.etat === "echec" && m.texte.trim() === ""))
     .slice(-MESSAGES_MAX);
   // Spec 45 : seule la pièce jointe du dernier message repart (le serveur refuse les autres).
   return envoyes.map((m, i) => {
     const base = { role: m.role, texte: m.texte.trim().slice(0, TEXTE_MAX) };
-    if (i === envoyes.length - 1 && m.role === "personne" && m.piece_jointe) {
+    if (i === envoyes.length - 1 && m.role === "personne" && m.piece_jointe && m.piece_jointe.donnees !== "") {
       const { nom: _nom, ...piece } = m.piece_jointe;
       return { ...base, piece_jointe: piece };
     }

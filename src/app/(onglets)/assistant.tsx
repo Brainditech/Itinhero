@@ -9,6 +9,7 @@ import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
 import { Lien, MotItinhero, Puce } from "@/composants/elements";
 import { RechercheAssistant } from "@/composants/RechercheAssistant";
 import {
+  allegerPieces,
   MESSAGES_DISCUSSION,
   messageIssue,
   messagesAEnvoyer,
@@ -127,6 +128,8 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     }
     const echec = messageIssue(issue, recu !== "");
     if (issue.etat === "arretee" && recu === "") return changerReponse(id, () => null);
+    // Revue : la réponse finie, les pièces envoyées ne gardent que leur nom.
+    if (issue.etat === "complete" || issue.etat === "arretee") setFil((f) => allegerPieces(f));
     // Spec 45 : Claude n'a fait que proposer la recherche ⇒ pas de bulle vide au-dessus de la carte.
     if (issue.etat === "complete" && recu.trim() === "" && rechercheRecue) return changerReponse(id, () => null);
     changerReponse(id, (m) => (echec ? { ...m, etat: "echec", ...echec } : { ...m, etat: issue.etat === "arretee" ? "arretee" : "complete" }));
@@ -148,6 +151,9 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     sujetTraite.current = params.jeton;
     controle.current?.abort();
     controle.current = null;
+    // Revue : nouvelle discussion ⇒ ni pièce en attente ni texte tapé de l'ancienne.
+    setPiece(null);
+    setTexte("");
     void repondre([{ id: prochainId.current++, role: "personne", texte: QUESTION_TRAJET }]);
     // `repondre` change à chaque rendu ; seul le jeton compte.
     // eslint-disable-next-line react-hooks/exhaustive-deps

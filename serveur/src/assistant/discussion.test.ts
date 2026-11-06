@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CONSIGNES, contexteDiscussion, messagesClaude, OUTIL_RECHERCHE, schemaRequeteDiscussion } from "./discussion.js";
+import { CONSIGNES, contexteDiscussion, messagesClaude, OUTIL_RECHERCHE, schemaPropositionRecherche, schemaRequeteDiscussion } from "./discussion.js";
 import { CONTEXTE_JEU, INTERDITS, QUESTIONS_JEU, RECHERCHE_JEU } from "./jeu-discussion.js";
 import { filtrerTexte } from "./filtre.js";
 
@@ -60,5 +60,12 @@ describe("Spec 45 (D126)", () => {
     ]);
     expect(OUTIL_RECHERCHE.input_schema.required).toEqual(["depart", "arrivee", "date", "heure", "sens"]);
     expect(CONSIGNES).toContain("proposer_recherche");
+  });
+
+  it("proposition : `marge: null` vaut sans marge, une clé en trop est ignorée, une heure fausse est refusée", () => {
+    const p = { depart: "domicile", arrivee: "Gare de Joigny", date: "2026-11-12", heure: "10:00", sens: "arriver_avant" };
+    expect(schemaPropositionRecherche.parse({ ...p, marge: null })).toEqual(p);
+    expect(schemaPropositionRecherche.parse({ ...p, marge: 15, raison: "rendez-vous" })).toEqual({ ...p, marge: 15 });
+    expect(schemaPropositionRecherche.safeParse({ ...p, heure: "25:00" }).success).toBe(false);
   });
 });

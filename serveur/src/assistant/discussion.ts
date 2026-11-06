@@ -196,9 +196,16 @@ export const schemaPropositionRecherche = z
     date: z.iso.date(),
     heure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     sens: z.enum(["arriver_avant", "partir_a"]),
-    marge: z.number().int().min(0).max(120).optional(),
+    // Revue : Claude peut écrire `marge: null` ; une clé en trop est ignorée plutôt que de perdre la recherche.
+    marge: z
+      .number()
+      .int()
+      .min(0)
+      .max(120)
+      .nullish()
+      .transform((m) => m ?? undefined),
   })
-  .strict();
+  .strip();
 export type PropositionRecherche = z.infer<typeof schemaPropositionRecherche>;
 
 export const OUTIL_RECHERCHE = {
@@ -216,6 +223,7 @@ export const OUTIL_RECHERCHE = {
       marge: { type: "integer", description: "Minutes d'avance voulues avant le rendez-vous, si la personne le dit." },
     },
     required: ["depart", "arrivee", "date", "heure", "sens"],
+    additionalProperties: false,
   },
 };
 

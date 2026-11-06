@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clientApi, type FetchFlux, type Possibilite } from "./api";
 import {
   alertesPossibilite,
+  allegerPieces,
   demandeDeProposition,
   lireEvenements,
   messageIssue,
@@ -263,7 +264,7 @@ describe("Spec 45 (D126) : recherche proposée et pièce jointe", () => {
     expect(demandeDeProposition({ ...PROPOSITION, sens: "partir_a", depart: "ici", marge: 20 })).toMatchObject({ depart: { type: "position" }, marge: 20 });
   });
 
-  it("seule la pièce jointe du dernier message part ; les cartes de recherche ne partent pas", () => {
+  it("seule la pièce jointe du dernier message part ; une carte de recherche part résumée côté Assistant", () => {
     const image = { type: "image" as const, media_type: "image/jpeg" as const, donnees: "QUJD", nom: "convocation.jpg" };
     const fil: MessageFil[] = [
       { id: 1, role: "personne", texte: "Voici ma convocation", piece_jointe: image },
@@ -274,7 +275,25 @@ describe("Spec 45 (D126) : recherche proposée et pièce jointe", () => {
     expect(messagesAEnvoyer(fil)).toEqual([
       { role: "personne", texte: "Voici ma convocation" },
       { role: "assistant", texte: "Je cherche." },
+      {
+        role: "assistant",
+        texte:
+          "[Recherche proposée et lancée par l'app : de domicile à Gare de Joigny, le 2026-11-12, arriver avant 10:00. Les trajets trouvés sont affichés en cartes.]",
+      },
       { role: "personne", texte: "Merci", piece_jointe: { type: "image", media_type: "image/jpeg", donnees: "QUJD" } },
     ]);
+  });
+
+  it("après une réponse, les pièces envoyées ne gardent que leur nom, et une pièce vidée ne repart pas", () => {
+    const image = { type: "image" as const, media_type: "image/jpeg" as const, donnees: "QUJD", nom: "convocation.jpg" };
+    const fil: MessageFil[] = [
+      { id: 1, role: "personne", texte: "Voici ma convocation", piece_jointe: image },
+      { id: 2, role: "assistant", texte: "Bien reçu.", etat: "complete" },
+    ];
+    const allege = allegerPieces(fil);
+    expect(allege[0]).toEqual({ id: 1, role: "personne", texte: "Voici ma convocation", piece_jointe: { ...image, donnees: "" } });
+    expect(allege[1]).toBe(fil[1]);
+    const suite: MessageFil[] = [{ id: 3, role: "personne", texte: "Et encore", piece_jointe: { ...image, donnees: "" } }];
+    expect(messagesAEnvoyer(suite)).toEqual([{ role: "personne", texte: "Et encore" }]);
   });
 });

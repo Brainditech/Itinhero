@@ -54,7 +54,24 @@ export function piecesJointesDisponibles(): boolean {
 /** Taille réelle d'un texte base64. */
 export const octetsBase64 = (b64: string) => Math.floor((b64.length * 3) / 4) - (b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0);
 
-export async function choisirPhoto(source: "galerie" | "appareil"): Promise<IssuePiece> {
+/** Revue : toute erreur native (image illisible, pas d'appareil photo, fichier inaccessible) ⇒ « refuse », jamais une promesse rejetée. */
+async function sansErreur(f: () => Promise<IssuePiece>): Promise<IssuePiece> {
+  try {
+    return await f();
+  } catch {
+    return { etat: "refuse" };
+  }
+}
+
+export function choisirPhoto(source: "galerie" | "appareil"): Promise<IssuePiece> {
+  return sansErreur(() => photo(source));
+}
+
+export function choisirPdf(): Promise<IssuePiece> {
+  return sansErreur(pdf);
+}
+
+async function photo(source: "galerie" | "appareil"): Promise<IssuePiece> {
   const m = charger();
   if (!m) return { etat: "refuse" };
   if (source === "appareil" && !(await m.picker.requestCameraPermissionsAsync()).granted) return { etat: "refuse" };
@@ -62,11 +79,13 @@ export async function choisirPhoto(source: "galerie" | "appareil"): Promise<Issu
   const r = source === "galerie" ? await m.picker.launchImageLibraryAsync(options) : await m.picker.launchCameraAsync(options);
   if (r.canceled || !r.assets[0]) return { etat: "annule" };
   const a = r.assets[0];
-  const reduite = await m.manipulateur.manipulateAsync(a.uri, a.width > LARGEUR_IMAGE ? [{ resize: { width: LARGEUR_IMAGE } }] : [], {
-    compress: 0.7,
-    format: m.manipulateur.SaveFormat.JPEG,
-    base64: true,
-  });
+  // Revue : le côté le plus long ramené à 1600 px (un scan en hauteur aussi), par l'API non dépréciée du SDK 58.
+  const contexte = m.manipulateur.ImageManipulator.manipulate(a.uri);
+  if (Math.max(a.width, a.height) > LARGEUR_IMAGE) {
+    contexte.resize(a.width >= a.height ? { width: LARGEUR_IMAGE } : { height: LARGEUR_IMAGE });
+  }
+  const rendue = await contexte.renderAsync();
+  const reduite = await rendue.saveAsync({ compress: 0.7, format: m.manipulateur.SaveFormat.JPEG, base64: true });
   if (!reduite.base64) return { etat: "refuse" };
   if (octetsBase64(reduite.base64) > IMAGE_MAX_OCTETS) return { etat: "trop_lourd" };
   return { etat: "ok", piece: { type: "image", media_type: "image/jpeg", donnees: reduite.base64, nom: a.fileName ?? "Photo" } };
@@ -79,7 +98,7 @@ function versBase64(octets: Uint8Array): string {
   return btoa(binaire);
 }
 
-export async function choisirPdf(): Promise<IssuePiece> {
+async function pdf(): Promise<IssuePiece> {
   const m = charger();
   if (!m) return { etat: "refuse" };
   const r = await m.documents.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true, multiple: false });

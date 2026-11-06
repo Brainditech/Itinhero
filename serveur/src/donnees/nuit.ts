@@ -108,7 +108,7 @@ async function principal(): Promise<void> {
   const absents = jeuxActuels.filter((j) => !vues.has(j.etiquette));
 
   const decisions: DecisionJeu[] = [];
-  const retenus: { r: Ressource; taille: number; sha256: string; date: string; source: "ancien" | "nouveau" }[] = [];
+  const retenus: { r: Ressource; taille: number; sha256: string; date: string; source: "ancien" | "nouveau"; absent?: true }[] = [];
   let i = 0;
   await Promise.all(
     Array.from({ length: 6 }, async () => {
@@ -168,7 +168,7 @@ async function principal(): Promise<void> {
     const f = parEtiquette.get(j.etiquette);
     if (!f) continue;
     await lierOuCopier(path.join(actuel, f.chemin), path.join(nouveauDossier, f.chemin));
-    retenus.push({ r: j, taille: f.taille, sha256: f.sha256, date: f.date_telechargement, source: "ancien" });
+    retenus.push({ r: j, taille: f.taille, sha256: f.sha256, date: f.date_telechargement, source: "ancien", absent: true });
     decisions.push({ etiquette: j.etiquette, jeu: j.jeu, etat: "ancien_garde", raison: "absent de la liste du jour" });
   }
   retenus.sort((a, b) => a.r.etiquette.localeCompare(b.r.etiquette));
@@ -182,13 +182,14 @@ async function principal(): Promise<void> {
   const manifest = schemaManifest.parse({
     version: 1,
     fichiers: [
-      ...retenus.map(({ r, taille, sha256: s, date, source }) => ({
+      ...retenus.map(({ r, taille, sha256: s, date, source, absent }) => ({
         jeu: r.etiquette,
         type: "gtfs",
         chemin: `gtfs/${r.etiquette}.zip`,
-        // Un jeu gardé reprend l'URL et la licence du manifeste en service (jeux.json ne les a pas).
-        url_source: source === "ancien" ? (parEtiquette.get(r.etiquette)?.url_source ?? r.url) : r.url,
-        licence: source === "ancien" ? (parEtiquette.get(r.etiquette)?.licence ?? r.licence) : r.licence,
+        // Un jeu absent de la liste du jour reprend l'URL et la licence du manifeste (jeux.json ne les a pas) ;
+        // les autres prennent celles du jour, même gardés (revue : une URL changée ne reste pas périmée).
+        url_source: absent ? (parEtiquette.get(r.etiquette)?.url_source ?? r.url) : r.url,
+        licence: absent ? (parEtiquette.get(r.etiquette)?.licence ?? r.licence) : r.licence,
         date_telechargement: date,
         feed_version: null,
         date_fichiers: source === "ancien" ? (parEtiquette.get(r.etiquette)?.date_fichiers ?? r.miseAJour) : r.miseAJour,
