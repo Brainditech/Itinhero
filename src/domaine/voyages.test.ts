@@ -6,6 +6,7 @@ import { schemaPossibilite, type Possibilite, type ReponseItineraires } from "./
 import type { Demande } from "./demande";
 import {
   bandeauVoyage,
+  champsDepuisRecherche,
   champsDepuisVoyage,
   choixPossibles,
   cleVoyage,
@@ -138,6 +139,14 @@ describe("voyage enregistré (spec 22, D98)", () => {
     expect(champsDepuisVoyage(position, "2026-11-06")).toMatchObject({ depart: { type: "position" }, retour: null });
     const lieu = { type: "lieu" as const, nom: "Gare de Joigny", lat: 47.98, lon: 3.39, nature: "arret" as const, commune: "Joigny", code_postal: "89300" };
     expect(champsDepuisVoyage(voyage({ demande: { ...DEMANDE, arrivee: lieu } }), "2026-11-06").arrivee).toEqual(lieu);
+  });
+
+  it("modifier la recherche (spec 34) : le formulaire reprend la recherche en cours, lieux trouvés compris", () => {
+    const champs = champsDepuisRecherche(DEMANDE, DEPART, ARRIVEE, "2026-11-06");
+    expect(champs).toEqual(champsDepuisVoyage(voyage({ demande: DEMANDE }), "2026-11-06"));
+    expect(champs.arrivee).toMatchObject({ type: "lieu", nom: ARRIVEE.nom, lat: ARRIVEE.point.lat, lon: ARRIVEE.point.lon });
+    // Une recherche faite pour un jour passé (app laissée ouverte) repart d'aujourd'hui.
+    expect(champsDepuisRecherche(DEMANDE, DEPART, ARRIVEE, "2026-11-20").date).toBe("2026-11-20");
   });
 
   it("rangement : aujourd'hui compte à venir ; à venir du plus proche, passés du plus récent", () => {
