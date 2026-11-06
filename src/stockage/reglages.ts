@@ -6,7 +6,7 @@ import { lireDomicile, type Domicile } from "@/domaine/domicile";
 // (doc expo-sqlite du SDK 58, `SQLiteProvider` et `onInit`).
 
 export const NOM_BASE = "itinhero.db";
-const VERSION = 1;
+const VERSION = 2;
 
 export async function migrer(db: SQLiteDatabase): Promise<void> {
   const ligne = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
@@ -18,6 +18,13 @@ PRAGMA journal_mode = 'wal';
 CREATE TABLE IF NOT EXISTS reglages (cle TEXT PRIMARY KEY NOT NULL, valeur TEXT NOT NULL);
 `);
     version = 1;
+  }
+  if (version === 1) {
+    // Voyages enregistrés (spec 22, D98) : `contenu` est le voyage en JSON, relu par `lireVoyage`.
+    await db.execAsync(`
+CREATE TABLE IF NOT EXISTS voyages (cle TEXT PRIMARY KEY NOT NULL, enregistre_le TEXT NOT NULL, contenu TEXT NOT NULL);
+`);
+    version = 2;
   }
   await db.execAsync(`PRAGMA user_version = ${VERSION}`);
 }

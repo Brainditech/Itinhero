@@ -7,7 +7,7 @@
 
 - **Phase en cours** : 0 — Socle, avec les phases 1 et 2 bis avancées (D34, D54) ; spec 08 fusionnée (PR #4), issue 0007 fusionnée (PR #5), spec 09 fusionnée (PR #7), issue 0008 fusionnée (PR #8), spec 10 appliquée sur `app/branchee`. La spec 07 (Sentry) attend sur `phase-0/sentry`, repoussée par D54.
 - **Dernière case cochée** : Phase 4 · « Perdu pendant une marche : nouveau chemin à pied » (2026-11-05, spec 20, D96).
-- **Prochaine action** : spec 21, entendre l'annonce TalkBack au changement de tri (TalkBack activé par Brainditech, ou par adb avec son accord), puis cocher la case des tris. En parallèle : critères 10 et 11 de la spec 18 ; la boussole de la spec 17 et le nouveau chemin à pied (spec 20) restent à essayer dehors.
+- **Prochaine action** : constater la spec 22 sur le téléphone (critère 2, par adb : enregistrer, rouvrir en mode avion, doublon, suppression), puis cocher la case « Instantané expo-sqlite » de la phase 5. Reste de la spec 21 : entendre l'annonce TalkBack au changement de tri, puis cocher la case des tris. En parallèle : critères 10 et 11 de la spec 18 ; la boussole de la spec 17 et le nouveau chemin à pied (spec 20) restent à essayer dehors.
 - **Action précédente** (D54) : Brainditech relit la PR de la spec 10 (l'app branchée, branche `app/branchee`), puis constate les critères 4 à 9 sur son téléphone : `EXPO_PUBLIC_API_URL=http://localhost:3000` dans le `.env`, `adb reverse tcp:3000 tcp:3000`, `npx expo prebuild --platform android --clean`, `npx expo run:android`, saisie de la clé de la spec 09, domicile, recherches comparées à Google Maps. En attente aussi : l'issue 0008 §7 (13 stations à corriger dans OSM ou à signaler à MOTIS), l'issue 0009 (Toulouse → aéroport) et la spec 09 §11.5 (Annuaire santé, compte data.grandlyon). Le MOTIS national tourne sur le PC (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api`) ; le stack des fixtures est arrêté.
 
 ## État par phase
@@ -20,7 +20,7 @@
 | 2 — Confirmation du lieu | en cours (avancé par D54) | 2026-11-04 | 0 jour |
 | 3 — Résultat | en cours (avancé par D54) | 2026-11-04 | 0 jour |
 | 4 — Détail | en cours (avancé par la spec 20) | 2026-11-05 | 0 jour |
-| 5 — Mes trajets | à faire | — | — |
+| 5 — Mes trajets | en cours (spec 22) | 2026-11-06 | 0 jour |
 | 6 — Réglages | à faire | — | — |
 | 6 bis — Assistant | à faire | — | — |
 | 7 — Temps réel et alertes | à faire | — | — |
@@ -114,6 +114,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-05 | PR #34 (constats de la spec 20) fusionnée. Spec 21 rédigée (tris du Résultat : arrivée la plus tôt, moins de marche, sans réservation ; « Moins cher » avec les tarifs), D97 proposée, à approuver | `docs/specs/21-tris-du-resultat.md` |
 | 2026-11-06 | Spec 21 approuvée (D97) et codée : `src/domaine/tri.ts` (arrivée la plus tôt, moins de marche, sans réservation ; rang dans la réponse gardé), puces sous chaque verdict, carte et filtre sur la même règle de réservation. 15 tests du tri rouges puis verts ; app 280 tests, lint, types et export Android verts. Critère 3 (téléphone) à constater | `src/domaine/tri.test.ts`, `docs/specs/21-tris-du-resultat.md` §6.1 |
 | 2026-11-06 | Spec 21 constatée par adb (critère 3) : trois puces, « Moins de marche » (taxis avant Saint-Florentin), carte rangée ⇒ Étape ⇒ Guidage du bon trajet, « Sans réservation » (taxis retirés, verdict inchangé), deux rangées avec un retour ; puces lues comme boutons radio. Case non cochée : annonce TalkBack à entendre | `docs/specs/21-tris-du-resultat.md` §6.2, captures `docs/screenshots/spec-21/` (non versionnées) |
+| 2026-11-06 | Phase 5 ouverte. Spec 22 (Mes trajets : voyage enregistré, rouvert sans réseau) rédigée et approuvée par délégation (« implemente les prochaines phases »), D98 ; codée : table `voyages` (base en version 2), « Enregistrer ce voyage » sous le Résultat, écran Mes trajets, bandeau du voyage rouvert. 12 tests de `voyages.test.ts` rouges puis verts ; app 292 tests, lint, types et export Android verts. Critère 2 (téléphone) à constater | `docs/specs/22-mes-trajets.md`, `src/domaine/voyages.test.ts` |
 
 ## Trous ouverts
 
