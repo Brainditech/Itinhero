@@ -16,8 +16,8 @@ La demande se fait en trois temps, chacun avec sa spec :
 | Temps | Contenu | Spec |
 |---|---|---|
 | **1 (celle-ci)** | La fenêtre de discussion, les réponses en flux, l'Assistant qui connaît la recherche en cours | 39 |
-| 2 | L'Assistant interroge la base : il lance des recherches au moteur et montre les trajets trouvés en cartes | 40 (à écrire) |
-| 3 | Le petit bot de l'onglet Trajet (fenêtre surgissante, ou « Discuter de ce trajet » vers l'Assistant) et les pièces jointes (photo, fichier) | 41 (à écrire) |
+| 2 | L'Assistant interroge la base : il lance des recherches au moteur et montre les trajets trouvés en cartes ; il peut recevoir une pièce jointe (photo, fichier) | 40 (à écrire) |
+| 3 | Le petit bot de l'onglet Trajet (fenêtre surgissante, ou « Discuter de ce trajet » vers l'Assistant) | 41 (à écrire) |
 
 ## 2. Ce que voit la personne (onglet Assistant)
 
@@ -99,4 +99,4 @@ Une durée (« 20 minutes de marge », « 1 h 30 de trajet ») reste permise : c
 
 ## 10. Hors de ce temps
 
-L'Assistant qui lance des recherches et montre des cartes de trajets (spec 40) ; le bot de l'onglet Trajet et les pièces jointes (spec 41) ; garder les discussions d'une ouverture de l'app à l'autre.
+L'Assistant qui lance des recherches et montre des cartes de trajets, et les pièces jointes (spec 40) ; le bot de l'onglet Trajet (spec 41) ; garder les discussions d'une ouverture de l'app à l'autre.
