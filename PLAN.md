@@ -398,20 +398,26 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 9 — Surveillance et sécurisation
 
-- [ ] Route `/health`.
+- [x] Route `/health`.
   Preuve : test.
-- [ ] Journaux serveur sans donnée personnelle.
+  Fait (spec 04, spec 26) : `serveur/src/routes/health.test.ts` (200 avec MOTIS, 503 sans, sans clé, aucun chemin du PC), 2026-11-06.
+- [x] Journaux serveur sans donnée personnelle.
   Preuve : test avec des chaînes canari.
-- [ ] Chaque entrée validée par un schéma Zod.
+  Fait (spec 26) : `serveur/src/securite.test.ts`, canaris sur toutes les routes de `/v1` (lieu, coordonnées, identifiant de course, clé, corps illisible, requête sans clé), 2026-11-06.
+- [x] Chaque entrée validée par un schéma Zod.
   Preuve : test (entrée invalide ⇒ 400) sur chaque route.
-- [ ] En-têtes HTTP de sécurité.
+  Fait (spec 26) : `serveur/src/securite.test.ts` relève chaque route déclarée et exige son cas invalide ⇒ 400 ; cas détaillés dans les tests de chaque route, 2026-11-06.
+- [x] En-têtes HTTP de sécurité.
   Preuve : test des en-têtes.
-- [ ] Secrets lus seulement dans l'environnement, refus de démarrer sans eux.
+  Fait (spec 26, D104) : `serveur/src/securite.ts`, sept en-têtes sur 200, 400, 401, 404, 413, 429 et 503, testés dans `serveur/src/securite.test.ts`, 2026-11-06.
+- [x] Secrets lus seulement dans l'environnement, refus de démarrer sans eux.
   Preuve : test.
+  Fait (spec 04, spec 09) : `serveur/src/env.test.ts` (absente, mal formée sans recopier la valeur), `serveur/src/index.ts` ne lit que `process.env` et sort en erreur, 2026-11-06 (spec 26).
 - [ ] Limite de débit et plafond de coût sur toute route qui appelle Claude.
   Preuve : test.
-- [ ] Conteneurs sans utilisateur root, avec healthcheck.
+- [x] Conteneurs sans utilisateur root, avec healthcheck.
   Preuve : `docker inspect` (User, Healthcheck).
+  Fait (spec 26) : `docker inspect` sur le PC, 2026-11-06 : `api` `User=node` avec healthcheck `fetch /health`, `motis` `User=motis` avec healthcheck `wget /api/v1/health` (sortie dans `docs/specs/26-securisation-serveur.md` §7). À refaire sur le VPS (phase 10).
 - [ ] Dev et prod séparés (`.env`, DSN, données).
   Preuve : diff de configuration.
 - [ ] Erreur volontaire vue dans Sentry (app et serveur), puis retirée.

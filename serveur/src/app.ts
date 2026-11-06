@@ -7,6 +7,7 @@ import { routeHealth } from "./routes/health.js";
 import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
 import { routeMarche } from "./routes/marche.js";
+import { poserEntetesSecurite } from "./securite.js";
 import type { AdresseInverse, GeocodeurIgn } from "./lieux/ign-geocode.js";
 import type { IndexHoraires } from "./itineraires/horaires-gtfs.js";
 import type { IndexLieux } from "./lieux/categories.js";
@@ -71,6 +72,7 @@ export function construireApp({
     return reponse.code(500).send({ erreur: "erreur_interne" });
   });
 
+  poserEntetesSecurite(app);
   routeHealth(app, manifest, sonde);
   app.register(
     async (v1) => {
