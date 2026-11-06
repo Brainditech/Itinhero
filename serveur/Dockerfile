@@ -17,4 +17,5 @@ COPY --chown=node:node package.json ./
 RUN mkdir -p /var/lib/itinhero && chown node:node /var/lib/itinhero
 USER node
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+# Spec 50 : Sentry chargé avant l'API (sans effet sans SENTRY_DSN_SERVEUR).
+CMD ["node", "--import", "./dist/instrument.js", "dist/index.js"]

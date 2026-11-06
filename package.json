@@ -7,6 +7,7 @@
     "@expo/ui": "~58.0.27",
     "@maplibre/maplibre-react-native": "11.5.1",
     "@react-native-community/datetimepicker": "9.2.1",
+    "@sentry/react-native": "~8.28.0",
     "expo": "~58.0.23",
     "expo-background-task": "~58.0.12",
     "expo-constants": "~58.0.14",

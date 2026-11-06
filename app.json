@@ -68,7 +68,13 @@
         }
       ],
       "expo-document-picker",
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "@sentry/react-native",
+        {
+          "disableAutoUpload": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
