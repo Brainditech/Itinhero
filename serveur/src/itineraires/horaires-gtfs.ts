@@ -21,6 +21,8 @@ export type HorairesJeu = {
   reservations: Record<string, string[]>;
   /** Issue 0025 : nom du réseau (producteur dans `jeux.json`), pour dire lequel n'a pas encore publié. */
   nom?: string;
+  /** Spec 41 (D122) : `agency_name` ⇒ `agency_phone` de `agency.txt`, quand l'exploitant en publie un. */
+  agences?: Record<string, string>;
 };
 
 export type FichierHoraires = { version: 1; jeux: Record<string, HorairesJeu> };
@@ -33,6 +35,7 @@ const schemaFichier = z.object({
       fin_validite: z.iso.date().nullable(),
       reservations: z.record(z.string(), z.array(z.string().regex(/^[md]:/))),
       nom: z.string().min(1).max(120).optional(),
+      agences: z.record(z.string(), z.string().regex(/^\+?[0-9 .()-]{6,25}$/)).optional(),
     }),
   ),
 });
@@ -71,7 +74,14 @@ export async function lireHorairesJeu(cheminZip: string): Promise<HorairesJeu> {
     const dates = await lireTableFacultative(cheminZip, "calendar_dates.txt", (l) => l.exception_type?.trim() === "1");
     fin = plusTardive([...(calendar ?? []).map((l) => dateIso(l.end_date)), ...(dates ?? []).map((l) => dateIso(l.date))]);
   }
-  return { fin_validite: fin, reservations };
+  // Spec 41 : téléphones des exploitants, gardés seulement s'ils ressemblent à un numéro.
+  const agences: Record<string, string> = {};
+  for (const a of (await lireTableFacultative(cheminZip, "agency.txt")) ?? []) {
+    const nom = a.agency_name?.trim();
+    const tel = a.agency_phone?.trim();
+    if (nom && tel && /^\+?[0-9 .()-]{6,25}$/.test(tel) && tel.replace(/[^0-9]/g, "").length >= 9) agences[nom] = tel;
+  }
+  return { fin_validite: fin, reservations, ...(Object.keys(agences).length > 0 ? { agences } : {}) };
 }
 
 /** Tous les GTFS du manifeste ; un jeu illisible est signalé et laissé de côté (rien n'est inventé pour lui). */
@@ -99,11 +109,13 @@ export class IndexHoraires {
   private readonly reservations = new Map<string, Map<string, Set<string>>>();
   private readonly fins = new Map<string, string | null>();
   private readonly noms = new Map<string, string>();
+  private readonly agences = new Map<string, Record<string, string>>();
 
   constructor(fichier: FichierHoraires) {
     for (const [jeu, h] of Object.entries(fichier.jeux)) {
       this.fins.set(jeu, h.fin_validite);
       if (h.nom) this.noms.set(jeu, h.nom);
+      if (h.agences) this.agences.set(jeu, h.agences);
       this.reservations.set(jeu, new Map(Object.entries(h.reservations).map(([t, l]) => [t, new Set(l)])));
     }
   }
@@ -127,6 +139,11 @@ export class IndexHoraires {
       if (fin !== null && fin >= aujourdhui && fin < date) liste.push({ jeu, nom: this.noms.get(jeu) ?? null, fin });
     }
     return liste;
+  }
+
+  /** Spec 41 : téléphone publié par l'exploitant dans le GTFS du jeu, ou null. */
+  telephone(jeu: string, exploitant: string | null): string | null {
+    return exploitant ? (this.agences.get(jeu)?.[exploitant] ?? null) : null;
   }
 
   /** « appel » si monter à `de` ou descendre à `a` demande de réserver ce passage. */

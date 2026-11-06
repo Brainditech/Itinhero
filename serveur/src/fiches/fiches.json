@@ -1,0 +1,4 @@
+{
+  "note": "Spec 41 (D122). Fiches de taxis et de transport à la demande. « valide_le » : date où Brainditech a validé la fiche (affichée telle quelle) ; null : fiche candidate, affichée « non vérifié » seulement si le serveur retrouve le numéro sur sa page (D49).",
+  "fiches": []
+}

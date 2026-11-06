@@ -8,6 +8,7 @@ import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { AFaire } from "@/composants/AFaire";
+import { CarteTaxiDirect } from "@/composants/CarteTaxiDirect";
 import { BandeauInfo, CarteFlottante, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
 import { BoutonRepli } from "@/composants/Repli";
@@ -113,6 +114,14 @@ export default function Resultat() {
         enregistrement={rouvert ? null : enregistrement}
         horairesIncomplets={aVenir !== null}
       />
+      {/* Spec 41 : pas sur un trajet rouvert (il ne garde qu'une possibilité). */}
+      {reponse.taxi_direct && !rouvert ? (
+        <CarteTaxiDirect
+          taxi={reponse.taxi_direct}
+          depart={{ ...depart.point, nom: depart.nom }}
+          arrivee={{ ...arrivee.point, nom: arrivee.nom }}
+        />
+      ) : null}
 
       {reponse.retour ? (
         <>

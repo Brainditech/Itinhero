@@ -121,6 +121,7 @@ export const schemaEtape = z.object({
     .default(null),
 });
 export type Contact = NonNullable<z.infer<typeof schemaEtape>["contact"]>;
+const schemaReponseNumeros = z.object({ numeros: z.array(schemaEtape.shape.contact.unwrap().unwrap()) });
 export type Etape = z.infer<typeof schemaEtape>;
 
 // `GET /v1/course` (spec 17, D87) : tous les arrêts d'une course, dans l'ordre de passage.
@@ -158,6 +159,17 @@ const schemaReponseSens = z
     // Lieu d'arrivée : le nom envoyé par l'app et l'adresse postale trouvée par l'IGN (issue 0010, C).
     arrivee: z.object({ nom: z.string().nullable(), adresse: z.string().nullable() }),
     possibilites: z.array(schemaPossibilite),
+    // Spec 41 (D122) : route en voiture de bout en bout (taxi), durée estimée par MOTIS ; jamais de prix.
+    taxi_direct: z
+      .object({
+        duree_minutes: z.number().int().positive(),
+        distance_metres: z.number().nonnegative().nullable(),
+        depart: HEURE,
+        arrivee: HEURE,
+        depart_utc: z.string(),
+        arrivee_utc: z.string(),
+      })
+      .nullish(),
   })
   // « Possible » sans aucune possibilité montrée serait un verdict appuyé sur rien (spec 09 §4.5).
   .refine((r) => r.verdict === "impossible" || r.possibilites.length > 0);
@@ -321,6 +333,14 @@ export function clientApi({
     },
     course(id: string): Promise<ResultatApi<ArretCourse[]>> {
       return appeler(`/v1/course?${new URLSearchParams({ id }).toString()}`, schemaReponseCourse.transform((r) => r.arrets));
+    },
+    /** Spec 41 (D122) : numéros de taxi ou de transport à la demande autour d'un point ; le point n'est pas gardé. */
+    numeros(point: Point, type: "taxi" | "tad"): Promise<ResultatApi<Contact[]>> {
+      return appeler("/v1/numeros", schemaReponseNumeros.transform((r) => r.numeros), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ point, type }),
+      });
     },
     itineraires(requete: RequeteItineraires): Promise<ResultatApi<ReponseItineraires>> {
       return appeler("/v1/itineraires", schemaReponseItineraires, {

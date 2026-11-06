@@ -11,6 +11,8 @@ import type { AdresseInverse } from "../lieux/ign-geocode.js";
 import { heureParis, hhmm, instantParis } from "../temps.js";
 import { appelMoteur, refuserEntree } from "./erreurs.js";
 import { dansZoneCouverte } from "../zone/zone.js";
+import type { Annuaire } from "../fiches/annuaire.js";
+import { ajouterContacts } from "../fiches/contacts.js";
 
 /** `POST /v1/itineraires` (spec 09, §4.5) : verdict et possibilités sourcées. */
 export const MAX_POSSIBILITES = 10;
@@ -88,6 +90,8 @@ export type OptionsItineraires = {
   horaires?: IndexHoraires;
   /** Adresse postale du point d'arrivée (issue 0010, C). */
   adresse?: AdresseInverse;
+  /** Spec 41 (D122) : fiches de taxis et de transport à la demande. */
+  annuaire?: Annuaire;
   /** Jour de Paris d'aujourd'hui (issue 0025) ; l'horloge par défaut, fixé dans les tests. */
   aujourdhui?: () => string;
 };
@@ -128,6 +132,12 @@ async function chercherSens(
         }),
     ),
   ).then((listes) => listes.flat());
+  // Spec 41 (D122) : la route en voiture de bout en bout, en même temps ; une panne ne fait rien échouer.
+  const taxiDirect = moteur
+    .plan({ ...d, taxiDirect: true })
+    .then(lireReponsePlan)
+    .then((ps) => taxiDeBoutEnBout(ps, d))
+    .catch(() => null);
   const toutes = lireReponsePlan(await moteur.plan(d));
 
   const retenir_ = (ps: Awaited<typeof avecTaxi>) =>
@@ -147,10 +157,11 @@ async function chercherSens(
   // Normalisées à part : un taxi ne retire jamais un trajet sans taxi comme « dominé » (D80).
   const taxisRaccourcis = await raccourcirCorrespondances(retenir_(await avecTaxi), replanifier);
   const taxis = taxisUtiles(normaliser(taxisRaccourcis, manifest, optionsNormalisation).possibilites, sansTaxi, r.sens);
-  const possibilites = [...sansTaxi, ...taxis].sort(
+  const triees = [...sansTaxi, ...taxis].sort(
     (a, b) => a.depart_utc.localeCompare(b.depart_utc) || a.arrivee_utc.localeCompare(b.arrivee_utc),
   );
   if (retirees > 0) log.warn({ retirees }, "possibilités sans source retirées");
+  const possibilites = ajouterContacts(triees, manifest, options.annuaire, options.horaires);
 
   return {
     verdict: verdict(possibilites), // jamais sur une possibilité retirée
@@ -163,6 +174,7 @@ async function chercherSens(
     },
     arrivee: { nom: r.noms?.arrivee ?? null, adresse: await adresse },
     possibilites,
+    taxi_direct: await taxiDirect,
   };
 }
 
@@ -191,6 +203,29 @@ export function horairesAVenir(
   const [a, m, j] = fin.split("-").map(Number) as [number, number, number];
   const des_le = new Date(Date.UTC(a, m - 1, j + 1)).toISOString().slice(0, 10);
   return { nombre: liste.length, reseaux, des_le };
+}
+
+/**
+ * Taxi de bout en bout (spec 41, D48) : durée de route estimée par MOTIS sur OSM (hors attente), placée pour
+ * arriver à H − M (« arriver ») ou partir à H (« partir »). Jamais de prix (invariant 5).
+ */
+export function taxiDeBoutEnBout(
+  ps: Awaited<ReturnType<typeof lireReponsePlan>>,
+  d: DemandeRecherche,
+): { duree_minutes: number; distance_metres: number | null; depart: string; arrivee: string; depart_utc: string; arrivee_utc: string } | null {
+  const voiture = ps.find((p) => p.etapes.length === 1 && p.etapes[0]!.mode === "CAR")?.etapes[0];
+  if (!voiture) return null;
+  const duree = Math.max(1, Math.round(voiture.dureeSecondes / 60));
+  const depart = d.sens === "partir" ? instantParis(d.jour, d.depuisMinutes) : instantParis(d.jour, d.limiteMinutes - duree);
+  const arrivee = new Date(depart.getTime() + duree * 60_000);
+  return {
+    duree_minutes: duree,
+    distance_metres: voiture.distanceMetres === undefined ? null : Math.round(voiture.distanceMetres),
+    depart: heureParis(depart).hhmm,
+    arrivee: heureParis(arrivee).hhmm,
+    depart_utc: depart.toISOString(),
+    arrivee_utc: arrivee.toISOString(),
+  };
 }
 
 export function routeItineraires(

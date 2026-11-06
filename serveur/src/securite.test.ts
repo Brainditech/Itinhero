@@ -23,6 +23,7 @@ const INVALIDES: Record<string, Requete> = {
   },
   "POST /v1/abonnements": { method: "POST", url: "/v1/abonnements", payload: JSON.stringify({ trip_id: "x" }) },
   "DELETE /v1/abonnements/:id": { method: "DELETE", url: "/v1/abonnements/pas-un-id" },
+  "POST /v1/numeros": { method: "POST", url: "/v1/numeros", payload: JSON.stringify({ point: { lat: 48, lon: 3.6 }, type: "bus" }) },
 };
 /** Routes sans entrée à valider, ou validées ailleurs. */
 const SANS_ENTREE = new Set(["GET /health"]);
