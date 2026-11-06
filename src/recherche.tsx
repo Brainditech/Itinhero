@@ -35,9 +35,9 @@ export type Recherche = {
   depart: EtatBout;
   arrivee: EtatBout;
   reponse: ReponseItineraires | null;
-  /** Voyage rouvert depuis Mes trajets (spec 22, D98) : instant de son enregistrement ; absent pour une recherche. */
-  enregistre_le?: string;
-  /** Recherche lancée par « Modifier » (spec 24, D100) : clé du voyage que « Enregistrer ce voyage » remplace. */
+  /** Trajet rouvert depuis Mes trajets (spec 22, D98) : sa clé et le trajet enregistré ; absent pour une recherche. */
+  rouvert?: { cle: string; voyage: Voyage };
+  /** Recherche lancée par « Modifier » (spec 24, D100, D101) : clé du trajet que la disquette remplace. */
   remplace?: string;
 };
 
@@ -92,26 +92,26 @@ export function useRecherche(): ContexteValeur {
 }
 
 /**
- * « Ouvrir le trajet » (spec 22, D98) : le voyage enregistré devient la recherche en cours, sans réseau,
- * et le Résultat s'ouvre dans l'onglet Chercher.
+ * Toucher un trajet de Mes trajets (spec 22, D98) : le trajet enregistré devient la recherche en cours, sans
+ * réseau, et le Résultat s'ouvre dans l'onglet Chercher, sur le tri gardé (D101).
  */
 export function useOuvrirVoyage() {
   const { setRecherche } = useRecherche();
-  return (v: Voyage) => {
+  return (cle: string, v: Voyage) => {
     setRecherche({
       demande: v.demande,
       depart: { lieu: v.depart },
       arrivee: { lieu: v.arrivee },
       reponse: v.reponse,
-      enregistre_le: v.enregistre_le,
+      rouvert: { cle, voyage: v },
     });
     router.navigate("/resultat");
   };
 }
 
 /**
- * « Modifier » (spec 24, D100, §3.2) : le formulaire de l'onglet Chercher s'ouvre, pré-rempli avec le voyage ;
- * le voyage trouvé ensuite remplace celui-ci à « Enregistrer ce voyage ».
+ * Crayon du trajet rouvert (spec 24, D100, §7.3) : le formulaire de l'onglet Chercher s'ouvre, pré-rempli avec
+ * le trajet ; le trajet trouvé ensuite remplace celui-ci à l'enregistrement.
  */
 export function useModifierVoyage() {
   const { setModification } = useRecherche();
@@ -123,7 +123,8 @@ export function useModifierVoyage() {
       champs: champsDepuisVoyage(v, maintenantAParis(new Date()).date),
       jeton: Date.now(),
     });
-    router.navigate("/formulaire");
+    // Le formulaire déjà dans la pile s'y retrouve ; sinon il prend la place du trajet rouvert.
+    router.dismissTo("/formulaire");
   };
 }
 

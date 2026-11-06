@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { schemaReponseItineraires, type Point, type ReponseItineraires, type ReponseSens } from "./api";
-import { maintenantAParis, schemaDemande, type Bout, type ChampsFormulaire, type Demande } from "./demande";
+import { maintenantAParis, schemaDemande, type Bout, type ChampsFormulaire, type Demande, type Trajet } from "./demande";
 import {
   formaterDuree,
   jourApres,
@@ -10,6 +10,7 @@ import {
   libelleCorrespondances,
   possibiliteDuVerdict,
 } from "./resultat";
+import { TRIS, trier, type Tri } from "./tri";
 
 // Voyage enregistré (spec 22, D98) : la demande, ses deux lieux et la réponse entière du serveur, gardés sur le
 // téléphone seulement (invariant 6). Relu tel quel, sans aucune heure recalculée (invariant 3 par extension).
@@ -29,6 +30,10 @@ export const schemaVoyage = z.object({
   depart: schemaLieuVoyage,
   arrivee: schemaLieuVoyage,
   reponse: schemaReponseItineraires,
+  /** Sens enregistré (D101) : un retour seul a ses lieux échangés. Absent sur un voyage d'avant D101. */
+  trajet: z.enum(["aller", "retour"]).optional(),
+  /** Tri choisi au Résultat à l'enregistrement (D97, D101) ; absent ⇒ « Arrivée la plus tôt ». */
+  tri: z.enum(TRIS).optional(),
 });
 export type Voyage = z.infer<typeof schemaVoyage>;
 
@@ -40,9 +45,28 @@ export type RechercheAEnregistrer = {
   reponse: ReponseItineraires | null;
 };
 
-/** Un voyage ne s'enregistre que si l'aller a au moins une possibilité (D98, §3.2). */
+/** Ce que la disquette enregistre (spec 24 §7.2, D101). */
+export type ChoixEnregistrement = "aller_retour" | "aller" | "retour";
+/** Le tri choisi pour chaque sens au Résultat (D97). */
+export type TrisVoyage = Record<Trajet, Tri>;
+
+const sensPossible = (r: ReponseSens | null | undefined): boolean => !!r && r.possibilites.length > 0;
+
+/**
+ * Choix offerts par la disquette : un sens ne s'enregistre que s'il a au moins une possibilité (D98, D101).
+ * Les deux possibles ⇒ « Aller et retour », « Aller seulement », « Retour seulement » ; sinon le seul possible.
+ */
+export function choixPossibles(reponse: ReponseItineraires | null | undefined): ChoixEnregistrement[] {
+  const aller = sensPossible(reponse);
+  const retour = sensPossible(reponse?.retour);
+  if (aller && retour) return ["aller_retour", "aller", "retour"];
+  if (aller) return ["aller"];
+  if (retour) return ["retour"];
+  return [];
+}
+
 export function peutEnregistrer(reponse: ReponseItineraires | null | undefined): boolean {
-  return !!reponse && reponse.possibilites.length > 0;
+  return choixPossibles(reponse).length > 0;
 }
 
 /** Point arrondi au mètre (5 décimales) : un écart de GPS sous le mètre ne fait pas un autre voyage. */
@@ -61,12 +85,61 @@ export function cleVoyage(demande: Demande, depart: LieuVoyage, arrivee: LieuVoy
   ]);
 }
 
-/** La recherche en cours ⇒ le voyage à enregistrer, ou null s'il n'y a rien à garder. */
-export function voyageDepuisRecherche(r: RechercheAEnregistrer, maintenant: Date): Voyage | null {
+type Base = Pick<Voyage, "enregistre_le" | "demande" | "depart" | "arrivee" | "reponse">;
+
+/** L'aller seul : ni la demande ni la réponse ne gardent le retour. */
+function allerSeul(v: Base): Voyage {
+  return { ...v, demande: { ...v.demande, retour: null }, reponse: { ...v.reponse, retour: null }, trajet: "aller" };
+}
+
+/**
+ * Le retour seul devient un trajet ordinaire (D101) : lieux échangés, « Partir à » la fin du rendez-vous, même
+ * date et même marge ; la réponse du retour telle que le serveur l'a donnée (invariant 3). Son arrivée garde
+ * l'adresse connue du départ de l'aller (l'IGN a donné celle de l'arrivée de l'aller, spec 19).
+ */
+function retourSeul(v: Base): Voyage | null {
+  const r = v.reponse.retour;
+  if (!r) return null;
+  const d = v.demande;
+  return {
+    enregistre_le: v.enregistre_le,
+    demande: {
+      depart: d.arrivee,
+      arrivee: d.depart,
+      date: d.date,
+      heure: d.retour ?? r.demande.heure,
+      sens: "partir_a",
+      marge: d.marge,
+      retour: null,
+    },
+    depart: v.arrivee,
+    arrivee: v.depart,
+    reponse: { ...r, arrivee: { nom: v.depart.nom, adresse: v.depart.adresse }, retour: null },
+    trajet: "retour",
+  };
+}
+
+/** La recherche en cours ⇒ les trajets à enregistrer selon le choix ; un sens sans possibilité n'est jamais gardé. */
+export function voyagesDepuisRecherche(r: RechercheAEnregistrer, choix: ChoixEnregistrement, tris: TrisVoyage, maintenant: Date): Voyage[] {
   const depart = r.depart.lieu;
   const arrivee = r.arrivee.lieu;
-  if (!depart || !arrivee || !r.reponse || !peutEnregistrer(r.reponse)) return null;
-  return { enregistre_le: maintenant.toISOString(), demande: r.demande, depart, arrivee, reponse: r.reponse };
+  if (!depart || !arrivee || !r.reponse) return [];
+  const base: Base = { enregistre_le: maintenant.toISOString(), demande: r.demande, depart, arrivee, reponse: r.reponse };
+  const voyages: Voyage[] = [];
+  if (choix !== "retour" && sensPossible(r.reponse)) voyages.push({ ...allerSeul(base), tri: tris.aller });
+  const retour = choix !== "aller" && sensPossible(r.reponse.retour) ? retourSeul(base) : null;
+  if (retour) voyages.push({ ...retour, tri: tris.retour });
+  return voyages;
+}
+
+/**
+ * Voyage d'avant D101, enregistré avec son retour ⇒ l'aller et le retour à part (un sens sans possibilité part).
+ * Sans retour, il reste tel quel.
+ */
+export function separerVoyage(v: Voyage): Voyage[] {
+  if (!v.reponse.retour) return [v];
+  const parts = [sensPossible(v.reponse) ? allerSeul(v) : null, sensPossible(v.reponse.retour) ? retourSeul(v) : null];
+  return parts.filter((p): p is Voyage => p !== null);
 }
 
 /** Texte lu en base ⇒ voyage, ou null s'il est absent ou illisible (jamais à moitié, D98 §3.7). */
@@ -92,7 +165,7 @@ export function bandeauVoyage(iso: string): string {
   return `Voyage enregistré ${quandEnregistre(iso)}. Horaires prévus, sans suivi en direct.`;
 }
 
-/** Un sens du voyage dans le rectangle de Mes trajets (spec 24, D100), tiré de la possibilité du verdict (D80). */
+/** Les horaires d'un trajet dans le rectangle de Mes trajets (spec 24, D100, D101). */
 export type ResumeSens =
   | { possible: true; depart: string; arrivee: string; duree: string; changements: string }
   | { possible: false; texte: string };
@@ -100,15 +173,26 @@ export type ResumeSens =
 export type ResumeVoyage = {
   jour: string;
   titre: string;
-  aller: ResumeSens;
-  retour: ResumeSens | null;
+  /** « Aller » ou « Retour » (D101). */
+  libelle: string;
+  horaires: ResumeSens;
   enregistre: string;
   /** Ce que TalkBack lit du rectangle, d'un bloc. */
   phrase: string;
 };
 
-function resumeSens(r: ReponseSens, date: string): { resume: ResumeSens; phrase: string } {
-  const p = r.verdict === "impossible" ? undefined : possibiliteDuVerdict(r);
+/**
+ * La possibilité que le rectangle montre (D101) : la première du tri gardé ; avec « Arrivée la plus tôt », ou
+ * si le tri n'en garde aucune, celle du verdict (D80).
+ */
+export function possibiliteMontree(r: ReponseSens, tri: Tri | undefined) {
+  if (r.verdict === "impossible") return undefined;
+  const triee = tri && tri !== "arrivee" ? trier(r.possibilites, tri)[0]?.possibilite : undefined;
+  return triee ?? possibiliteDuVerdict(r);
+}
+
+function resumeSens(r: ReponseSens, date: string, tri: Tri | undefined): { resume: ResumeSens; phrase: string } {
+  const p = possibiliteMontree(r, tri);
   if (!p) return { resume: { possible: false, texte: "aucun ce jour-là" }, phrase: "aucun ce jour-là" };
   // L'arrivée garde son jour quand elle tombe le lendemain (« ven. 07:12 »), comme le Résultat (D79).
   const plus = joursEnPlus(p);
@@ -127,22 +211,20 @@ function resumeSens(r: ReponseSens, date: string): { resume: ResumeSens; phrase:
 }
 
 /**
- * Rectangle de Mes trajets (spec 24, D100) : jour, lieux, aller et retour (heures, durée, changements).
+ * Rectangle de Mes trajets (spec 24, D100, D101) : jour, lieux, une ligne d'horaires (heures, durée, changements).
  * Tout vient de la réponse enregistrée : aucune heure recalculée (invariant 3), l'horaire est dit prévu (invariant 12).
  */
 export function resumeVoyage(v: Voyage): ResumeVoyage {
   const jour = jourCourt(v.demande.date);
   const enregistre = `Enregistré ${quandEnregistre(v.enregistre_le)}`;
-  const aller = resumeSens(v.reponse, v.demande.date);
-  const retour = v.reponse.retour ? resumeSens(v.reponse.retour, v.demande.date) : null;
+  const libelle = v.trajet === "retour" ? "Retour" : "Aller";
+  const horaires = resumeSens(v.reponse, v.demande.date, v.tri);
   const phrase = [
-    `${jour}, ${v.depart.nom} vers ${v.arrivee.nom}.`,
-    `Aller : ${aller.phrase}.`,
-    ...(retour ? [`Retour : ${retour.phrase}.`] : []),
+    `${jour}, ${libelle.toLowerCase()}, ${v.depart.nom} vers ${v.arrivee.nom} : ${horaires.phrase}.`,
     "Horaire prévu, sans suivi en direct.",
     `${enregistre}.`,
   ].join(" ");
-  return { jour, titre: `${v.depart.nom} → ${v.arrivee.nom}`, aller: aller.resume, retour: retour?.resume ?? null, enregistre, phrase };
+  return { jour, titre: `${v.depart.nom} → ${v.arrivee.nom}`, libelle, horaires: horaires.resume, enregistre, phrase };
 }
 
 /** Un bout du voyage pour le formulaire : Domicile et Ma position restent tels quels ; un texte déjà trouvé devient ce lieu. */

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
@@ -33,19 +33,22 @@ function LigneBout({ bout, recap, relie }: { bout: Bout; recap: BoutRecap; relie
 /**
  * Carte « Votre trajet » en tête du Résultat (spec 14, maquette 04b) : d'où, vers où, quand.
  * Le trajet est lu d'un bloc par TalkBack ; le crayon (modifier) et le chevron (replier) sont des boutons à part.
- * Repliée, la carte ne garde que « départ → arrivée » sur une ligne.
+ * Repliée, la carte ne garde que « départ → arrivée » sur une ligne. `action` (la disquette, spec 24 §7.2, D101)
+ * prend la place du chevron : la carte reste alors repliée.
  */
 export function VotreTrajet({
   demande,
   depart,
   arrivee,
   onModifier,
+  action,
 }: {
   demande: Demande;
   depart: BoutRecap;
   arrivee: BoutRecap;
-  /** Absent pour un voyage rouvert depuis Mes trajets (spec 22, D98) : pas de crayon. */
+  /** Absent : pas de crayon. */
   onModifier?: () => void;
+  action?: ReactNode;
 }) {
   const [ouverte, setOuverte] = useState(false);
   return (
@@ -55,7 +58,7 @@ export function VotreTrajet({
           Votre trajet
         </Text>
         {onModifier ? <BoutonIcone icone="edit" nom="Modifier la recherche" onPress={onModifier} /> : null}
-        <BoutonRepli ouvert={ouverte} nom="Votre trajet" onPress={() => setOuverte((o) => !o)} />
+        {action ?? <BoutonRepli ouvert={ouverte} nom="Votre trajet" onPress={() => setOuverte((o) => !o)} />}
       </View>
 
       {ouverte ? (

@@ -1,7 +1,7 @@
 # Spec 24 — Mes trajets : cartes compactes et menu « ⋮ »
 
 - **Date** : 2026-11-06
-- **État** : **approuvée** par Brainditech le 2026-11-06 (« ok ça va j'approuve vas y »). Règle : D100. **Appliquée** sur `phase-5/mes-trajets-cartes`, constatée par adb (§6).
+- **État** : **approuvée** par Brainditech le 2026-11-06 (« ok ça va j'approuve vas y »). Règle : D100, révisée le même jour par D101 (§7). **Appliquée** sur `phase-5/mes-trajets-cartes`, constatée par adb (§6).
 - **Branche** : `phase-5/mes-trajets-cartes`.
 - **Origine** : retour de Brainditech sur la spec 22 : « j'aime pas trop l'affichage, je veux des petits rectangles stylés, et trois points qui ouvrent 3 menus, icône crayon pour modifier, yeux pour afficher et corbeille pour supprimer, et que toutes les informations utiles soient visibles directement dans le petit rectangle ».
 - **Case de PLAN.md** : aucune nouvelle. La case de la phase 5 « Écran en valeurs en dur, comparé à sa maquette » se constate avec ce nouvel affichage (écart voulu avec la maquette 06, §3).
@@ -111,3 +111,59 @@ Captures `docs/screenshots/spec-24/2026-11-06-00` à `10` (non versionnées, D93
 | Supprimer | « Supprimer ce trajet ? », « Jeudi 12/11 · Domicile → Joigny », « Annuler » / « Supprimer » (10) ; « Annuler » ⇒ le rectangle reste |
 
 - Deux voyages ensemble à l'écran : pas encore vu (un seul voyage enregistré) ; le rectangle fait environ un tiers de la hauteur de l'écran de la spec 22.
+
+## 7. Révision du 2026-11-06 : un trajet par sens, disquette, corbeille
+
+- **État** : **approuvée** par Brainditech le 2026-11-06 (« oui c'est ça vas y »), après l'essai de la première version et avant tout push. Elle remplace les §3.1 (bouton « ⋮ »), §3.2 et §4 là où ils diffèrent.
+- **Origine** : « en cliquant sur le trajet il s'affiche directement, donc Afficher et Modifier ne servent plus à rien, seule une corbeille sert » ; « peut-être que ça ne m'intéresse pas d'enregistrer un retour, juste l'aller, une personne me raccompagne » ; « le gros bouton en bas, enlève-le, remplace-le par une petite disquette en haut à droite à la place du chevron : quand je veux enregistrer un trajet avec moins de marche, je clique et hop ».
+
+### 7.1 Un trajet enregistré = un sens
+
+- Chaque sens s'enregistre à part : l'aller est un trajet, le retour en est un autre. On supprime l'un sans l'autre.
+- Un **retour enregistré seul** devient un trajet ordinaire : départ = lieu d'arrivée de l'aller, arrivée = lieu de départ de l'aller, « Partir à » la fin du rendez-vous, même date, même marge, sans retour. Sa réponse est celle du retour, telle que le serveur l'a donnée (aucune heure recalculée, invariant 3). L'adresse de son arrivée est celle connue du départ de l'aller (même règle qu'au Résultat).
+- Le Résultat rouvert, la carte (D99), « Modifier » et la clé (D98, §3.3) traitent donc un retour comme n'importe quel trajet.
+- **Voyages déjà enregistrés avec un retour** : coupés en deux trajets (aller, retour) à la première lecture de Mes trajets ; l'ancienne ligne et sa carte partent. Rien n'est perdu.
+- **Le tri choisi est gardé** pour chaque sens (spec 21, D97). Le rectangle montre la première possibilité de ce tri. Avec « Arrivée la plus tôt » (ou si le tri ne garde aucune possibilité), il montre toujours la possibilité du verdict (D80). Le Résultat rouvert s'ouvre sur ce tri.
+
+### 7.2 La disquette
+
+- Le bouton « Enregistrer ce voyage » en bas du Résultat **disparaît**. Une **disquette** (`save`, 48 dp) prend la place du chevron en haut à droite de « Votre trajet ». Sur un résultat neuf, la carte « Votre trajet » ne se replie donc plus (elle reste dépliable sur un trajet rouvert, qui n'a pas de disquette).
+- Sans retour demandé (ou un seul sens possible) : **un toucher enregistre** ce sens.
+- Avec un retour et les deux sens possibles : un petit menu (même composant que le « ⋮ ») propose « Aller et retour », « Aller seulement », « Retour seulement ».
+- Enregistré : l'icône devient une coche verte (touchée de nouveau, elle rouvre le choix et remplace). Sous « Votre trajet », la ligne « Enregistré dans Mes trajets » avec « Voir Mes trajets », puis l'état de la carte de chaque trajet enregistré (spec 23).
+- Échec : « Le trajet n'a pas pu être enregistré sur le téléphone. » sous « Votre trajet ».
+- « Modifier la recherche » reste en bas.
+
+### 7.3 Le rectangle et le trajet rouvert
+
+- Le « ⋮ » laisse place à une **corbeille** (`delete`, en `erreur`, 48 dp) en haut à droite du rectangle, avec la même confirmation.
+- Le rectangle a une seule ligne d'horaires : `06:18 → 08:04   1 h 46 · 1 chgt`, précédée de « Aller » ou « Retour ». Un retour garde son titre réel (« Joigny → Domicile »).
+- Toucher le rectangle ouvre le trajet. Le trajet rouvert montre le **crayon** dans « Votre trajet » : il ouvre le formulaire pré-rempli (§3.2), et l'enregistrement remplace ce trajet.
+- Le bandeau du formulaire dit : « Vous modifiez le trajet du Jeudi 12/11 · Domicile → Joigny. Il sera remplacé à l'enregistrement. »
+
+**Écarté** :
+- Garder un voyage en bloc avec un choix « garder le retour » : un retour seul ne s'enregistrerait pas, et la suppression d'un seul sens resterait impossible.
+- Une disquette sur chaque verdict : deux icônes de plus, et « Votre trajet » est l'endroit où l'on voit le trajet entier.
+- Garder le menu « ⋮ » : « Afficher » refait le toucher du rectangle, « Modifier » est mieux sur le trajet ouvert.
+
+### 7.4 Critères d'acceptation (en plus du §5)
+
+1. Tests du domaine, rouges avant le code : aller seul, retour seul (lieux échangés, partir à la fin du rendez-vous, réponse du retour), les deux ; ancien voyage coupé en deux ; tri gardé et montré par le résumé ; tri vide ⇒ possibilité du verdict.
+2. Téléphone (adb) : disquette ⇒ menu à trois choix avec un retour ; « Aller seulement » ⇒ un rectangle ; trier « Moins de marche » puis enregistrer ⇒ le rectangle montre ce trajet ; corbeille ⇒ confirmation ; trajet rouvert ⇒ crayon ⇒ formulaire pré-rempli. Le voyage déjà enregistré devient deux rectangles.
+
+### 7.5 Constats (2026-11-06)
+
+- **Code** : `src/domaine/voyages.test.ts`, 10 tests nouveaux ou réécrits, rouges avant le code (fonctions absentes), puis verts. App : 318 tests, `npx expo lint` et `npx tsc --noEmit` verts.
+- Le tri est remonté du bloc de chaque sens au Résultat, qui le passe à la disquette. `MenuActions` sert aussi à la disquette : une seule action ⇒ elle part sans menu.
+- **Téléphone** (adb, MOTIS national), captures `docs/screenshots/spec-24/2026-11-06-20` à `33` (non versionnées, D93) :
+
+| Point du §7.4 | Constaté |
+|---|---|
+| Ancien voyage coupé en deux | « Joigny → Domicile · Retour 11:42 → 13:59 » et « Domicile → Joigny · Aller 13:16 → 13:51 », chacun avec sa corbeille (21) |
+| Toucher ⇒ trajet rouvert ⇒ crayon | Bandeau « Voyage enregistré… », crayon dans « Votre trajet » (22) ; crayon ⇒ formulaire pré-rempli, bandeau « Il sera remplacé à l'enregistrement » (23) |
+| Disquette | À la place du chevron, plus de bouton en bas (28) ; avec un retour, menu « Aller et retour / Aller seulement / Retour seulement » (29) |
+| Aller et retour | Coche verte, « Enregistré dans Mes trajets · Voir Mes trajets » (31) ; Mes trajets : l'aller modifié remplace celui de 13:16, le nouveau retour 16:42 s'ajoute, l'ancien retour 11:42 reste (32) |
+| Corbeille | « Supprimer ce trajet ? », « Jeudi 12/11 · Joigny → Domicile » ; « Annuler » ⇒ les trois restent (33) |
+
+- **Pas vu sur le téléphone** : le tri gardé (chaque sens de cette recherche n'a qu'une possibilité, donc pas de puces) ; couvert par le test « le tri gardé choisit la possibilité montrée ». La pastille de carte attend le nouveau build (spec 23).
+- Vu en passant : le retour 11:42 part avant l'arrivée de l'aller modifié (défaut du formulaire déjà signalé, pas encore ouvert dans `docs/issues/`).

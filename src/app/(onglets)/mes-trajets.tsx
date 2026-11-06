@@ -10,45 +10,51 @@ import { CarteFlottante, Lien } from "@/composants/elements";
 import { RectangleVoyage } from "@/composants/RectangleVoyage";
 import { maintenantAParis } from "@/domaine/demande";
 import { rangerVoyages, resumeVoyage, type Voyage } from "@/domaine/voyages";
-import { useModifierVoyage, useOuvrirVoyage } from "@/recherche";
-import { lireVoyages, supprimerVoyage, type LigneVoyage } from "@/stockage/voyages";
+import { useOuvrirVoyage } from "@/recherche";
+import { lireVoyages, separerAnciensVoyages, supprimerVoyage, type LigneVoyage } from "@/stockage/voyages";
 
 type VoyageLu = Voyage & { cle: string };
 
 /**
- * Mes trajets (phase 5, spec 22, D98) : les voyages enregistrés sur le téléphone, rouverts sans réseau.
- * Un petit rectangle par voyage (spec 24, D100) qui dit tout d'un coup d'œil ; « ⋮ » : Afficher, Modifier, Supprimer.
+ * Mes trajets (phase 5, spec 22, D98) : les trajets enregistrés sur le téléphone, rouverts sans réseau.
+ * Un petit rectangle par trajet, l'aller et le retour à part (spec 24, D100, D101), avec sa corbeille ;
+ * le toucher ouvre le trajet, où le crayon le modifie.
  * La pastille de carte (spec 23, D99) dit si la carte de la zone est gardée. Pas encore de « Rappels » ni de
  * bandeau « Hors connexion » : ils arrivent avec leurs cases.
  */
 export default function MesTrajets() {
   const db = useSQLiteContext();
   const ouvrir = useOuvrirVoyage();
-  const modifier = useModifierVoyage();
   // undefined : pas encore lu.
   const [lignes, setLignes] = useState<LigneVoyage[] | undefined>(undefined);
   const [erreur, setErreur] = useState(false);
 
   const relire = useCallback(() => {
     let actif = true;
-    lireVoyages(db).then(
-      (l) => {
-        if (!actif) return;
-        setLignes(l);
-        setErreur(false);
-      },
-      () => {
-        if (!actif) return;
-        setLignes([]);
-        setErreur(true);
-      },
-    );
+    // Les voyages d'avant D101 enregistrés avec leur retour sont d'abord coupés en deux ; leur carte part.
+    // Un échec ici n'empêche pas de lire la liste : l'ancien voyage reste tel quel.
+    separerAnciensVoyages(db)
+      .catch(() => [] as string[])
+      .then((anciennes) => Promise.all(anciennes.map((cle) => supprimerCarte(cle).catch(() => undefined))))
+      .then(() => lireVoyages(db))
+      .then(
+        (l) => {
+          if (!actif) return;
+          setLignes(l);
+          setErreur(false);
+        },
+        () => {
+          if (!actif) return;
+          setLignes([]);
+          setErreur(true);
+        },
+      );
     return () => {
       actif = false;
     };
   }, [db]);
 
-  // Relu à chaque retour sur l'onglet, après « Enregistrer ce voyage ».
+  // Relu à chaque retour sur l'onglet, après un enregistrement.
   useFocusEffect(relire);
 
   function supprimer(cle: string, nom: string) {
@@ -71,14 +77,7 @@ export default function MesTrajets() {
   const illisibles = (lignes ?? []).filter((l) => !l.voyage);
   const { aVenir, passes } = rangerVoyages(lisibles, maintenantAParis(new Date()).date);
   const rectangle = (v: VoyageLu, passe: boolean) => (
-    <Rectangle
-      key={v.cle}
-      voyage={v}
-      passe={passe}
-      onAfficher={() => ouvrir(v)}
-      onModifier={() => modifier(v.cle, v)}
-      onSupprimer={supprimer}
-    />
+    <Rectangle key={v.cle} voyage={v} passe={passe} onAfficher={() => ouvrir(v.cle, v)} onSupprimer={supprimer} />
   );
 
   return (
@@ -96,7 +95,7 @@ export default function MesTrajets() {
       {lignes && lignes.length === 0 && !erreur ? (
         <CarteFlottante>
           <Text className="font-inter text-corps text-texte">
-            Aucun trajet enregistré. Cherchez un trajet, puis touchez « Enregistrer ce voyage ».
+            Aucun trajet enregistré. Cherchez un trajet, puis touchez la disquette en haut du résultat.
           </Text>
         </CarteFlottante>
       ) : null}
@@ -130,13 +129,11 @@ function Rectangle({
   voyage,
   passe,
   onAfficher,
-  onModifier,
   onSupprimer,
 }: {
   voyage: VoyageLu;
   passe: boolean;
   onAfficher: () => void;
-  onModifier: () => void;
   onSupprimer: (cle: string, nom: string) => void;
 }) {
   const r = resumeVoyage(voyage);
@@ -147,7 +144,6 @@ function Rectangle({
       passe={passe}
       carte={carte.etat}
       onAfficher={onAfficher}
-      onModifier={onModifier}
       onSupprimer={() => onSupprimer(voyage.cle, `${r.jour} · ${r.titre}`)}
       onEnregistrerCarte={() => carte.lancer(false)}
     />

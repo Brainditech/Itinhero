@@ -240,7 +240,7 @@ export default function Formulaire() {
             <BandeauInfo texte="La compréhension de phrase est indisponible. Remplissez ces champs." />
           ) : null}
           {remplace ? (
-            <BandeauInfo texte={`Vous modifiez le trajet du ${remplace.titre}. « Enregistrer ce voyage » remplacera l'ancien.`} />
+            <BandeauInfo texte={`Vous modifiez le trajet du ${remplace.titre}. Il sera remplacé à l'enregistrement.`} />
           ) : null}
 
           <CarteFlottante>

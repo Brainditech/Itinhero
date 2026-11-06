@@ -2,23 +2,22 @@ import { Pressable, Text, View } from "react-native";
 import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
 import type { EtatAffiche } from "@/carte/useCarteVoyage";
-import { MenuActions } from "@/composants/MenuActions";
 import type { ResumeSens, ResumeVoyage } from "@/domaine/voyages";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 const TABULAIRE = { fontVariant: ["tabular-nums" as const] };
 
 /**
- * Rectangle d'un voyage dans Mes trajets (spec 24, D100, §3.1) : liseré (indigo à venir, gris passé), jour, lieux,
- * aller et retour, pastilles ; « ⋮ » ouvre Afficher, Modifier, Supprimer. Toucher le rectangle ouvre le trajet.
- * TalkBack lit le rectangle d'un bloc (`resume.phrase`) ; le menu et la pastille de carte restent à part.
+ * Rectangle d'un trajet dans Mes trajets (spec 24, D100, D101) : liseré (indigo à venir, gris passé), jour, lieux,
+ * une ligne d'horaires (« Aller » ou « Retour »), pastilles ; la corbeille en haut à droite. Toucher le rectangle
+ * ouvre le trajet. TalkBack lit le rectangle d'un bloc (`resume.phrase`) ; la corbeille et la pastille de carte
+ * restent à part.
  */
 export function RectangleVoyage({
   resume,
   passe,
   carte,
   onAfficher,
-  onModifier,
   onSupprimer,
   onEnregistrerCarte,
 }: {
@@ -26,7 +25,6 @@ export function RectangleVoyage({
   passe: boolean;
   carte: EtatAffiche;
   onAfficher: () => void;
-  onModifier: () => void;
   onSupprimer: () => void;
   onEnregistrerCarte: () => void;
 }) {
@@ -42,16 +40,15 @@ export function RectangleVoyage({
           className="gap-2 active:bg-surface"
           style={{ paddingTop: 12, paddingBottom: 10, paddingLeft: 16, paddingRight: 12 }}
         >
-          {/* Marge à droite : la place du bouton « ⋮ », posé par-dessus en haut à droite. */}
+          {/* Marge à droite : la place de la corbeille, posée par-dessus en haut à droite. */}
           <Text className="font-inter-semibold text-badge text-texte-secondaire" style={{ paddingRight: 48 }}>
             {resume.jour}
           </Text>
           <Text numberOfLines={2} className="font-inter-semibold text-titre-carte text-texte" style={{ paddingRight: 32 }}>
             {resume.titre}
           </Text>
-          <View className="gap-1" style={{ paddingTop: 4 }}>
-            <LigneSens libelle="Aller" sens={resume.aller} />
-            {resume.retour ? <LigneSens libelle="Retour" sens={resume.retour} /> : null}
+          <View style={{ paddingTop: 4 }}>
+            <LigneSens libelle={resume.libelle} sens={resume.horaires} />
           </View>
         </Pressable>
         <View className="flex-row flex-wrap gap-2" style={{ paddingBottom: 12, paddingLeft: 16, paddingRight: 12 }}>
@@ -60,14 +57,16 @@ export function RectangleVoyage({
           <Pastille icone="schedule" teinte={couleurs["prevu-texte"]} texte="Prévu" nom="Horaire prévu, sans suivi en direct" />
         </View>
         <View style={{ position: "absolute", top: 4, right: 4 }}>
-          <MenuActions
-            nom={`Actions du trajet ${resume.jour}, ${resume.titre}`}
-            actions={[
-              { icone: "visibility", libelle: "Afficher", onPress: onAfficher },
-              { icone: "edit", libelle: "Modifier", onPress: onModifier },
-              { icone: "delete", libelle: "Supprimer", onPress: onSupprimer, danger: true },
-            ]}
-          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Supprimer le trajet ${resume.jour}, ${resume.titre}`}
+            onPress={onSupprimer}
+            hitSlop={4}
+            style={{ minHeight: 48, minWidth: 48 }}
+            className="items-center justify-center rounded-full active:bg-surface"
+          >
+            <SymbolView name={{ android: "delete", web: "delete" }} size={22} tintColor={couleurs.erreur} />
+          </Pressable>
         </View>
       </View>
     </View>
