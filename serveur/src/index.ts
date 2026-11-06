@@ -10,6 +10,10 @@ import { appelDiscussion } from "./assistant/discussion.js";
 import { appelClaude } from "./comprendre/comprendre.js";
 import { CompteurCout } from "./comprendre/cout.js";
 import { Abonnements } from "./abonnements/abonnements.js";
+import { chargerAnnuaire } from "./fiches/charger.js";
+import { chargerTarifs } from "./tarifs/tarifs.js";
+import { envoyerExpo, SuiviRetards } from "./alertes/suivi.js";
+import { heureParis } from "./temps.js";
 
 const CHEMIN_MANIFEST = process.env.FIXTURES_MANIFEST ?? "/fixtures/manifest.json";
 
@@ -44,11 +48,31 @@ async function demarrer(): Promise<void> {
   if (!env.ABONNEMENTS_SQLITE) console.warn("ABONNEMENTS_SQLITE absente : abonnements d'alerte en mémoire, perdus au redémarrage.");
   abonnements.purger(new Date());
   setInterval(() => abonnements.purger(new Date()), 60 * 60 * 1000).unref();
+  // Spec 42 (D123) : suivi des retards chaque minute, dans le processus de l'API (pas d'Inngest).
+  const moteur = moteurMotis(env.MOTIS_URL);
+  if (moteur.course) {
+    const lireCourse = moteur.course;
+    const suivi = new SuiviRetards(abonnements, (id) => lireCourse(id), envoyerExpo(env.EXPO_ACCESS_TOKEN));
+    setInterval(() => {
+      suivi.tour(new Date()).catch((e: unknown) => console.warn(`suivi-retards : ${(e as Error).name}`));
+    }, 60 * 1000).unref();
+  }
+  // Spec 41 (D122, D49) : les pages des fiches candidates sont relues au démarrage puis chaque jour.
+  const annuaire = chargerAnnuaire();
+  const verifier = () =>
+    annuaire
+      .verifierPages(heureParis(new Date()).jour, (id, e) => console.warn(`fiche ${id} : page illisible (${(e as Error).name})`))
+      .then((n) => console.log(`${n} fiche(s) candidate(s) retrouvée(s) sur leur page`))
+      .catch(() => undefined);
+  void verifier();
+  setInterval(() => void verifier(), 24 * 60 * 60 * 1000).unref();
   const app = construireApp({
+    annuaire,
+    tarifs: chargerTarifs(),
     abonnements,
     manifest,
     sonde: sondeMotis(env.MOTIS_URL),
-    moteur: moteurMotis(env.MOTIS_URL),
+    moteur,
     geocodeurIgn: geocodeurIgn(),
     adresseIgn: adresseIgn(),
     lieux,

@@ -1,4 +1,4 @@
-import type { Etape, Possibilite } from "./api";
+import type { Contact, Etape, Possibilite } from "./api";
 import { libelleEtape } from "./resultat";
 import { possibiliteMontree, type Voyage } from "./voyages";
 
@@ -13,6 +13,16 @@ import { possibiliteMontree, type Voyage } from "./voyages";
  */
 export type TypeRappel = "veille" | "reserver" | "taxi" | "partir";
 export type Rappel = { cle: string; type: TypeRappel; instant: Date; titre: string; corps: string };
+
+/**
+ * Issue 0026 (D120) : « alarme » = `setAlarmClock()` d'Android, jamais décalée par l'économie de batterie (icône de
+ * réveil dans la barre d'état) ; réservée aux rappels qui font partir ou appeler à la minute. Les autres sont
+ * exacts aussi (permission `USE_EXACT_ALARM`) mais peuvent glisser de quelques minutes sur certains téléphones.
+ */
+export type Livraison = "alarme" | "exacte";
+export function livraisonDe(type: TypeRappel): Livraison {
+  return type === "partir" || type === "taxi" ? "alarme" : "exacte";
+}
 
 export const HEURE_VEILLE = "19:00";
 export const HEURE_RESERVATION = "10:00";
@@ -59,13 +69,15 @@ function veilleDe(jour: string): string {
 
 const premierTransport = (p: Possibilite): Etape | undefined => p.etapes.find((e) => e.mode !== "marche");
 
-export function rappelsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: Date): Rappel[] {
+/** Tous les rappels du trajet, passés compris, avec l'étape qui les porte (spec 40). */
+function tousLesRappels(p: Possibilite, nomArrivee: string): (Rappel & { etape: number | null })[] {
   const depart = new Date(p.depart_utc);
   const veille = veilleDe(jourDeParis(depart));
   const transport = premierTransport(p);
   const suite = transport ? `${libelleEtape(transport)} à ${transport.depart}` : `à pied`;
-  const rappels: Rappel[] = [
+  const rappels: (Rappel & { etape: number | null })[] = [
     {
+      etape: null,
       cle: "veille",
       type: "veille",
       instant: instantDeParis(veille, HEURE_VEILLE),
@@ -76,6 +88,7 @@ export function rappelsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: 
   p.etapes.forEach((e, i) => {
     if (e.mode === "taxi") {
       rappels.push({
+        etape: i,
         cle: `taxi-${i}`,
         type: "taxi",
         instant: new Date(new Date(e.depart_utc ?? p.depart_utc).getTime() - AVANCE_TAXI_MIN * MINUTE),
@@ -84,6 +97,7 @@ export function rappelsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: 
       });
     } else if (e.reservation === "appel") {
       rappels.push({
+        etape: i,
         cle: `reserver-${i}`,
         type: "reserver",
         instant: instantDeParis(veille, HEURE_RESERVATION),
@@ -93,6 +107,7 @@ export function rappelsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: 
     }
   });
   rappels.push({
+    etape: null,
     cle: "partir",
     type: "partir",
     instant: new Date(depart.getTime() - AVANCE_DEPART_MIN * MINUTE),
@@ -100,8 +115,101 @@ export function rappelsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: 
     corps: `Départ ${p.depart} vers ${nomArrivee} : ${suite}.`,
   });
   return rappels
-    .filter((r) => r.instant.getTime() > maintenant.getTime() && r.instant.getTime() < depart.getTime())
+    .filter((r) => r.instant.getTime() < depart.getTime())
     .sort((a, b) => a.instant.getTime() - b.instant.getTime());
+}
+
+export function rappelsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: Date): Rappel[] {
+  return tousLesRappels(p, nomArrivee)
+    .filter((r) => r.instant.getTime() > maintenant.getTime())
+    .map(({ etape: _etape, ...r }) => r);
+}
+
+// ——— « À faire » d'un trajet enregistré (spec 40, D121) ———
+
+export type Action = {
+  cle: string;
+  type: "taxi" | "reserver" | "partir";
+  titre: string;
+  detail: string;
+  /** « Rappel à 07:35 », « Rappel la veille à 10:00 ». */
+  rappel: string;
+  /** Rappel déjà passé : la ligne est grisée. */
+  passe: boolean;
+  /** Numéro sourcé de l'étape (spec 41), ou null : « Aucun numéro connu ». */
+  contact: Contact | null;
+  /** Délai de réservation connu par la fiche, sinon « Délai non connu » (réservation) ou null. */
+  delai: string | null;
+};
+
+function texteRappel(instant: Date, depart: Date): string {
+  const heure = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(instant);
+  return jourDeParis(instant) === jourDeParis(depart) ? `Rappel à ${heure}` : `Rappel la veille à ${heure}`;
+}
+
+/**
+ * Ce qu'il faut faire, dans l'ordre du temps (spec 40) : appeler le taxi, réserver, partir. Tiré de la possibilité
+ * enregistrée, rien de recalculé (invariant 3) ; la veille n'est pas une action (dite par `rappelVeille`).
+ */
+export function actionsDuTrajet(p: Possibilite, nomArrivee: string, maintenant: Date): Action[] {
+  const depart = new Date(p.depart_utc);
+  return tousLesRappels(p, nomArrivee).flatMap((r): Action[] => {
+    if (r.type === "veille") return [];
+    const e = r.etape === null ? undefined : p.etapes[r.etape];
+    const passe = r.instant.getTime() <= maintenant.getTime();
+    const rappel = texteRappel(r.instant, depart);
+    if (r.type === "taxi" && e) {
+      return [
+        {
+          cle: r.cle,
+          type: "taxi",
+          titre: "Appeler le taxi",
+          detail: `Prise en charge à ${e.depart}, ${e.de.nom}.`,
+          rappel,
+          passe,
+          contact: e.contact ?? null,
+          delai: e.contact?.delai ?? null,
+        },
+      ];
+    }
+    if (r.type === "reserver" && e) {
+      return [
+        {
+          cle: r.cle,
+          type: "reserver",
+          titre: `Réserver : ${libelleEtape(e)} de ${e.depart}`,
+          detail: `Passage sur réservation à ${e.de.nom}.`,
+          rappel,
+          passe,
+          contact: e.contact ?? null,
+          delai: e.contact?.delai ?? "Délai non connu",
+        },
+      ];
+    }
+    return [
+      {
+        cle: r.cle,
+        type: "partir",
+        titre: "Partir",
+        detail: `Départ de la porte à ${p.depart}.`,
+        rappel,
+        passe,
+        contact: null,
+        delai: null,
+      },
+    ];
+  });
+}
+
+/** « Rappel la veille à 19:00 » (veille du départ), ou null s'il tombe après le départ. */
+export function rappelVeille(p: Possibilite, nomArrivee: string): string | null {
+  const v = tousLesRappels(p, nomArrivee).find((r) => r.type === "veille");
+  return v ? texteRappel(v.instant, new Date(p.depart_utc)) : null;
+}
+
+/** Appels (taxi, réservation) encore à venir : « 2 appels à passer » dans Mes trajets. */
+export function appelsAVenir(p: Possibilite, nomArrivee: string, maintenant: Date): number {
+  return actionsDuTrajet(p, nomArrivee, maintenant).filter((a) => a.type !== "partir" && !a.passe).length;
 }
 
 /** Rappels du trajet que montre le voyage enregistré (D101, D102) ; aucun si le sens n'a pas de possibilité. */

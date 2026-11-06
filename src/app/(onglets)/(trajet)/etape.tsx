@@ -11,6 +11,7 @@ import { CARTE } from "@/composants/carte-module";
 import { Fleche } from "@/composants/Fleches";
 import { iconeMode } from "@/composants/icones-mode";
 import { messageEchec, type Etape, type Point } from "@/domaine/api";
+import { Numero, NumerosPres } from "@/composants/AFaire";
 import { destinationMarche, distanceConsigne, phraseConsigne } from "@/domaine/consignes";
 import {
   arretsDeLaCourse,
@@ -228,6 +229,9 @@ function ListeVehicule({
           </Text>
         </View>
       ) : null}
+      {/* Spec 41 (D122) : le numéro à appeler, toujours avec sa source (invariant 16). */}
+      {etape.mode === "taxi" || etape.reservation === "appel" ? <Numero contact={etape.contact} /> : null}
+      {etape.mode === "marche" && etape.duree_minutes > 15 ? <TaxiPourLaMarche etape={etape} /> : null}
       {/* Spec 31 (D109) : Uber ouvert avec la prise en charge et la dépose de l'étape ; prix et attente chez Uber. */}
       {uber ? (
         <View className="items-start">
@@ -447,6 +451,24 @@ export default function FenetreEtape() {
           )}
         </ScrollView>
       </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * Spec 41 (D122, D3) : une marche de plus de 15 min peut se faire en taxi. Les numéros près du départ viennent de
+ * `POST /v1/numeros` (fiches validées ou pages publiques vérifiées) ; sans réseau, l'Uber reste proposé.
+ */
+function TaxiPourLaMarche({ etape }: { etape: Etape }) {
+  return (
+    <View className="gap-2">
+      <View className="flex-row items-center gap-2">
+        <SymbolView name={{ android: "warning", web: "warning" }} size={18} tintColor={couleurs.avertissement} />
+        <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
+          {`Marche de ${formaterDuree(etape.duree_minutes)} : un taxi peut faire cette étape.`}
+        </Text>
+      </View>
+      <NumerosPres point={{ lat: etape.de.lat, lon: etape.de.lon }} />
     </View>
   );
 }

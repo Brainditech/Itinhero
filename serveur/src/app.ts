@@ -16,6 +16,10 @@ import { poserEntetesSecurite } from "./securite.js";
 import type { AdresseInverse, GeocodeurIgn } from "./lieux/ign-geocode.js";
 import type { IndexHoraires } from "./itineraires/horaires-gtfs.js";
 import type { IndexLieux } from "./lieux/categories.js";
+import type { Annuaire } from "./fiches/annuaire.js";
+import { routeNumeros } from "./routes/numeros.js";
+import { routeFiches } from "./routes/fiches.js";
+import type { Tarif } from "./tarifs/tarifs.js";
 
 export type Dependances = {
   manifest: Manifest;
@@ -34,6 +38,10 @@ export type Dependances = {
   claude?: Claude;
   /** Table `abonnements_alerte` (spec 29) ; absente ⇒ 503 sur `/v1/abonnements`. */
   abonnements?: Abonnements;
+  /** Fiches de taxis et de transport à la demande (spec 41) ; absent ⇒ aucun numéro de fiche. */
+  annuaire?: Annuaire;
+  /** Tarifs (spec 43) ; absents ⇒ « prix non publié » partout. */
+  tarifs?: Tarif[];
   /** Horloge (les tests la fixent). */
   horloge?: () => Date;
   /** Flux du journal (les tests y capturent les lignes pour la chaîne canari). */
@@ -58,6 +66,8 @@ export function construireApp({
   adresseIgn,
   claude,
   abonnements,
+  annuaire,
+  tarifs,
   horloge,
   fluxJournal,
 }: Dependances): FastifyInstance {
@@ -92,7 +102,9 @@ export function construireApp({
     async (v1) => {
       controlerAcces(v1, acces);
       routeLieux(v1, moteur, geocodeurIgn, lieux);
-      routeItineraires(v1, moteur, manifest, { horaires, adresse: adresseIgn });
+      routeItineraires(v1, moteur, manifest, { horaires, adresse: adresseIgn, annuaire, tarifs });
+      routeNumeros(v1, annuaire);
+      routeFiches(v1, tarifs ?? []);
       routeCourse(v1, moteur);
       routeEtatCourses(v1, moteur);
       routeMarche(v1, moteur, manifest);

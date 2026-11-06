@@ -8,8 +8,9 @@
 services:
   motis-import:
     volumes:
-      - ./donnees/config.yml:/config/config.yml:ro
-      - ./donnees:/donnees:ro
+      # Spec 44 (D125) : DONNEES choisit le dossier du jour après l'ingestion nocturne (défaut : ./donnees).
+      - ${DONNEES:-./donnees}/config.yml:/config/config.yml:ro
+      - ${DONNEES:-./donnees}:/donnees:ro
 
   motis:
     healthcheck:
@@ -22,6 +23,11 @@ services:
       LIEUX_OSM: /donnees/poi/lieux.json # D61, produit par `npm run donnees:lieux`
       HORAIRES_GTFS: /donnees/horaires.json # D69, produit par `npm run donnees:horaires`
     volumes:
-      - ./donnees/manifest.json:/donnees/manifest.json:ro
+      - ${DONNEES:-./donnees}/manifest.json:/donnees/manifest.json:ro
       - ./donnees/poi/lieux.json:/donnees/poi/lieux.json:ro
-      - ./donnees/horaires.json:/donnees/horaires.json:ro
+      - ${DONNEES:-./donnees}/horaires.json:/donnees/horaires.json:ro
+
+volumes:
+  # Spec 44 (D125) : MOTIS_DONNEES nomme le volume importé du jour ; défaut : celui d'avant (rien ne change au PC).
+  motis-data:
+    name: ${MOTIS_DONNEES:-itinhero-national_motis-data}

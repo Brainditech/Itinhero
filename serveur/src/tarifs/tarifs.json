@@ -1,0 +1,83 @@
+{
+  "note": "Spec 43 (D124). Tarifs publiés, relevés le 2026-11-06 (docs/collecte/2026-11-06-tarifs-candidats.json). « valide_le » : date où Brainditech a validé le tarif ; null : jamais appliqué (« prix non publié », invariant 5). TER Bourgogne-Franche-Comté : tarif plein non publié ; Nomad : prix par zones, non applicable sans les zones.",
+  "tarifs": [
+    {
+      "id": "mobigo-car-ticket-unitaire",
+      "reseau": "Mobigo",
+      "produit": "Ticket unitaire car",
+      "montant_eur": 2.0,
+      "correspondance": {
+        "producteurs": [
+          "Région Bourgogne-Franche-Comté"
+        ],
+        "exploitant": "mobigo",
+        "modes": [
+          "bus",
+          "car",
+          "transport_a_la_demande"
+        ]
+      },
+      "reductions": [
+        {
+          "carte": "carte-avantages-jeunes",
+          "nom": "Carte Avantages Jeunes (Bourgogne-Franche-Comté)",
+          "pourcentage": 100,
+          "conditions": "Aller seulement (retour payant), sur présentation de la carte Avantages Jeunes (sous condition) et du coupon « Avantages » rempli",
+          "seulement_aller": true
+        }
+      ],
+      "canal_vente": "À bord par carte bancaire sans contact (titre unitaire seulement, flash de la CB à la montée) ; m-ticket sur l'application Mobigo (QR code) ; carte rechargeable anonyme (5 €) chez les dépositaires",
+      "url": "https://www.viamobigo.fr/ftp/document/grille-tarifaire-routier-bfc-totalite-maj-12-03-2026.pdf",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "idfm-ticket-metro-train-rer",
+      "reseau": "Île-de-France Mobilités",
+      "produit": "Ticket Métro-Train-RER",
+      "montant_eur": 2.55,
+      "correspondance": {
+        "producteurs": [
+          "Île-de-France Mobilités"
+        ],
+        "modes": [
+          "metro",
+          "rer"
+        ]
+      },
+      "reductions": [
+        {
+          "carte": "idfm-tarif-reduit",
+          "nom": "Tarif réduit Île-de-France Mobilités",
+          "pourcentage": 50,
+          "conditions": "Bénéficiaires de la Tarification Solidarité Transport ; enfants de 4 ans à moins de 10 ans (gratuit pour les moins de 4 ans) ; titulaires d'une carte « Familles nombreuses » ; personnes invalides et leur accompagnant sous conditions. IDFM le présente comme un demi-tarif (1,30 € au lieu de 2,55 €)",
+          "montant_eur": 1.3
+        }
+      ],
+      "canal_vente": "Sans contact uniquement : passe Navigo Easy (points de vente, agents, automates des transporteurs, applications mobiles) ou téléphone via les applications proposant le service d'achat",
+      "url": "https://tzen4.iledefrance-mobilites.fr/en/tarifs-titre-de-transport-en-commun-2026",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "nemus-ticket-unite",
+      "reseau": "Némus (Flers Agglo)",
+      "produit": "Ticket à l'unité",
+      "montant_eur": 1.1,
+      "correspondance": {
+        "producteurs": [
+          "NEMUS (Réseau de transports de Flers Agglo)"
+        ],
+        "modes": [
+          "bus",
+          "transport_a_la_demande"
+        ]
+      },
+      "reductions": [],
+      "canal_vente": null,
+      "url": "https://nemus.flers-agglo.fr/se-deplacer/transport-a-la-demande",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    }
+  ]
+}

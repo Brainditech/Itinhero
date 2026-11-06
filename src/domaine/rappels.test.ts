@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { Etape, Possibilite } from "./api";
-import { instantDeParis, rappelsDuTrajet } from "./rappels";
+import { actionsDuTrajet, appelsAVenir, instantDeParis, livraisonDe, rappelsDuTrajet, rappelVeille } from "./rappels";
 
 // Possibilité réelle (samedi 14/11/2026) : marche 08:14, bus 803 sur réservation 08:25, marche, TER K7 09:10, marche.
 const BRIENON_DIJON: Possibilite = JSON.parse(readFileSync(path.join(__dirname, "__exemples__/possibilite-brienon-dijon.json"), "utf8"));
@@ -53,5 +53,60 @@ describe("rappelsDuTrajet (spec 30, critère 1)", () => {
   it("enregistré la veille à 20:00 : seul « partir » reste ; trajet passé : aucun (critère 2)", () => {
     expect(resume(rappelsDuTrajet(BRIENON_DIJON, "Dijon", new Date("2026-11-13T19:00:00Z")))).toEqual([["partir", "2026-11-14T06:59:00.000Z"]]);
     expect(rappelsDuTrajet(BRIENON_DIJON, "Dijon", new Date("2026-11-14T07:00:00Z"))).toEqual([]);
+  });
+});
+
+describe("Rappels à l'heure exacte (issue 0026, D120)", () => {
+  it("« Partez » et « Appelez le taxi » en alarme ; veille et réservation exactes", () => {
+    expect(livraisonDe("partir")).toBe("alarme");
+    expect(livraisonDe("taxi")).toBe("alarme");
+    expect(livraisonDe("veille")).toBe("exacte");
+    expect(livraisonDe("reserver")).toBe("exacte");
+  });
+});
+
+describe("« À faire » d'un trajet enregistré (spec 40, critère 1)", () => {
+  const taxi: Etape = { ...BRIENON_DIJON.etapes[1]!, mode: "taxi", reservation: null, depart: "08:25", depart_utc: "2026-11-14T07:25:00.000Z" };
+  const AVEC_TAXI = { ...BRIENON_DIJON, etapes: [BRIENON_DIJON.etapes[0]!, taxi, ...BRIENON_DIJON.etapes.slice(2)] };
+
+  it("réservation : la veille 10:00, délai non connu, aucun numéro ; puis partir 15 min avant", () => {
+    expect(actionsDuTrajet(BRIENON_DIJON, "Dijon", AVANT)).toEqual([
+      {
+        cle: "reserver-1",
+        type: "reserver",
+        titre: "Réserver : Bus 803 de 08:25",
+        detail: "Passage sur réservation à Mairie.",
+        rappel: "Rappel la veille à 10:00",
+        passe: false,
+        contact: null,
+        delai: "Délai non connu",
+      },
+      {
+        cle: "partir",
+        type: "partir",
+        titre: "Partir",
+        detail: "Départ de la porte à 08:14.",
+        rappel: "Rappel à 07:59",
+        passe: false,
+        contact: null,
+        delai: null,
+      },
+    ]);
+    expect(rappelVeille(BRIENON_DIJON, "Dijon")).toBe("Rappel la veille à 19:00");
+  });
+
+  it("taxi : « Appeler le taxi », prise en charge, rappel 60 min avant, numéro sourcé repris", () => {
+    const contact = { nom: "Taxi X", numero: "03 86 00 00 00", source: "fiche" as const, url: "https://exemple.fr", lu_le: "2026-11-06", verifie: true, delai: "La veille" };
+    const p = { ...AVEC_TAXI, etapes: AVEC_TAXI.etapes.map((e, i) => (i === 1 ? { ...e, contact } : e)) };
+    const [a] = actionsDuTrajet(p, "Dijon", AVANT);
+    expect(a).toMatchObject({ type: "taxi", titre: "Appeler le taxi", detail: "Prise en charge à 08:25, Mairie.", rappel: "Rappel à 07:25", contact, delai: "La veille" });
+  });
+
+  it("rappel passé marqué ; « 1 appel » tant que le taxi est à venir, 0 après", () => {
+    expect(appelsAVenir(AVEC_TAXI, "Dijon", AVANT)).toBe(1);
+    const apres = new Date("2026-11-14T06:30:00Z");
+    expect(actionsDuTrajet(AVEC_TAXI, "Dijon", apres).find((a) => a.type === "taxi")?.passe).toBe(true);
+    expect(appelsAVenir(AVEC_TAXI, "Dijon", apres)).toBe(0);
+    expect(appelsAVenir(BRIENON_DIJON, "Dijon", AVANT)).toBe(1);
   });
 });

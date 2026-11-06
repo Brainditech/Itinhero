@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { lireEvenements, type IssueDiscussion, type MessageEnvoye, type RechercheResumee } from "./discussion";
+import { lireEvenements, type IssueDiscussion, type MessageEnvoye, type PropositionRecherche, type RechercheResumee } from "./discussion";
 
 // Client des routes de l'API Itinhero (spec 09 §4.4, §4.5 ; spec 10 §4.1).
 // `fetch` est injecté : aucun réseau dans les tests. Chaque réponse est validée par Zod (invariant 9) :
@@ -105,7 +105,55 @@ export const schemaEtape = z.object({
   arrets: z.array(schemaPoint.extend({ nom: z.string(), passage: HEURE.nullable() })).nullable().default(null),
   // Spec 17 (D87) : identifiant de la course, pour `GET /v1/course`. Absent d'un serveur plus ancien ⇒ null.
   course: z.string().nullable().default(null),
+  // Spec 41 (D122) : numéro à appeler (taxi, réservation), toujours avec sa source (invariant 16) ; sinon null.
+  contact: z
+    .object({
+      nom: z.string().min(1),
+      // Revue PR #61 : le serveur le rend « 03 80 11 29 29 », mais l'app accepte aussi les autres écritures d'un numéro.
+      numero: z.string().regex(/^\+?[0-9 .()-]{6,25}$/),
+      source: z.enum(["gtfs", "fiche", "page"]),
+      url: z.string().nullable(),
+      lu_le: z.iso.date().nullable(),
+      // Faux pour un numéro lu sur une page publique (D49) : « non vérifié » à côté.
+      verifie: z.boolean(),
+      delai: z.string().nullable(),
+    })
+    .nullable()
+    .default(null),
+  // Spec 43 (D124) : tarif validé qui s'applique à l'étape, tel que publié, avec sa source (invariant 5) ; sinon null.
+  tarif: z
+    .object({
+      id: z.string(),
+      reseau: z.string(),
+      produit: z.string(),
+      montant_eur: z.number().positive(),
+      reductions: z.array(
+        z.object({
+          carte: z.string(),
+          nom: z.string(),
+          pourcentage: z.number().int().min(1).max(100),
+          montant_eur: z.number().min(0).nullable().default(null),
+          seulement_aller: z.boolean().default(false),
+          conditions: z.string().nullable().default(null),
+        }),
+      ),
+      canal_vente: z.string().nullable(),
+      url: z.string(),
+      lu_le: z.iso.date(),
+    })
+    .nullable()
+    .default(null),
 });
+export type Contact = NonNullable<z.infer<typeof schemaEtape>["contact"]>;
+export type TarifEtape = NonNullable<z.infer<typeof schemaEtape>["tarif"]>;
+// Spec 43 (D124) : cartes de réduction connues et tarifs validés (`GET /v1/fiches`).
+export const schemaCatalogueCartes = z.object({
+  cartes: z.array(
+    z.object({ carte: z.string(), nom: z.string(), reseaux: z.array(z.string()), pourcentage: z.number(), conditions: z.string().nullable() }),
+  ),
+});
+export type CatalogueCartes = z.infer<typeof schemaCatalogueCartes>;
+const schemaReponseNumeros = z.object({ numeros: z.array(schemaEtape.shape.contact.unwrap().unwrap()) });
 export type Etape = z.infer<typeof schemaEtape>;
 
 // `GET /v1/course` (spec 17, D87) : tous les arrêts d'une course, dans l'ordre de passage.
@@ -143,6 +191,17 @@ const schemaReponseSens = z
     // Lieu d'arrivée : le nom envoyé par l'app et l'adresse postale trouvée par l'IGN (issue 0010, C).
     arrivee: z.object({ nom: z.string().nullable(), adresse: z.string().nullable() }),
     possibilites: z.array(schemaPossibilite),
+    // Spec 41 (D122) : route en voiture de bout en bout (taxi), durée estimée par MOTIS ; jamais de prix.
+    taxi_direct: z
+      .object({
+        duree_minutes: z.number().int().positive(),
+        distance_metres: z.number().nonnegative().nullable(),
+        depart: HEURE,
+        arrivee: HEURE,
+        depart_utc: z.string(),
+        arrivee_utc: z.string(),
+      })
+      .nullish(),
   })
   // « Possible » sans aucune possibilité montrée serait un verdict appuyé sur rien (spec 09 §4.5).
   .refine((r) => r.verdict === "impossible" || r.possibilites.length > 0);
@@ -150,8 +209,19 @@ export type ReponseSens = z.infer<typeof schemaReponseSens>;
 
 export const schemaReponseItineraires = schemaReponseSens.and(
   // Retour à partir de la fin du rendez-vous (spec 19, D94) ; null sans fin de rendez-vous.
-  z.object({ retour: schemaReponseSens.nullish() }),
+  z.object({
+    retour: schemaReponseSens.nullish(),
+    // Issue 0025 : réseaux dont les horaires s'arrêtent avant le jour demandé (absent d'un serveur plus ancien).
+    horaires_a_venir: z
+      .object({
+        nombre: z.number().int().positive(),
+        reseaux: z.array(z.object({ nom: z.string(), jusquau: z.iso.date() })),
+        des_le: z.iso.date(),
+      })
+      .nullish(),
+  }),
 );
+export type HorairesAVenir = NonNullable<z.infer<typeof schemaReponseItineraires>["horaires_a_venir"]>;
 export type ReponseItineraires = z.infer<typeof schemaReponseItineraires>;
 
 export type RequeteItineraires = {
@@ -277,6 +347,11 @@ export function clientApi({
         return lu.success ? { etat: "hors_zone", points: lu.data } : { etat: "erreur_serveur" };
       }
       if (!reponse.ok) return { etat: "erreur_serveur" };
+      // 204 (DELETE) : aucun corps ; le schéma dit s'il en attendait un.
+      if (reponse.status === 204) {
+        const vide = schema.safeParse(null);
+        return vide.success ? { etat: "ok", donnees: vide.data } : { etat: "erreur_serveur" };
+      }
       let corps: unknown;
       try {
         corps = await reponse.json();
@@ -300,6 +375,14 @@ export function clientApi({
     course(id: string): Promise<ResultatApi<ArretCourse[]>> {
       return appeler(`/v1/course?${new URLSearchParams({ id }).toString()}`, schemaReponseCourse.transform((r) => r.arrets));
     },
+    /** Spec 41 (D122) : numéros de taxi ou de transport à la demande autour d'un point ; le point n'est pas gardé. */
+    numeros(point: Point, type: "taxi" | "tad"): Promise<ResultatApi<Contact[]>> {
+      return appeler("/v1/numeros", schemaReponseNumeros.transform((r) => r.numeros), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ point, type }),
+      });
+    },
     itineraires(requete: RequeteItineraires): Promise<ResultatApi<ReponseItineraires>> {
       return appeler("/v1/itineraires", schemaReponseItineraires, {
         method: "POST",
@@ -314,6 +397,22 @@ export function clientApi({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ courses }),
       });
+    },
+    /** Spec 42 (D123) : alerte poussée pour une course (jeton Expo) ; le serveur la garde jusqu'à J+1 (D107). */
+    abonner(course: string, dateService: string, jeton: string): Promise<ResultatApi<{ id: string }>> {
+      return appeler("/v1/abonnements", z.object({ id: z.string() }), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trip_id: course, date_service: dateService, jeton_push: jeton }),
+      });
+    },
+    /** Spec 43 : cartes de réduction connues (Réglages). Aucune carte cochée n'est envoyée (invariant 7). */
+    fiches(): Promise<ResultatApi<CatalogueCartes>> {
+      return appeler("/v1/fiches", schemaCatalogueCartes);
+    },
+    /** Spec 42 : retire une alerte poussée (trajet supprimé ou remplacé) ; le serveur répond 204 même si elle n'existe plus. */
+    desabonner(id: string): Promise<ResultatApi<null>> {
+      return appeler(`/v1/abonnements/${encodeURIComponent(id)}`, z.null(), { method: "DELETE" });
     },
     /** Phrase de l'Accueil ⇒ champs compris par le serveur (spec 28). Tout échec ⇒ le formulaire de repli. */
     comprendre(phrase: string): Promise<ResultatApi<Comprehension>> {
@@ -330,14 +429,20 @@ export function clientApi({
      */
     async discussion(
       corps: { messages: MessageEnvoye[]; recherche?: RechercheResumee },
-      { signal, surTexte }: { signal: AbortSignal; surTexte: (texte: string) => void },
+      {
+        signal,
+        surTexte,
+        surRecherche,
+      }: { signal: AbortSignal; surTexte: (texte: string) => void; surRecherche?: (r: PropositionRecherche) => void },
     ): Promise<IssueDiscussion> {
       if (!fetchFlux) return { etat: "indisponible" };
       const controle = new AbortController();
       const arreter = () => controle.abort();
       if (signal.aborted) return { etat: "arretee" };
       signal.addEventListener("abort", arreter);
-      const minuterie = setTimeout(arreter, delaiMs);
+      // Revue : une pièce jointe (jusqu'à 2,7 Mo) monte lentement sur un réseau mobile : 90 s pour obtenir la réponse.
+      const avecPiece = corps.messages.some((m) => m.piece_jointe);
+      const minuterie = setTimeout(arreter, avecPiece ? Math.max(delaiMs, 90_000) : delaiMs);
       const issueCoupure = (): IssueDiscussion => (signal.aborted ? { etat: "arretee" } : { etat: "coupee" });
       try {
         let reponse;
@@ -368,6 +473,7 @@ export function clientApi({
             tampon = lu.reste;
             for (const e of lu.evenements) {
               if (e.type === "texte") surTexte(e.texte);
+              else if (e.type === "recherche") surRecherche?.(e.recherche);
               else if (e.type === "fin") return { etat: "complete" };
               else return { etat: "indisponible" };
             }

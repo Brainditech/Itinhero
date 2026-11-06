@@ -50,6 +50,14 @@ export function RectangleVoyage({
           <View style={{ paddingTop: 4 }}>
             <LigneSens libelle={resume.libelle} sens={resume.horaires} />
           </View>
+          {resume.appels ? (
+            <View className="flex-row items-center gap-2">
+              <SymbolView name={{ android: "call", web: "call" }} size={18} tintColor={couleurs.avertissement} />
+              <Text className="font-inter-semibold text-secondaire" style={{ color: couleurs.avertissement }}>
+                {resume.appels}
+              </Text>
+            </View>
+          ) : null}
         </Pressable>
         <View className="flex-row flex-wrap gap-2" style={{ paddingBottom: 12, paddingLeft: 16, paddingRight: 12 }}>
           <Pastille icone="check_circle" teinte={couleurs.possible} texte="Sans réseau" nom="Disponible sans réseau" />

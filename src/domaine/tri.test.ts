@@ -109,8 +109,8 @@ describe("D97 : rang et liste reçue", () => {
     expect(ps).toEqual(copie);
   });
 
-  it("trois puces, sans « Moins cher » (D97)", () => {
-    expect(TRIS.map((t) => LIBELLES_TRIS[t])).toEqual(["Arrivée la plus tôt", "Moins de marche", "Sans réservation"]);
+  it("quatre puces : « Moins cher » arrive avec les tarifs (D97, spec 43)", () => {
+    expect(TRIS.map((t) => LIBELLES_TRIS[t])).toEqual(["Arrivée la plus tôt", "Moins de marche", "Sans réservation", "Moins cher"]);
   });
 });
 

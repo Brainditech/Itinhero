@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { Possibilite, ReponseSens } from "./api";
 import type { Bout, Demande } from "./demande";
 import { aMarcheLongue, avecTaxi, minutesDeMarche, nomBout, nuitDehors, parArrivee } from "./resultat";
@@ -10,7 +12,42 @@ export const MESSAGES_MAX = 20;
 export const TEXTE_MAX = 1000;
 
 export type RoleMessage = "personne" | "assistant";
-export type MessageEnvoye = { role: RoleMessage; texte: string };
+/** Spec 45 (D126) : photo ou PDF joint au message, en base64 (lu par Claude pour cette réponse seulement). */
+export type PieceJointe = { type: "image"; media_type: "image/jpeg" | "image/png" | "image/webp"; donnees: string } | { type: "pdf"; media_type: "application/pdf"; donnees: string };
+export type MessageEnvoye = { role: RoleMessage; texte: string; piece_jointe?: PieceJointe };
+
+/** Recherche proposée par l'Assistant (spec 45) : l'app la lance elle-même et montre les trajets en cartes. */
+export const schemaPropositionRecherche = z.object({
+  depart: z.string().min(1).max(200),
+  arrivee: z.string().min(1).max(200),
+  date: z.iso.date(),
+  heure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  sens: z.enum(["arriver_avant", "partir_a"]),
+  marge: z.number().int().min(0).max(120).optional(),
+});
+export type PropositionRecherche = z.infer<typeof schemaPropositionRecherche>;
+
+/** Ce que Claude relit d'une recherche proposée : la demande, sans les trajets (ils sont dans les cartes). */
+export function texteRechercheProposee(p: PropositionRecherche): string {
+  const quand = p.sens === "arriver_avant" ? `arriver avant ${p.heure}` : `partir à ${p.heure}`;
+  return `[Recherche proposée et lancée par l'app : de ${p.depart} à ${p.arrivee}, le ${p.date}, ${quand}. Les trajets trouvés sont affichés en cartes.]`;
+}
+
+/** Revue : après une réponse, les pièces déjà envoyées ne gardent que leur nom (rien de lourd en mémoire). */
+export function allegerPieces(fil: MessageFil[]): MessageFil[] {
+  return fil.map((m) => (m.role === "personne" && m.piece_jointe && m.piece_jointe.donnees !== "" ? { ...m, piece_jointe: { ...m.piece_jointe, donnees: "" } } : m));
+}
+
+/** « domicile » / « position » / un lieu à chercher ⇒ la demande que lance la recherche ordinaire (D78). */
+export function demandeDeProposition(p: PropositionRecherche): Demande {
+  const bout = (t: string): Bout => {
+    const s = t.trim().toLowerCase();
+    if (["domicile", "maison", "chez moi"].includes(s)) return { type: "domicile" };
+    if (["position", "ma position", "ici"].includes(s)) return { type: "position" };
+    return { type: "texte", texte: t.trim() };
+  };
+  return { depart: bout(p.depart), arrivee: bout(p.arrivee), date: p.date, heure: p.heure, sens: p.sens, marge: p.marge ?? 10, retour: null }; // D17 : 10 min par défaut
+}
 
 export type Alerte = "nuit_dehors" | "taxi_a_reserver" | "transport_a_reserver" | "marche_longue" | "sans_reservation";
 export type PossibiliteResumee = { modes: string[]; correspondances: number; marche_minutes: number; alertes: Alerte[] };
@@ -71,7 +108,8 @@ export function resumeRecherche(
 
 /** Un message du fil, à l'écran. `etat` d'une réponse : en cours d'écriture, complète, arrêtée ou en échec. */
 export type MessageFil =
-  | { id: number; role: "personne"; texte: string }
+  | { id: number; role: "personne"; texte: string; piece_jointe?: PieceJointe & { nom: string } }
+  | { id: number; role: "recherche"; proposition: PropositionRecherche }
   | { id: number; role: "assistant"; texte: string; etat: "ecrit" | "complete" | "arretee" | "echec"; erreur?: string; reessayer?: boolean };
 
 /**
@@ -79,15 +117,33 @@ export type MessageFil =
  * 1 000 caractères, et seuls les 20 derniers partent (le dernier est la question de la personne).
  */
 export function messagesAEnvoyer(fil: MessageFil[]): MessageEnvoye[] {
-  return fil
+  // Revue : une recherche proposée reste dans la discussion, résumée côté Assistant (Claude sait ce qui a été montré).
+  const envoyes = fil
+    .flatMap((m): Exclude<MessageFil, { role: "recherche" }>[] =>
+      m.role === "recherche"
+        ? [{ id: m.id, role: "assistant", texte: texteRechercheProposee(m.proposition), etat: "complete" }]
+        : [m],
+    )
     .filter((m) => m.texte.trim() !== "" && !(m.role === "assistant" && m.etat === "echec" && m.texte.trim() === ""))
-    .map((m) => ({ role: m.role, texte: m.texte.trim().slice(0, TEXTE_MAX) }))
     .slice(-MESSAGES_MAX);
+  // Spec 45 : seule la pièce jointe du dernier message repart (le serveur refuse les autres).
+  return envoyes.map((m, i) => {
+    const base = { role: m.role, texte: m.texte.trim().slice(0, TEXTE_MAX) };
+    if (i === envoyes.length - 1 && m.role === "personne" && m.piece_jointe && m.piece_jointe.donnees !== "") {
+      const { nom: _nom, ...piece } = m.piece_jointe;
+      return { ...base, piece_jointe: piece };
+    }
+    return base;
+  });
 }
 
 // ——— Lecture du flux `text/event-stream` (spec 39 §7) ———
 
-export type EvenementDiscussion = { type: "texte"; texte: string } | { type: "fin" } | { type: "erreur" };
+export type EvenementDiscussion =
+  | { type: "texte"; texte: string }
+  | { type: "recherche"; recherche: PropositionRecherche }
+  | { type: "fin" }
+  | { type: "erreur" };
 
 /**
  * Découpe un tampon reçu en événements complets ; `reste` est le début d'un événement pas encore fini. Un bloc mal
@@ -105,7 +161,14 @@ export function lireEvenements(tampon: string): { evenements: EvenementDiscussio
       if (ligne.startsWith("event:")) nom = ligne.slice(6).trim();
       else if (ligne.startsWith("data:")) donnees.push(ligne.slice(5).replace(/^ /, ""));
     }
-    if (nom === "fin") evenements.push({ type: "fin" });
+    if (nom === "recherche") {
+      try {
+        const lu = schemaPropositionRecherche.safeParse(JSON.parse(donnees.join("\n")));
+        if (lu.success) evenements.push({ type: "recherche", recherche: lu.data });
+      } catch {
+        // Bloc illisible : ignoré.
+      }
+    } else if (nom === "fin") evenements.push({ type: "fin" });
     else if (nom === "erreur") evenements.push({ type: "erreur" });
     else if (nom === "texte") {
       try {

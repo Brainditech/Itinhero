@@ -43,7 +43,7 @@ export async function appNationale() {
     lieux,
     horaires,
     acces: { empreintes: [empreinte(cle)], limites: new Limites(100_000, 1_000_000) },
-    fluxJournal: { write: () => {} },
+    fluxJournal: process.env.JOURNAL_NATIONAL ? { write: (l: string) => void (l.includes("\"level\":50") && process.stderr.write(l)) } : { write: () => {} },
   });
   return { app, entete: { authorization: `Bearer ${cle}` } };
 }

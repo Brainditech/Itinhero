@@ -29,7 +29,7 @@ La demande se fait en trois temps, chacun avec sa spec :
 6. Discussion vide : trois puces de départ qui envoient la question d'un toucher : « Que faire si je rate une correspondance ? », « Comment réserver un transport à la demande ? », « Explique-moi mon trajet » (cette dernière seulement avec une recherche en cours).
 7. Champ « Écrivez votre message » et ➤, au-dessus du clavier comme aujourd'hui.
 8. Lien « Nouvelle discussion » en haut de la discussion : vide le fil.
-9. La discussion vit dans la mémoire du téléphone le temps que l'app est ouverte. Elle n'est enregistrée nulle part (ni sur le serveur ni dans le téléphone) dans ce premier temps.
+9. La discussion vit dans la mémoire du téléphone le temps que l'app est ouverte. Elle n'est enregistrée nulle part (ni sur le serveur ni dans le téléphone) dans ce premier temps. **Remplacé par la spec 48 (D129)** : gardée dans le téléphone, Historique.
 10. Erreurs, dans la bulle de l'Assistant : plafond atteint ou Claude en panne ⇒ « Je ne suis pas disponible pour l'instant. La recherche marche toujours depuis l'Accueil. » ; réseau coupé ⇒ « Pas de réseau. Votre message n'est pas parti. » avec « Réessayer ».
 11. Disparaissent : « Relancer la recherche », « Annuler », les puces de réglages et les gabarits de conseils de la spec 37.
 

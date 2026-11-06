@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contexteDiscussion, messagesClaude, schemaRequeteDiscussion } from "./discussion.js";
+import { CONSIGNES, contexteDiscussion, messagesClaude, OUTIL_RECHERCHE, schemaPropositionRecherche, schemaRequeteDiscussion } from "./discussion.js";
 import { CONTEXTE_JEU, INTERDITS, QUESTIONS_JEU, RECHERCHE_JEU } from "./jeu-discussion.js";
 import { filtrerTexte } from "./filtre.js";
 
@@ -15,9 +15,9 @@ describe("discussion de l'Assistant (spec 39)", () => {
         { role: "personne", texte: "Merci" },
       ]),
     ).toEqual([
-      { role: "user", content: "Je rate le car\n\nJe rate le car" },
-      { role: "assistant", content: "Pas de panique." },
-      { role: "user", content: "Merci" },
+      { role: "user", content: [{ type: "text", text: "Je rate le car" }, { type: "text", text: "Je rate le car" }] },
+      { role: "assistant", content: [{ type: "text", text: "Pas de panique." }] },
+      { role: "user", content: [{ type: "text", text: "Merci" }] },
     ]);
   });
 
@@ -42,5 +42,30 @@ describe("discussion de l'Assistant (spec 39)", () => {
     const texte = "Départ 14:48 ou 9h30, 12 €, 3 euros, appelez le 03 86 12 34 56 ou le +33 3 86 12 34 56.";
     expect(INTERDITS.some((r) => r.test(texte))).toBe(true);
     expect(INTERDITS.every((r) => !r.test(filtrerTexte(texte)))).toBe(true);
+  });
+});
+
+describe("Spec 45 (D126)", () => {
+  it("la pièce jointe passe avant le texte de son message ; l'outil de recherche est déclaré", () => {
+    expect(
+      messagesClaude([{ role: "personne", texte: "Voici ma convocation", piece_jointe: { type: "pdf", media_type: "application/pdf", donnees: "QUJD" } }]),
+    ).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: "QUJD" } },
+          { type: "text", text: "Voici ma convocation" },
+        ],
+      },
+    ]);
+    expect(OUTIL_RECHERCHE.input_schema.required).toEqual(["depart", "arrivee", "date", "heure", "sens"]);
+    expect(CONSIGNES).toContain("proposer_recherche");
+  });
+
+  it("proposition : `marge: null` vaut sans marge, une clé en trop est ignorée, une heure fausse est refusée", () => {
+    const p = { depart: "domicile", arrivee: "Gare de Joigny", date: "2026-11-12", heure: "10:00", sens: "arriver_avant" };
+    expect(schemaPropositionRecherche.parse({ ...p, marge: null })).toEqual(p);
+    expect(schemaPropositionRecherche.parse({ ...p, marge: 15, raison: "rendez-vous" })).toEqual({ ...p, marge: 15 });
+    expect(schemaPropositionRecherche.safeParse({ ...p, heure: "25:00" }).success).toBe(false);
   });
 });

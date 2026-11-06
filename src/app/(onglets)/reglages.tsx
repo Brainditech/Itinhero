@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -7,8 +7,10 @@ import { SymbolView } from "expo-symbols";
 import { Ecran } from "@/composants/Ecran";
 import { CarteFlottante } from "@/composants/elements";
 import type { Domicile } from "@/domaine/domicile";
+import { useCartes } from "@/cartes";
+import { schemaCatalogueCartes, type CatalogueCartes } from "@/domaine/api";
 import { useSession } from "@/session";
-import { lireDomicileEnBase } from "@/stockage/reglages";
+import { enregistrerCatalogueCartes, lireCatalogueCartes, lireDomicileEnBase } from "@/stockage/reglages";
 import { couleurs } from "@/theme/jetons";
 
 /** Lien d'action à droite d'une ligne (« Modifier »). */
@@ -22,7 +24,7 @@ function Action({ libelle, onPress }: { libelle: string; onPress: () => void }) 
 
 /**
  * Réglages (spec 10, une partie de la maquette 07) : domicile (D65) et clé d'appareil (D64).
- * Cartes de réduction et interrupteur de position : plus tard (phase 6 ; D66 pour la position).
+ * Spec 43 (D124) : cartes de réduction, cochées sur le téléphone seulement (invariant 7).
  */
 export default function Reglages() {
   const db = useSQLiteContext();
@@ -82,6 +84,7 @@ export default function Reglages() {
           </View>
         </View>
       </CarteFlottante>
+      <CartesReduction />
       <View className="flex-row gap-3 px-2">
         <SymbolView name={{ android: "lock", web: "lock" }} size={22} tintColor={couleurs["texte-secondaire"]} />
         <Text className="flex-1 font-inter text-secondaire text-texte-secondaire">
@@ -89,5 +92,74 @@ export default function Reglages() {
         </Text>
       </View>
     </Ecran>
+  );
+}
+
+/**
+ * Cartes de réduction (spec 43, D124, maquette 07) : la liste vient des tarifs validés (`GET /v1/fiches`), gardée
+ * pour s'afficher sans réseau ; la case cochée reste sur le téléphone et réduit les prix du Résultat.
+ */
+function CartesReduction() {
+  const db = useSQLiteContext();
+  const { client } = useSession();
+  const { cartes, basculer } = useCartes();
+  const [catalogue, setCatalogue] = useState<CatalogueCartes["cartes"] | null>(null);
+  useEffect(() => {
+    let actif = true;
+    // Revue : la liste du serveur, si elle arrive, l'emporte sur celle gardée, même lue après.
+    let fraiche = false;
+    void lireCatalogueCartes(db).then((brut) => {
+      const lu = schemaCatalogueCartes.safeParse(brut);
+      if (actif && !fraiche && lu.success) setCatalogue(lu.data.cartes);
+    });
+    void client?.fiches().then((r) => {
+      if (!actif || r.etat !== "ok") return;
+      fraiche = true;
+      setCatalogue(r.donnees.cartes);
+      void enregistrerCatalogueCartes(db, r.donnees).catch(() => undefined);
+    });
+    return () => {
+      actif = false;
+    };
+  }, [db, client]);
+  return (
+    <CarteFlottante>
+      <View className="gap-3">
+        <Text accessibilityRole="header" className="font-inter-semibold text-titre-carte text-texte">
+          Cartes de réduction
+        </Text>
+        {catalogue === null ? (
+          <Text className="font-inter text-secondaire text-texte-secondaire">Liste indisponible sans connexion au serveur.</Text>
+        ) : catalogue.length === 0 ? (
+          <Text className="font-inter text-secondaire text-texte-secondaire">Aucune carte : aucun tarif n&apos;est encore validé.</Text>
+        ) : (
+          catalogue.map((c) => {
+            const cochee = cartes.includes(c.carte);
+            return (
+              <Pressable
+                key={c.carte}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: cochee }}
+                accessibilityLabel={`${c.nom}, moins ${c.pourcentage} %, ${c.reseaux.join(", ")}`}
+                onPress={() => basculer(c.carte)}
+                className="min-h-12 flex-row items-center gap-3 active:opacity-70"
+              >
+                <SymbolView
+                  name={{ android: cochee ? "check_box" : "check_box_outline_blank", web: "check_box" }}
+                  size={26}
+                  tintColor={couleurs.primaire}
+                />
+                <View className="flex-1">
+                  <Text className="font-inter-medium text-corps text-texte">{`${c.nom} (−${c.pourcentage} %)`}</Text>
+                  <Text className="font-inter text-secondaire text-texte-secondaire">
+                    {[c.reseaux.join(", "), c.conditions].filter(Boolean).join(" · ")}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })
+        )}
+      </View>
+    </CarteFlottante>
   );
 }

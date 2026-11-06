@@ -87,6 +87,7 @@ export function BarreOnglets({ state, navigateToTab, emitter }: BottomTabBarProp
         const onglet = ONGLETS[route.name];
         if (!onglet) return null;
         const actif = state.index === index;
+        // Spec 46 (D127) : l'onglet choisi n'a pas de fond ; son icône et son libellé sont colorés.
         const couleur = actif ? couleurs.primaire : couleurs["texte-secondaire"];
         return (
           <Pressable
@@ -100,7 +101,7 @@ export function BarreOnglets({ state, navigateToTab, emitter }: BottomTabBarProp
               if (route.name === "(accueil)") allerALAccueil();
               else navigateToTab(route.key);
             }}
-            className={`flex-1 items-center justify-center rounded-carte ${actif ? "bg-primaire-doux" : ""}`}
+            className="flex-1 items-center justify-center"
           >
             <SymbolView name={{ android: onglet.icone, web: onglet.icone }} size={24} tintColor={couleur} />
             <Text

@@ -1,15 +1,23 @@
 import type { FastifyInstance } from "fastify";
-import { schemaRequeteDiscussion } from "../assistant/discussion.js";
+import { schemaPropositionRecherche, schemaRequeteDiscussion, type PropositionRecherche } from "../assistant/discussion.js";
 import { filtreFlux } from "../assistant/filtre.js";
 import { coutEur, type Jetons } from "../comprendre/cout.js";
 import { ENTETES_SECURITE } from "../securite.js";
 import { contexteParis, type Claude } from "./comprendre.js";
 import { refuserEntree } from "./erreurs.js";
 
-/** 20 messages de 1 000 caractères, le résumé de la recherche et l'échappement JSON tiennent largement. */
-const CORPS_MAX = 64 * 1024;
+/** 20 messages de 1 000 caractères, le résumé de la recherche et une pièce jointe de 2 Mo en base64 (spec 45). */
+const CORPS_MAX = 3 * 1024 * 1024;
 
-export type EvenementDiscussion = { texte: { texte: string }; fin: Record<string, never>; erreur: { erreur: "indisponible" } };
+export type EvenementDiscussion = {
+  texte: { texte: string };
+  recherche: PropositionRecherche;
+  fin: Record<string, never>;
+  erreur: { erreur: "indisponible" };
+};
+
+/** Jour de Paris d'un instant. */
+const jourParis = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(d);
 
 /**
  * `POST /v1/assistant/discussion` (spec 39, D117). Clé d'appareil et limites de débit : celles de toute route `/v1` ;
@@ -81,6 +89,11 @@ export function routeDiscussion(app: FastifyInstance, claude: Claude | undefined
       if (fin.refus) {
         envoyer("erreur", { erreur: "indisponible" });
         return clore("refus", fin.jetons);
+      }
+      // Spec 45 (D126) : la recherche proposée, revalidée (invariant 9) ; un jour passé est laissé de côté.
+      for (const brute of (fin.recherches ?? []).slice(0, 1)) {
+        const lue = schemaPropositionRecherche.safeParse(brute);
+        if (lue.success && lue.data.date >= jourParis(maintenant())) envoyer("recherche", lue.data);
       }
       envoyer("fin", {});
       return clore("complete", fin.jetons);

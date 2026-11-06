@@ -13,6 +13,8 @@ import { rangerVoyages, resumeVoyage, type Voyage } from "@/domaine/voyages";
 import { useOuvrirVoyage } from "@/recherche";
 import { lireVoyages, separerAnciensVoyages, supprimerVoyage, type LigneVoyage } from "@/stockage/voyages";
 import { annulerRappels } from "@/rappels";
+import { useSession } from "@/session";
+import { oublierTempsReel } from "@/temps-reel";
 
 type VoyageLu = Voyage & { cle: string };
 
@@ -25,6 +27,7 @@ type VoyageLu = Voyage & { cle: string };
  */
 export default function MesTrajets() {
   const db = useSQLiteContext();
+  const { client } = useSession();
   const ouvrir = useOuvrirVoyage();
   // undefined : pas encore lu.
   const [lignes, setLignes] = useState<LigneVoyage[] | undefined>(undefined);
@@ -69,6 +72,7 @@ export default function MesTrajets() {
           supprimerVoyage(db, cle)
             .then(() => supprimerCarte(cle).catch(() => undefined))
             .then(() => annulerRappels(cle).catch(() => undefined))
+            .then(() => oublierTempsReel(db, client, cle).catch(() => undefined))
             .then(relire, () => setErreur(true));
         },
       },

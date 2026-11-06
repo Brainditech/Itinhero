@@ -8,9 +8,18 @@ import type { Etape, LieuEtape } from "./api";
  */
 export const BASE_UBER = "https://m.uber.com/looking";
 
-const lieu = (l: LieuEtape) => JSON.stringify({ latitude: l.lat, longitude: l.lon, addressLine1: l.nom });
+type LieuUber = Pick<LieuEtape, "lat" | "lon" | "nom">;
+const lieu = (l: LieuUber) => JSON.stringify({ latitude: l.lat, longitude: l.lon, addressLine1: l.nom });
 
+/** Spec 41 : taxi de bout en bout, du départ à l'arrivée de la recherche. */
+export function lienUberEntre(de: LieuUber, a: LieuUber): string {
+  return `${BASE_UBER}?pickup=${encodeURIComponent(lieu(de))}&${encodeURIComponent("drop[0]")}=${encodeURIComponent(lieu(a))}`;
+}
+
+/**
+ * Spec 31 : une étape en taxi. Spec 41 (D122, D3) : aussi une marche de plus de 15 min, que le taxi peut remplacer.
+ */
 export function lienUber(e: Etape): string | null {
-  if (e.mode !== "taxi") return null;
-  return `${BASE_UBER}?pickup=${encodeURIComponent(lieu(e.de))}&${encodeURIComponent("drop[0]")}=${encodeURIComponent(lieu(e.a))}`;
+  if (e.mode !== "taxi" && !(e.mode === "marche" && e.duree_minutes > 15)) return null;
+  return lienUberEntre(e.de, e.a);
 }

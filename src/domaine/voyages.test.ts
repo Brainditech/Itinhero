@@ -225,15 +225,17 @@ describe("un trajet par sens (spec 24 §7, D101)", () => {
   });
 
   it("résumé : jour, lieux, une ligne d'horaires (heures, durée, changements), heure d'enregistrement à Paris", () => {
-    expect(resumeVoyage(voyage())).toEqual({
+    expect(resumeVoyage(voyage(), MAINTENANT)).toEqual({
       jour: "Jeudi 12/11",
       titre: "Domicile → France Travail Joigny",
       libelle: "Aller",
       horaires: { possible: true, depart: "08:14", arrivee: "10:44", duree: "2 h 30", changements: "1 chgt" },
       enregistre: "Enregistré le 06/11 à 14:32",
+      // Spec 40 : le bus 803 est sur réservation.
+      appels: "1 appel à passer",
       phrase:
         "Jeudi 12/11, aller, Domicile vers France Travail Joigny : départ 08:14, arrivée 10:44, 2 h 30, 1 correspondance. " +
-        "Horaire prévu, sans suivi en direct. Enregistré le 06/11 à 14:32.",
+        "1 appel à passer. Horaire prévu, sans suivi en direct. Enregistré le 06/11 à 14:32.",
     });
     const retour = voyagesDepuisRecherche(RECHERCHE, "retour", PAR_ARRIVEE, MAINTENANT)[0]!;
     expect(resumeVoyage(retour)).toMatchObject({
@@ -321,5 +323,21 @@ describe("un trajet choisi parmi les possibilités (spec 24 §8, D102)", () => {
     expect(voyageDePossibilite(R, "aller", 2, MAINTENANT)).toBeNull();
     expect(voyageDePossibilite({ ...R, reponse: RETOUR_IMPOSSIBLE }, "retour", 0, MAINTENANT)).toBeNull();
     expect(voyageDePossibilite({ ...R, depart: { lieu: null } }, "aller", 0, MAINTENANT)).toBeNull();
+  });
+});
+
+describe("appels à passer dans Mes trajets (spec 40, critère 2)", () => {
+  it("rien quand le rappel de réservation est passé, ni sans étape à réserver", () => {
+    expect(resumeVoyage(voyage(), new Date("2026-11-13T12:00:00Z")).appels).toBeNull();
+    const sansReservation = { ...POSSIBILITE, etapes: POSSIBILITE.etapes.map((e) => ({ ...e, reservation: null })) };
+    expect(resumeVoyage(voyage({ reponse: { ...REPONSE, retour: null, possibilites: [sansReservation] } }), MAINTENANT).appels).toBeNull();
+  });
+
+  it("deux appels ⇒ « 2 appels à passer »", () => {
+    const deux = {
+      ...POSSIBILITE,
+      etapes: POSSIBILITE.etapes.map((e, i) => (i === 3 ? { ...e, mode: "taxi", reservation: null } : e)),
+    };
+    expect(resumeVoyage(voyage({ reponse: { ...REPONSE, retour: null, possibilites: [deux] } }), MAINTENANT).appels).toBe("2 appels à passer");
   });
 });

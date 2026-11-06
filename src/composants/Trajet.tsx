@@ -26,6 +26,8 @@ import {
 import { etapeAReserver } from "@/domaine/tri";
 import { iconeMode } from "@/composants/icones-mode";
 import { Chevron } from "@/composants/Repli";
+import { useCartes } from "@/cartes";
+import { prixTrajet, textePrix } from "@/domaine/prix";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 // Carte d'itinéraire et frise (design system, « Carte d'itinéraire » ; maquette 04 ; D67).
@@ -83,6 +85,22 @@ function AvertissementNuit({ lieu, minutes }: { lieu: string; minutes: number })
       <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
         {`Nuit dehors à ${lieu} (${formaterAttente(minutes)})`}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * Badge du prix (spec 43, invariant 5) : « Prix : 4,55 € » quand chaque véhicule a un tarif validé, la part connue
+ * avec « + prix non publié (…) » sinon, ou « Prix non publié ». Les cartes cochées réduisent le prix (invariant 7).
+ */
+function BadgePrix({ possibilite, trajet }: { possibilite: Possibilite; trajet: Trajet }) {
+  const { cartes } = useCartes();
+  const prix = prixTrajet(possibilite, cartes, trajet);
+  if (prix.etat === "non_publie") return <PrixNonPublie />;
+  return (
+    <View className="flex-row items-center gap-1 rounded-full px-3 py-1" style={{ backgroundColor: couleurs.surface }}>
+      <SymbolView name={{ android: "euro", web: "euro" }} size={16} tintColor={couleurs.texte} />
+      <Text className="font-inter-semibold text-badge text-texte">{textePrix(prix)}</Text>
     </View>
   );
 }
@@ -252,7 +270,7 @@ export function CartePossibilite({
       ) : null}
       <View className="flex-row flex-wrap items-center justify-between gap-2">
         {aMarcheLongue(p) ? <AvertissementMarche /> : <View />}
-        <PrixNonPublie />
+        <BadgePrix possibilite={p} trajet={trajet} />
       </View>
       {pied}
       {ouverte ? (

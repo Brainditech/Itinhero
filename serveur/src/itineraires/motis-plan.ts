@@ -28,6 +28,8 @@ type Commun = {
    * jamais aux deux : sinon MOTIS encadre un bus d'une minute par deux trajets en voiture (constaté le 2026-11-05).
    */
   taxi?: "debut" | "fin";
+  /** Spec 41 (D122) : la route en voiture de bout en bout seulement (taxi direct), sans transport en commun. */
+  taxiDirect?: boolean;
 };
 
 export type DemandeRecherche =
@@ -48,6 +50,9 @@ export const NB_MINIMUM = 5;
 /** Route la plus longue d'un taxi au début ou à la fin (D80) : 15 min. */
 export const TAXI_MAX_SECONDES = 900;
 
+/** Spec 41 : au-delà de 6 h de route, aucun taxi de bout en bout n'est proposé. */
+export const TAXI_DIRECT_MAX_SECONDES = 6 * 3600;
+
 /** Instant UTC de référence : H (partir) ou H − M (arriver), heure de Paris. */
 export function instantReference(d: DemandeRecherche): Date {
   return d.sens === "partir" ? instantParis(d.jour, d.depuisMinutes) : instantParis(d.jour, d.limiteMinutes);
@@ -66,6 +71,14 @@ export function construireUrlPlan(motisUrl: string, d: DemandeRecherche): URL {
   url.searchParams.set("maxPreTransitTime", String(d.coutMarche?.depart ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("maxPostTransitTime", String(d.coutMarche?.arrivee ?? MARCHE_AUX_BOUTS_SECONDES));
   url.searchParams.set("useRoutedTransfers", "true"); // obligatoire, spec 04 §11
+  if (d.taxiDirect) {
+    // openapi.yaml v2.11.4 : `directModes=CAR` ; `transitModes=WALK` ne laisse aucun transport en commun (constaté :
+    // 0 itinéraire, 1 trajet direct). 6 h de route au plus.
+    url.searchParams.set("directModes", "CAR");
+    url.searchParams.set("maxDirectTime", String(TAXI_DIRECT_MAX_SECONDES));
+    url.searchParams.set("transitModes", "WALK");
+    url.searchParams.set("numItineraries", "1");
+  }
   if (d.taxi) {
     // openapi.yaml v2.11.4 : `CAR` est un mode de rue, permis avant (`preTransitModes`) ou après (`postTransitModes`)
     // les transports en commun. Le trajet direct reste à pied (`directModes` par défaut) : jamais un taxi de bout en bout.
@@ -207,7 +220,9 @@ export async function lireMotis(url: URL, delaiMs: number): Promise<unknown> {
     // Jamais `fetch` : il fait planter le processus sur les réponses de MOTIS (issue 0020).
     reponse = await lireHttp(url, delaiMs);
   } catch (e) {
-    const raison = e instanceof ErreurLecture ? e.message : ((e as NodeJS.ErrnoException).code ?? (e as Error).name);
+    const err = e as NodeJS.ErrnoException;
+    // L'appel système (connect, read) dit si la connexion n'a pas pu s'ouvrir ou s'est coupée en route.
+    const raison = e instanceof ErreurLecture ? e.message : [err.code ?? err.name, err.syscall].filter(Boolean).join(" ");
     throw new ErreurMotis(`MOTIS injoignable (${url.origin}${url.pathname}) : ${raison}`);
   }
   if (reponse.statut < 200 || reponse.statut > 299) {
