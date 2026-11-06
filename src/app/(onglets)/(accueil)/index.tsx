@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
 import { BoutonPrincipal, CarteFlottante, Lien, MotItinhero, Puce } from "@/composants/elements";
 import { AttributionCarte, FondCarte, useAttributionCarte } from "@/composants/FondCarte";
-import { champsDepuisComprehension } from "@/domaine/comprendre";
+import { champsDepuisComprehension, erreursSansLieu } from "@/domaine/comprendre";
 import { maintenantAParis } from "@/domaine/demande";
 import { useLieuxDeLaPhrase, useRecherche } from "@/recherche";
 import { useClient, useSession } from "@/session";
@@ -61,7 +61,7 @@ export default function Accueil() {
     }
     setEnCours(null);
     if (verifies === null) return;
-    setModification({ remplace: null, jeton: Date.now(), ...(verifies ?? { champs }) });
+    setModification({ remplace: null, jeton: Date.now(), ...(verifies ?? { champs, erreurs: erreursSansLieu(champs) }) });
     router.push({ pathname: "/formulaire", params: { raison: "comprise", depart } });
   }
 

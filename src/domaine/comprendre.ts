@@ -9,7 +9,7 @@ export const MARGE_DEFAUT = 10;
 /**
  * Phrase comprise ⇒ champs du formulaire (spec 28, D106). Le formulaire s'ouvre avec ces champs et un bandeau
  * « Vérifiez » : rien n'est cherché sans que la personne touche « Chercher ».
- * - Lieu non dit ⇒ champ d'arrivée vide (le formulaire dira « Indiquez l'arrivée. »).
+ * - Lieu non dit ⇒ champ d'arrivée vide, avec le message `LIEU_NON_COMPRIS` (issue 0023, `erreursSansLieu`).
  * - Départ non dit ⇒ celui choisi sur l'Accueil (Domicile ou Ma position).
  * - Jour non dit ⇒ aujourd'hui ; heure non dite ⇒ « Partir à » maintenant.
  * - Fin du rendez-vous gardée seulement si elle tombe après l'heure (sinon le serveur la refuserait).
@@ -30,6 +30,15 @@ export function champsDepuisComprehension(
     marge: String(c.marge ?? MARGE_DEFAUT),
     retour: c.fin_rdv !== null && c.fin_rdv > heure ? c.fin_rdv : null,
   };
+}
+
+/** Issue 0023 : phrase comprise sans aucun lieu ⇒ le champ vide dit pourquoi, au lieu de rester muet. */
+export const LIEU_NON_COMPRIS = "Je n'ai pas trouvé le lieu dans votre phrase. Écrivez-le ici.";
+
+/** Message sous l'Arrivée quand la phrase n'a donné aucun lieu (champ texte vide) ; rien sinon. */
+export function erreursSansLieu(champs: ChampsFormulaire): ErreursFormulaire {
+  const a = champs.arrivee;
+  return a.type === "texte" && a.texte.trim() === "" ? { arrivee: LIEU_NON_COMPRIS } : {};
 }
 
 // ——— Spec 35 (D113) : l'Accueil cherche les lieux de la phrase avant d'ouvrir le formulaire ———
@@ -70,5 +79,5 @@ export function appliquerLieux(
       erreurs[cote] = MESSAGES_SUGGESTIONS.choisir;
     } else if (v.etat === "aucun" && bout.type === "texte") erreurs[cote] = MESSAGES_SUGGESTIONS.aucun(bout.texte);
   }
-  return { champs: suite, aChoisir, erreurs };
+  return { champs: suite, aChoisir, erreurs: { ...erreursSansLieu(suite), ...erreurs } };
 }

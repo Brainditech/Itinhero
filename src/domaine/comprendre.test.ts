@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { clientApi, type Candidat, type Comprehension } from "./api";
-import { appliquerLieux, champsDepuisComprehension, lieuDeLaPhrase } from "./comprendre";
+import { appliquerLieux, champsDepuisComprehension, erreursSansLieu, LIEU_NON_COMPRIS, lieuDeLaPhrase } from "./comprendre";
 import { boutDuCandidat, MESSAGES_SUGGESTIONS } from "./suggestions";
 
 const MAINTENANT = { date: "2026-11-06", heure: "09:41" };
@@ -97,5 +97,15 @@ describe("lieux de la phrase (spec 35, D113, critère 4)", () => {
     const panne = lieuDeLaPhrase({ etat: "injoignable" }, null);
     expect(panne).toEqual({ etat: "inconnu" });
     expect(appliquerLieux(champs, { arrivee: panne })).toEqual({ champs, aChoisir: {}, erreurs: {} });
+  });
+
+  // Issue 0023 : « je veux partir a flers » ⇒ Claude rendait lieu_texte null, l'Arrivée s'ouvrait vide et muette.
+  it("issue 0023 : phrase sans lieu compris ⇒ Arrivée vide avec un message ; un lieu ⇒ aucun message", () => {
+    const sansLieu = champsDepuisComprehension({ ...VIDE, lieu_texte: null }, { type: "domicile" }, MAINTENANT);
+    expect(sansLieu.arrivee).toEqual({ type: "texte", texte: "" });
+    expect(erreursSansLieu(sansLieu)).toEqual({ arrivee: LIEU_NON_COMPRIS });
+    expect(appliquerLieux(sansLieu, {}).erreurs).toEqual({ arrivee: LIEU_NON_COMPRIS });
+    expect(erreursSansLieu(champs)).toEqual({});
+    expect(erreursSansLieu({ ...champs, arrivee: { type: "domicile" } })).toEqual({});
   });
 });
