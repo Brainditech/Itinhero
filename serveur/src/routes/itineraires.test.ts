@@ -296,3 +296,24 @@ describe("POST /v1/itineraires, retour planifié (spec 19, D94)", () => {
     expect(r.statusCode).toBe(503);
   });
 });
+
+describe("POST /v1/itineraires, hors de la zone couverte (spec 27, critère 2)", () => {
+  it.each([
+    ["depart", { ...CORPS, depart: { lat: 40.4168, lon: -3.7038 } }, ["depart"]],
+    ["arrivee", { ...CORPS, arrivee: { lat: 16.2411, lon: -61.5331 } }, ["arrivee"]],
+    ["les deux", { ...CORPS, depart: { lat: 51.5074, lon: -0.1278 }, arrivee: { lat: 50.8467, lon: 4.3525 } }, ["depart", "arrivee"]],
+  ])("%s hors zone ⇒ 422 hors_zone, sans appeler MOTIS ni recopier les coordonnées", async (_cas, corps, points) => {
+    const vu: { d?: DemandeRecherche } = {};
+    const app = appTest({ moteur: moteurPlan(exemple, vu) });
+    const r = await poster(app, corps);
+    expect(r.statusCode).toBe(422);
+    expect(r.json()).toEqual({ erreur: "hors_zone", points });
+    expect(r.body).not.toMatch(/40\.41|61\.53|51\.50|50\.84/);
+    expect(vu.d).toBeUndefined();
+  });
+  it("retour planifié : la zone se vérifie sur l'aller, le retour en découle", async () => {
+    const app = appTest({ moteur: moteurPlan(exemple) });
+    const r = await poster(app, { ...CORPS, depart: { lat: 40.4168, lon: -3.7038 }, fin_rdv: "18:00" });
+    expect(r.statusCode).toBe(422);
+  });
+});

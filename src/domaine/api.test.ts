@@ -164,3 +164,19 @@ describe("messageEchec", () => {
     expect(messageEchec({ etat: "erreur_serveur" })).toBe("La recherche a échoué.");
   });
 });
+
+describe("hors de la zone couverte (spec 27, critère 3)", () => {
+  it("422 hors_zone ⇒ etat hors_zone avec les points ; 422 d'une autre forme ⇒ erreur_serveur", async () => {
+    const client = (corps: unknown) => clientApi({ urlApi: URL_API, cle: CLE, fetch: repondre(422, corps) });
+    expect(await client({ erreur: "hors_zone", points: ["arrivee"] }).itineraires(REQUETE)).toEqual({ etat: "hors_zone", points: ["arrivee"] });
+    expect(await client({ erreur: "autre" }).itineraires(REQUETE)).toEqual({ etat: "erreur_serveur" });
+    expect(await client({ erreur: "hors_zone", points: [] }).itineraires(REQUETE)).toEqual({ etat: "erreur_serveur" });
+  });
+  it("le message nomme le point et la zone, jamais « La recherche a échoué »", () => {
+    expect(messageEchec({ etat: "hors_zone", points: ["depart"] })).toBe(
+      "Le départ est hors de la zone couverte : Itinhero ne connaît que la France métropolitaine et la Corse.",
+    );
+    expect(messageEchec({ etat: "hors_zone", points: ["arrivee"] })).toMatch(/^L'arrivée est hors de la zone couverte/);
+    expect(messageEchec({ etat: "hors_zone", points: ["depart", "arrivee"] })).toMatch(/^Le départ et l'arrivée sont hors/);
+  });
+});
