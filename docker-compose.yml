@@ -48,6 +48,9 @@ services:
       ABONNEMENTS_SQLITE: /var/lib/itinhero/abonnements.sqlite
       # Spec 42 (D123) : jeton Expo Push, facultatif (vide ⇒ envoi sans jeton d'accès).
       EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
+      # Spec 50 (D131) : Sentry du serveur, facultatif (vide ⇒ rien n'est envoyé) ; dev sur le PC, prod sur le VPS.
+      SENTRY_DSN_SERVEUR: ${SENTRY_DSN_SERVEUR:-}
+      SENTRY_ENVIRONNEMENT: ${SENTRY_ENVIRONNEMENT:-dev}
     depends_on:
       motis:
         condition: service_healthy

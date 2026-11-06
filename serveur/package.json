@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/index.js",
+    "start": "node --import ./dist/instrument.js dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:joigny": "vitest run --config vitest.joigny.config.ts",
@@ -21,10 +21,12 @@
     "donnees:nuit": "npm run build && node dist/donnees/nuit.js",
     "audit:quais": "npm run build && node dist/audit/quais.js",
     "comprendre:jeu": "npm run build && node dist/comprendre/jeu.js",
-    "discussion:jeu": "npm run build && node dist/assistant/jeu-discussion.js"
+    "discussion:jeu": "npm run build && node dist/assistant/jeu-discussion.js",
+    "lint": "expo lint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
+    "@sentry/node": "11.11.0",
     "csv-parse": "7.0.3",
     "fastify": "5.12.8",
     "fflate": "0.8.3",

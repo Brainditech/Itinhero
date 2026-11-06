@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deciderJeu, type Ancien, type Nouveau } from "./nuit.js";
+import { deciderJeu, messageNuit, type Ancien, type Nouveau } from "./nuit.js";
 
 /** Spec 44 (D125, invariant 14) : un nouveau fichier ne remplace l'ancien qu'après ses contrôles. */
 const AUJ = "2026-11-06";
@@ -34,5 +34,16 @@ describe("Ingestion nocturne, décision par jeu (spec 44, critère 1)", () => {
 
   it("une couverture plus courte mais au-delà de J+30 est acceptée (changement de service)", () => {
     expect(deciderJeu(ancien, lu({ fin_validite: "2026-12-12" }), AUJ).etat).toBe("remplace");
+  });
+});
+
+describe("Message Sentry de la nuit (spec 50)", () => {
+  it("nomme les jeux non mis à jour et leur raison, rien d'autre", () => {
+    expect(
+      messageNuit([
+        { etiquette: "mobigo", etat: "ancien_garde", raison: "arrêt témoin absent : Brienon Mairie" },
+        { etiquette: "ter", etat: "ecarte", raison: null },
+      ]),
+    ).toBe("ingestion : 2 jeu(x) non mis à jour — mobigo ancien_garde (arrêt témoin absent : Brienon Mairie) ; ter ecarte");
   });
 });

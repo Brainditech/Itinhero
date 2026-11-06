@@ -1,4 +1,6 @@
 import "../../global.css";
+// Spec 50 : Sentry avant le reste, pour voir aussi les plantages du démarrage.
+import { Sentry } from "@/sentry";
 
 import { useCallback, useEffect, useState } from "react";
 import { Stack } from "expo-router";
@@ -29,7 +31,9 @@ const ENVIRONNEMENT = lireEnvironnement({ EXPO_PUBLIC_API_URL: process.env.EXPO_
 // Spec 30 : les rappels s'affichent aussi app ouverte.
 preparerNotifications();
 
-export default function RootLayout() {
+export default Sentry.wrap(RootLayout);
+
+function RootLayout() {
   const [policesChargees, erreurPolices] = useFonts({
     Inter_400Regular,
     Inter_500Medium,

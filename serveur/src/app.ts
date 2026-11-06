@@ -1,6 +1,7 @@
 import Fastify, { LogController, type FastifyInstance, type FastifyRequest } from "fastify";
 import { controlerAcces, type Acces } from "./acces/acces.js";
 import type { Manifest } from "./manifest.js";
+import { Sentry } from "./sentry/init.js";
 import type { Moteur, SondeMotis } from "./motis.js";
 import { routeCourse } from "./routes/course.js";
 import { routeEtatCourses } from "./routes/etat-courses.js";
@@ -93,6 +94,8 @@ export function construireApp({
     requete.log.error({ err: erreur }, "erreur de requête");
     if (code === 413) return reponse.code(413).send({ erreur: "corps_trop_grand" });
     if (code < 500) return reponse.code(code).send({ erreur: "requete_invalide", champs: [] });
+    // Spec 50 : une 500 part vers Sentry (sans effet sans DSN), nettoyée avant envoi.
+    Sentry.captureException(erreur);
     return reponse.code(500).send({ erreur: "erreur_interne" });
   });
 

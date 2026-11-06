@@ -210,8 +210,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] CI GitHub Actions (lint, types, tests, build) sur chaque PR et sur `main`, fusion bloquée si rouge (protection de `main`, possible depuis que le dépôt est public, D52).
   Preuve : une PR d'essai avec un test rouge volontaire, fusion refusée par GitHub (lien), jamais fusionnée ; puis la PR de la spec 06, verte.
   Fait (spec 06, D52) : PR d'essai #1 (`essai/ci-rouge`), `verifications` rouge à l'étape « Tests (app) », fusion bloquée par la protection de `main` (`BLOCKED`), fermée sans fusion : https://github.com/Brainditech/Itinhero/actions/runs/41756823866 ; PR #2 (`phase-0/ci`) verte, `verifications` 1 min 24 s : https://github.com/Brainditech/Itinhero/actions/runs/41756803879, 2026-11-04.
-- [ ] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.
+- [x] Sentry installé dans l'app et sur le serveur, sans donnée de trajet.
   Preuve : configuration, plus test du nettoyage `beforeSend`.
+  Fait (spec 50, D131) : `@sentry/react-native` 8.28.0 (`src/sentry.ts`, `Sentry.wrap` dans `src/app/_layout.tsx`, plugin `disableAutoUpload` dans `app.json`), `@sentry/node` 11.11.0 (`serveur/src/sentry/init.ts`, `serveur/src/instrument.ts` chargé par `--import`). Tests : `src/domaine/sentry-nettoyage.test.ts`, `serveur/src/sentry/nettoyage.test.ts`, `serveur/src/sentry/init.test.ts` (sans DSN, rien ne démarre) et `serveur/src/sentry/envoi.test.ts` (vrai SDK vers un faux Sentry local : une erreur et une 500 Fastify partent sans phrase, lieu, coordonnée, en-tête ni requête d'URL), 2026-11-06. Sans DSN, rien n'est envoyé : les cases de la phase 9 (erreur volontaire, replay masqué) attendent les DSN de Brainditech.
 - [x] `docker compose` : MOTIS v2.11.4 épinglé, avec sa configuration et un serveur API squelette. Configuration MOTIS :
   - `max_footpath_length=50` (45 révisé par D42) ;
   - `osr_footpath` ;
@@ -417,7 +418,7 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 - [ ] `ingestion-gtfs` pour chaque jeu (D46) : import à part, contrôles par jeu (arrêt Brienon Mairie présent, couverture au-delà de J+30), bascule ou alerte ; un jeu cassé n'empêche pas les autres.
   Preuve : tests (fichier cassé ⇒ ancien jeu conservé, plus événement Sentry).
-  Fait en partie (spec 44, D125) : `serveur/src/donnees/nuit.ts` (décision par jeu, préparation à part), `scripts/ingestion-nuit.sh` (import dans un volume neuf, bascule, retour arrière), `serveur/src/donnees/nuit.test.ts` (fichier cassé ⇒ ancien gardé), 2026-11-06. Manque : l'événement Sentry (phase 9) et la bascule essayée sur le serveur (phase 10).
+  Fait en partie (spec 44, D125) : `serveur/src/donnees/nuit.ts` (décision par jeu, préparation à part), `scripts/ingestion-nuit.sh` (import dans un volume neuf, bascule, retour arrière), `serveur/src/donnees/nuit.test.ts` (fichier cassé ⇒ ancien gardé), 2026-11-06. Message Sentry codé (spec 50 : un message par nuit qui garde ou écarte un jeu, `messageNuit` testé dans `nuit.test.ts`). Manque : ce message vu dans Sentry (DSN de Brainditech) et la bascule essayée sur le serveur (phase 10).
 - [x] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
   Preuve : test, plus capture.
   Fait (spec 32, D110, issue 0025) : `date_horaires` dans la source GTFS (serveur), ligne « Horaires publiés le …, valables jusqu'au … » et bandeau au-delà de 7 jours au Résultat ; réseaux pas encore publiés pour le jour demandé ; tests `src/domaine/horaires.test.ts`, `serveur/src/routes/horaires-a-venir.test.ts`, 2026-11-06. Captures : `docs/screenshots/fin/a3-joigny-20-11.png` (bandeau à J+14), `c2-0025-flers-libelle.png` (28/12).

@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { lireHorairesJeu, lireHoraires } from "../itineraires/horaires-gtfs.js";
 import { lireManifest, schemaManifest, type Manifest } from "../manifest.js";
 import { lireTableFacultative } from "../oracle/gtfs.js";
+import { initSentry, Sentry } from "../sentry/init.js";
 import { configMotis } from "./config-motis.js";
 import { controlerGtfs } from "./controle.js";
 import { choisirRessources, schemaListeJeux, type Ressource } from "./selection.js";
@@ -217,13 +218,25 @@ async function principal(): Promise<void> {
     `${nouveauDossier} : ${compte("inchange")} inchangés, ${compte("remplace")} remplacés, ${compte("nouveau")} nouveaux, ` +
       `${compte("ancien_garde")} anciens gardés, ${compte("ecarte")} écartés.`,
   );
-  // Code 0 même avec des jeux gardés : chacun est dit dans nuit.json (alerte Sentry quand Sentry sera branché).
+  // Code 0 même avec des jeux gardés : chacun est dit dans nuit.json, et dans un message Sentry (spec 50).
+  const ennuis = decisions.filter((d) => d.etat === "ancien_garde" || d.etat === "ecarte");
+  if (ennuis.length > 0) Sentry.captureMessage(messageNuit(ennuis), "warning");
+}
+
+/** Spec 50 : un message par nuit, étiquettes des jeux et raisons seulement (aucun lieu de personne). */
+export function messageNuit(ennuis: readonly Pick<DecisionJeu, "etiquette" | "etat" | "raison">[]): string {
+  return `ingestion : ${ennuis.length} jeu(x) non mis à jour — ` + ennuis.map((d) => `${d.etiquette} ${d.etat}${d.raison ? ` (${d.raison})` : ""}`).join(" ; ");
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  principal().catch((e: unknown) => {
-    console.error(e instanceof Error ? e.message : e);
-    process.exit(1);
-  });
+  initSentry();
+  principal()
+    .then(() => Sentry.flush(5000))
+    .catch(async (e: unknown) => {
+      console.error(e instanceof Error ? e.message : e);
+      Sentry.captureException(e);
+      await Sentry.flush(5000);
+      process.exit(1);
+    });
 }
 
