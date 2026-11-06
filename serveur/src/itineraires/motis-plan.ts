@@ -220,7 +220,9 @@ export async function lireMotis(url: URL, delaiMs: number): Promise<unknown> {
     // Jamais `fetch` : il fait planter le processus sur les réponses de MOTIS (issue 0020).
     reponse = await lireHttp(url, delaiMs);
   } catch (e) {
-    const raison = e instanceof ErreurLecture ? e.message : ((e as NodeJS.ErrnoException).code ?? (e as Error).name);
+    const err = e as NodeJS.ErrnoException;
+    // L'appel système (connect, read) dit si la connexion n'a pas pu s'ouvrir ou s'est coupée en route.
+    const raison = e instanceof ErreurLecture ? e.message : [err.code ?? err.name, err.syscall].filter(Boolean).join(" ");
     throw new ErreurMotis(`MOTIS injoignable (${url.origin}${url.pathname}) : ${raison}`);
   }
   if (reponse.statut < 200 || reponse.statut > 299) {

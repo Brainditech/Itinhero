@@ -280,12 +280,12 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 2 bis — Données nationales (D46, avancée par D54)
 
-- [ ] GTFS d'Île-de-France Mobilités et OSM Île-de-France dans MOTIS (versions, tailles, licences et sha256 constatés).
+- [x] GTFS d'Île-de-France Mobilités et OSM Île-de-France dans MOTIS (versions, tailles, licences et sha256 constatés).
   Preuve : test d'intégration Laroche-Migennes → Flers le 12/11 avec une étape métro ou RER à Paris, arrivée au plus tard à celle de la chaîne TER + K4 tirée par l'oracle (environ 10:01, au lieu de 16:16 : issue 0006).
-  Fait en partie (spec 08) : sur le PC, MOTIS national répond le 12/11 TER 05:03 → Bercy 06:35, métro 6 → Montparnasse, K4 07:14 → Flers 10:01 (recherche manuelle, `docs/specs/08-donnees-nationales.md` §7). Manque : le test d'intégration automatisé avec la valeur tirée par l'oracle.
-- [ ] GTFS régionaux et urbains de transport.data.gouv.fr et OSM France entière.
+  Fait en partie (spec 08) : sur le PC, MOTIS national répond le 12/11 TER 05:03 → Bercy 06:35, métro 6 → Montparnasse, K4 07:14 → Flers 10:01 (recherche manuelle, `docs/specs/08-donnees-nationales.md` §7). Fait (2026-11-06) : `serveur/src/national/trajets-nationaux.national.test.ts` (`npm run test:national` dans `serveur/`, MOTIS national du PC) : Laroche-Migennes 05:00 → Flers 10:02 (TER, métro 6, K4), seuil 10:15, le détour de 16:16 jamais en tête. Instabilité du PC consignée : issue 0027.
+- [x] GTFS régionaux et urbains de transport.data.gouv.fr et OSM France entière.
   Preuve : liste des jeux chargés (URL, date, sha256) dans le manifeste ; test Brienon-sur-Armançon → Wissous.
-  Fait en partie (spec 08) : 516 GTFS et l'OSM France chargés sur le PC, manifeste et rejets dans `docs/preuves/2026-11-04-donnees-nationales/` ; Brienon Mairie → Wissous le 12/11 : car 06:27 → Troyes, train → Paris Est, RER B → Antony, bus 297 → Wissous 10:18 (recherche manuelle). Manque : le test automatisé, et le chargement nocturne (phase 8).
+  Fait en partie (spec 08) : 516 GTFS et l'OSM France chargés sur le PC, manifeste et rejets dans `docs/preuves/2026-11-04-donnees-nationales/` ; Brienon Mairie → Wissous le 12/11 : car 06:27 → Troyes, train → Paris Est, RER B → Antony, bus 297 → Wissous 10:18 (recherche manuelle). Fait (2026-11-06) : manifeste de 537 jeux (`donnees/manifest.json`) ; même fichier de test : Brienon Mairie 06:21 → Wissous 10:18 sans taxi (car K941, train, RER B, bus 297), seuil 10:25. Le chargement nocturne reste à la phase 8.
 - [x] Refus explicite hors des données chargées (étranger, réseau sans données).
   Preuve : test (départ ou arrivée hors données ⇒ « hors de la zone couverte », aucune possibilité affichée).
   Fait (spec 27, D105) : contour de l'extrait OSM chargé (`france.poly` de Geofabrik) ; `serveur/src/zone/zone.test.ts` (12 lieux dedans, 8 dehors dont l'outre-mer), `serveur/src/routes/itineraires.test.ts` (hors zone ⇒ 422 `hors_zone` sans appeler MOTIS), `src/domaine/api.test.ts` (« Le départ est hors de la zone couverte… »), 2026-11-06. Réseau sans données dans la zone : verdict « Impossible » avec sa raison (spec 15). Reste à voir le message sur le téléphone (spec 27, critère 4).
