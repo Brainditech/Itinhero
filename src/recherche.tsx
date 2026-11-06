@@ -3,10 +3,20 @@ import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { messageEchec, type Candidat, type Point, type ReponseItineraires } from "@/domaine/api";
-import { demandeRecalcul, versRequeteItineraires, type Bout, type BoutLieu, type CoteBout, type Demande, type Trajet } from "@/domaine/demande";
+import {
+  demandeRecalcul,
+  maintenantAParis,
+  versRequeteItineraires,
+  type Bout,
+  type BoutLieu,
+  type ChampsFormulaire,
+  type CoteBout,
+  type Demande,
+  type Trajet,
+} from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
 import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS } from "@/domaine/suggestions";
-import type { Voyage } from "@/domaine/voyages";
+import { champsDepuisVoyage, resumeVoyage, type Voyage } from "@/domaine/voyages";
 import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
@@ -25,9 +35,17 @@ export type Recherche = {
   depart: EtatBout;
   arrivee: EtatBout;
   reponse: ReponseItineraires | null;
-  /** Voyage rouvert depuis Mes trajets (spec 22, D98) : instant de son enregistrement ; absent pour une recherche. */
-  enregistre_le?: string;
+  /** Trajet rouvert depuis Mes trajets (spec 22, D98) : sa clé et le trajet enregistré ; absent pour une recherche. */
+  rouvert?: { cle: string; voyage: Voyage };
+  /** Recherche lancée par « Modifier » (spec 24, D100, D101) : clé du trajet que la disquette remplace. */
+  remplace?: string;
 };
+
+/**
+ * « Modifier » touché dans Mes trajets (spec 24, D100) : ce que le formulaire reprend, et le voyage à remplacer.
+ * `jeton` change à chaque toucher : le formulaire déjà ouvert reprend les valeurs même pour le même voyage.
+ */
+export type Modification = { cle: string; titre: string; champs: ChampsFormulaire; jeton: number };
 
 /**
  * Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null).
@@ -52,13 +70,19 @@ export function lieuChoisi(bout: Bout, point: Point & { nom?: string } & SourceA
   };
 }
 
-type ContexteValeur = { recherche: Recherche | null; setRecherche: (r: Recherche | null) => void };
+type ContexteValeur = {
+  recherche: Recherche | null;
+  setRecherche: (r: Recherche | null) => void;
+  modification: Modification | null;
+  setModification: (m: Modification | null) => void;
+};
 
 const Contexte = createContext<ContexteValeur | null>(null);
 
 export function FournisseurRecherche({ children }: { children: ReactNode }) {
   const [recherche, setRecherche] = useState<Recherche | null>(null);
-  return <Contexte value={{ recherche, setRecherche }}>{children}</Contexte>;
+  const [modification, setModification] = useState<Modification | null>(null);
+  return <Contexte value={{ recherche, setRecherche, modification, setModification }}>{children}</Contexte>;
 }
 
 export function useRecherche(): ContexteValeur {
@@ -68,20 +92,39 @@ export function useRecherche(): ContexteValeur {
 }
 
 /**
- * « Ouvrir le trajet » (spec 22, D98) : le voyage enregistré devient la recherche en cours, sans réseau,
- * et le Résultat s'ouvre dans l'onglet Chercher.
+ * Toucher un trajet de Mes trajets (spec 22, D98) : le trajet enregistré devient la recherche en cours, sans
+ * réseau, et le Résultat s'ouvre dans l'onglet Chercher, sur le tri gardé (D101).
  */
 export function useOuvrirVoyage() {
   const { setRecherche } = useRecherche();
-  return (v: Voyage) => {
+  return (cle: string, v: Voyage) => {
     setRecherche({
       demande: v.demande,
       depart: { lieu: v.depart },
       arrivee: { lieu: v.arrivee },
       reponse: v.reponse,
-      enregistre_le: v.enregistre_le,
+      rouvert: { cle, voyage: v },
     });
     router.navigate("/resultat");
+  };
+}
+
+/**
+ * Crayon du trajet rouvert (spec 24, D100, §7.3) : le formulaire de l'onglet Chercher s'ouvre, pré-rempli avec
+ * le trajet ; le trajet trouvé ensuite remplace celui-ci à l'enregistrement.
+ */
+export function useModifierVoyage() {
+  const { setModification } = useRecherche();
+  return (cle: string, v: Voyage) => {
+    const r = resumeVoyage(v);
+    setModification({
+      cle,
+      titre: `${r.jour} · ${r.titre}`,
+      champs: champsDepuisVoyage(v, maintenantAParis(new Date()).date),
+      jeton: Date.now(),
+    });
+    // Le formulaire déjà dans la pile s'y retrouve ; sinon il prend la place du trajet rouvert.
+    router.dismissTo("/formulaire");
   };
 }
 
@@ -160,8 +203,9 @@ export function useDeroulerRecherche() {
     return null;
   }
 
-  async function demarrer(demande: Demande, surLieuRetenu?: SurLieuRetenu): Promise<EchecRecherche | null> {
-    const r: Recherche = { demande, depart: { lieu: null }, arrivee: { lieu: null }, reponse: null };
+  /** `remplace` : la recherche vient de « Modifier » (spec 24) ; le voyage de cette clé sera remplacé. */
+  async function demarrer(demande: Demande, surLieuRetenu?: SurLieuRetenu, remplace?: string): Promise<EchecRecherche | null> {
+    const r: Recherche = { demande, depart: { lieu: null }, arrivee: { lieu: null }, reponse: null, ...(remplace ? { remplace } : {}) };
     for (const cote of COTES) {
       const fixe = await lieuFixe(cote, demande[cote]);
       if (fixe && "message" in fixe) return fixe;
