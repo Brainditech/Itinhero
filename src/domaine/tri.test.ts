@@ -133,3 +133,29 @@ describe("Spec 21, critère 2 : l'étape à réserver, même règle que la carte
     expect(etapeAReserver(avecTaxi)).toBe(avecTaxi.etapes[i]);
   });
 });
+
+describe("D103 (spec 25) : une longue marche ne passe plus en tête", () => {
+  it("« Arrivée la plus tôt » : le 06:18 à 48 min de marche passe après les autres, même arrivé le premier", () => {
+    const ps = [
+      possibilite("06:18", "07:40", { marches: [48] }),
+      possibilite("07:05", "08:30", { marches: [12] }),
+      possibilite("06:50", "08:10", { marches: [5] }),
+    ];
+    expect(ordre(ps, "arrivee")).toEqual(["2:06:50-08:10", "1:07:05-08:30", "0:06:18-07:40"]);
+  });
+
+  it("15 min pile n'est pas une marche longue (D3 : 16 et plus)", () => {
+    const ps = [possibilite("07:00", "08:30", { marches: [5] }), possibilite("06:30", "08:00", { marches: [15] })];
+    expect(ordre(ps, "arrivee")).toEqual(["1:06:30-08:00", "0:07:00-08:30"]);
+  });
+
+  it("toutes avec une marche longue : l'ordre d'avant", () => {
+    const ps = [possibilite("07:00", "08:30", { marches: [20] }), possibilite("06:30", "08:00", { marches: [48] })];
+    expect(ordre(ps, "arrivee")).toEqual(["1:06:30-08:00", "0:07:00-08:30"]);
+  });
+
+  it("« Sans réservation » range de la même façon", () => {
+    const ps = [possibilite("06:18", "07:40", { marches: [48] }), possibilite("07:05", "08:30", { marches: [5] })];
+    expect(ordre(ps, "sans_reservation")).toEqual(["1:07:05-08:30", "0:06:18-07:40"]);
+  });
+});

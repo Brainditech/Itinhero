@@ -133,9 +133,18 @@ export function formaterDistance(metres: number): string {
 export type EtatVerdict = "possible" | "nuit" | "impossible";
 export type PhraseVerdict = { possible: boolean; etat: EtatVerdict; titre: string; heureDepart: string | null; detail: string };
 
-/** D80 : la possibilité du verdict : sans nuit et sans taxi d'abord, puis sans nuit avec taxi, puis la première. */
+/**
+ * La possibilité du verdict (D80, D103) : sans nuit, sans taxi et sans marche longue d'abord ; puis sans nuit
+ * et sans taxi ; puis sans nuit ; puis la première. Toutes ont été retenues par le serveur : elles conviennent.
+ */
 export function possibiliteDuVerdict(r: ReponseSens): Possibilite | undefined {
-  return r.possibilites.find((p) => !nuitDehors(p) && !avecTaxi(p)) ?? r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
+  const ps = r.possibilites;
+  return (
+    ps.find((p) => !nuitDehors(p) && !avecTaxi(p) && !aMarcheLongue(p)) ??
+    ps.find((p) => !nuitDehors(p) && !avecTaxi(p)) ??
+    ps.find((p) => !nuitDehors(p)) ??
+    ps[0]
+  );
 }
 
 /**

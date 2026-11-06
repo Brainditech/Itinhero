@@ -1,4 +1,5 @@
 import type { Etape, Possibilite } from "./api";
+import { aMarcheLongue } from "./resultat";
 
 // Tris du Résultat (spec 21, D97). Faits sur le téléphone, sans nouvelle recherche : ils rangent les possibilités
 // reçues avec leurs heures et leurs durées, sans rien calculer de neuf. « Moins cher » attend `data/tarifs.json`.
@@ -31,15 +32,19 @@ type Comparer = (a: Possibilite, b: Possibilite) => number;
 const parArrivee: Comparer = (a, b) =>
   a.arrivee_utc.localeCompare(b.arrivee_utc) || b.depart_utc.localeCompare(a.depart_utc) || a.correspondances - b.correspondances;
 
+/** D103 : sans marche longue (D3, plus de 15 min) d'abord, puis arrivée la plus tôt. */
+const parArriveeSansMarcheLongue: Comparer = (a, b) => Number(aMarcheLongue(a)) - Number(aMarcheLongue(b)) || parArrivee(a, b);
+
 const parMarche: Comparer = (a, b) => minutesDeMarche(a) - minutesDeMarche(b) || parArrivee(a, b);
 
 /**
- * Range les possibilités selon `tri` ; à égalité, l'ordre du serveur. « Sans réservation » retire tout trajet
- * avec une étape à réserver, et range le reste comme « Arrivée la plus tôt ». La liste reçue n'est pas modifiée.
+ * Range les possibilités selon `tri` ; à égalité, l'ordre du serveur. « Arrivée la plus tôt » met après les autres
+ * les trajets avec une marche longue (D103). « Sans réservation » retire tout trajet avec une étape à réserver,
+ * et range le reste comme « Arrivée la plus tôt ». La liste reçue n'est pas modifiée.
  */
 export function trier(possibilites: Possibilite[], tri: Tri): PossibiliteRangee[] {
   const rangees = possibilites.map((possibilite, index) => ({ possibilite, index }));
   const gardees = tri === "sans_reservation" ? rangees.filter(({ possibilite }) => !etapeAReserver(possibilite)) : rangees;
-  const comparer = tri === "marche" ? parMarche : parArrivee;
+  const comparer = tri === "marche" ? parMarche : parArriveeSansMarcheLongue;
   return gardees.sort((a, b) => comparer(a.possibilite, b.possibilite) || a.index - b.index);
 }
