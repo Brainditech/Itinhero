@@ -1,7 +1,7 @@
 # Spec 39 — L'Assistant en discussion, réponses en flux
 
 - **Date** : 2026-11-06
-- **État** : **en attente d'approbation** de Brainditech.
+- **État** : **approuvée** par Brainditech le 2026-11-06.
 - **Branche** : `app/assistant-discussion`.
 - **Règle** : D117 (texte libre + cartes), qui modifie D10, D31, D115 et l'invariant 3.
 - **Cases de PLAN.md** : la phase 6 bis est réécrite (§8).
