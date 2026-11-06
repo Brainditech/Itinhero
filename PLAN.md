@@ -384,8 +384,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [ ] GTFS-RT SNCF branché dans MOTIS, et couverture des cars K941 vérifiée (R3).
   Preuve : constat daté.
-- [ ] `abonnements_alerte`, routes, purge.
+- [x] `abonnements_alerte`, routes, purge.
   Preuve : tests (purge à J+1, aucun champ personnel).
+  Fait (spec 29, D107) : `serveur/src/abonnements/abonnements.ts` (SQLite `node:sqlite`, volume `abonnements`), `POST`/`DELETE /v1/abonnements`, purge au démarrage puis chaque heure ; `serveur/src/routes/abonnements.test.ts` (colonnes exactes, purge à la fin de J+1 heure de Paris, 400/401/503, canaris), 2026-11-06. L'abonnement depuis l'app viendra avec `suivi-retards` (jeton Expo Push).
 - [ ] `suivi-retards` : seuils de D21, Expo Push et FCM.
   Preuve : flux GTFS-RT simulé ⇒ notification reçue, app fermée.
 - [ ] Rafraîchissement d'un trajet enregistré (`/v1/etat-courses`).

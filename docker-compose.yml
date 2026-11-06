@@ -44,11 +44,14 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-}
       CLAUDE_PLAFOND_MENSUEL_EUR: ${CLAUDE_PLAFOND_MENSUEL_EUR:-}
+      # Spec 29 (D107) : la seule table persistante, sur son volume (A20).
+      ABONNEMENTS_SQLITE: /var/lib/itinhero/abonnements.sqlite
     depends_on:
       motis:
         condition: service_healthy
     volumes:
       - ./fixtures/manifest.json:/fixtures/manifest.json:ro
+      - abonnements:/var/lib/itinhero
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:
@@ -62,3 +65,4 @@ services:
 
 volumes:
   motis-data:
+  abonnements:

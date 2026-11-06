@@ -15,6 +15,8 @@ const INVALIDES: Record<string, Requete> = {
   "POST /v1/itineraires": { method: "POST", url: "/v1/itineraires", payload: JSON.stringify({ date: "2026-13-01" }) },
   "POST /v1/marche": { method: "POST", url: "/v1/marche", payload: JSON.stringify({ de: { lat: 95, lon: 0 } }) },
   "POST /v1/comprendre": { method: "POST", url: "/v1/comprendre", payload: JSON.stringify({ phrase: "jeudi", lat: 47 }) },
+  "POST /v1/abonnements": { method: "POST", url: "/v1/abonnements", payload: JSON.stringify({ trip_id: "x" }) },
+  "DELETE /v1/abonnements/:id": { method: "DELETE", url: "/v1/abonnements/pas-un-id" },
 };
 /** Routes sans entrée à valider, ou validées ailleurs. */
 const SANS_ENTREE = new Set(["GET /health"]);
