@@ -1,6 +1,7 @@
 import { createContext, use, useMemo, type ReactNode } from "react";
 
 import { clientApi, type ClientApi } from "@/domaine/api";
+import { fetch as fetchExpo } from "expo/fetch";
 
 // Session de l'app (spec 10) : adresse de l'API (EXPO_PUBLIC_API_URL) et clé d'appareil (D64).
 // Une seule source pour le client : chaque écran appelle l'API par lui.
@@ -33,7 +34,15 @@ export function FournisseurSession({
   const valeur = useMemo<Session>(
     () => ({
       urlApi,
-      client: cle ? clientApi({ urlApi, cle, fetch: (url, init) => fetch(url, init) }) : null,
+      client: cle
+        ? clientApi({
+            urlApi,
+            cle,
+            fetch: (url, init) => fetch(url, init),
+            // Spec 39 §7 : `expo/fetch` lit le corps morceau par morceau (le `fetch` de React Native attend la fin).
+            fetchFlux: (url, init) => fetchExpo(url, init),
+          })
+        : null,
       garderCle,
       oublierCle,
     }),

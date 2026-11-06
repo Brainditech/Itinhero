@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { schemaReponseAssistant, type Reglages, type ReponseAssistant } from "./assistant";
+import { lireEvenements, type IssueDiscussion, type MessageEnvoye, type RechercheResumee } from "./discussion";
 
 // Client des routes de l'API Itinhero (spec 09 §4.4, §4.5 ; spec 10 §4.1).
 // `fetch` est injecté : aucun réseau dans les tests. Chaque réponse est validée par Zod (invariant 9) :
@@ -221,6 +221,15 @@ export const DELAI_MS = 20_000;
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
+/**
+ * `fetch` dont la réponse lit son corps morceau par morceau (`body.getReader()`) : celui d'`expo/fetch` dans l'app
+ * (SDK 58, `node_modules/expo/src/winter/fetch/FetchResponse.ts`), celui de Node dans les tests. Spec 39 §7.
+ */
+export type FetchFlux = (
+  url: string,
+  init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal },
+) => Promise<{ status: number; ok: boolean; headers: { get(nom: string): string | null }; body: ReadableStream<Uint8Array> | null }>;
+
 /** `Retry-After` en secondes ⇒ minutes entières, au moins 1. */
 export function minutesAttente(retryAfter: string | null): number {
   const s = retryAfter === null ? NaN : Number(retryAfter);
@@ -236,11 +245,14 @@ export function clientApi({
   urlApi,
   cle,
   fetch,
+  fetchFlux,
   delaiMs = DELAI_MS,
 }: {
   urlApi: string;
   cle: string;
   fetch: Fetch;
+  /** Pour la discussion de l'Assistant (spec 39) ; absent ⇒ l'Assistant est indisponible. */
+  fetchFlux?: FetchFlux;
   delaiMs?: number;
 }) {
   async function appeler<T>(chemin: string, schema: z.ZodType<T>, init: RequestInit = {}): Promise<ResultatApi<T>> {
@@ -311,13 +323,63 @@ export function clientApi({
         body: JSON.stringify({ phrase }),
       });
     },
-    /** Demande à l'Assistant (spec 37, D31) : la phrase et les réglages en cours, sans coordonnées ni historique. */
-    assistant(phrase: string, reglages: Reglages): Promise<ResultatApi<ReponseAssistant>> {
-      return appeler("/v1/assistant", schemaReponseAssistant.transform((r) => r.reponse), {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phrase, reglages }),
-      });
+    /**
+     * Discussion de l'Assistant (spec 39, D117) : les messages et le résumé de la recherche en cours, sans
+     * coordonnées. `surTexte` reçoit chaque morceau de la réponse dès qu'il arrive ; `signal` (« Arrêter ») coupe la
+     * connexion. Délai : seulement jusqu'à l'arrivée des en-têtes, la réponse elle-même peut durer.
+     */
+    async discussion(
+      corps: { messages: MessageEnvoye[]; recherche?: RechercheResumee },
+      { signal, surTexte }: { signal: AbortSignal; surTexte: (texte: string) => void },
+    ): Promise<IssueDiscussion> {
+      if (!fetchFlux) return { etat: "indisponible" };
+      const controle = new AbortController();
+      const arreter = () => controle.abort();
+      if (signal.aborted) return { etat: "arretee" };
+      signal.addEventListener("abort", arreter);
+      const minuterie = setTimeout(arreter, delaiMs);
+      const issueCoupure = (): IssueDiscussion => (signal.aborted ? { etat: "arretee" } : { etat: "coupee" });
+      try {
+        let reponse;
+        try {
+          reponse = await fetchFlux(`${urlApi}/v1/assistant/discussion`, {
+            method: "POST",
+            headers: { "content-type": "application/json", authorization: `Bearer ${cle}` },
+            body: JSON.stringify(corps),
+            signal: controle.signal,
+          });
+        } catch {
+          return signal.aborted ? { etat: "arretee" } : { etat: "injoignable" };
+        } finally {
+          clearTimeout(minuterie);
+        }
+        if (reponse.status === 401) return { etat: "cle_refusee" };
+        if (reponse.status === 429) return { etat: "trop_de_demandes", minutes: minutesAttente(reponse.headers.get("retry-after")) };
+        if (!reponse.ok || !reponse.body) return { etat: "indisponible" };
+        const lecteur = reponse.body.getReader();
+        const decodeur = new TextDecoder();
+        let tampon = "";
+        try {
+          for (;;) {
+            const { done, value } = await lecteur.read();
+            if (done) return issueCoupure();
+            tampon += decodeur.decode(value, { stream: true });
+            const lu = lireEvenements(tampon);
+            tampon = lu.reste;
+            for (const e of lu.evenements) {
+              if (e.type === "texte") surTexte(e.texte);
+              else if (e.type === "fin") return { etat: "complete" };
+              else return { etat: "indisponible" };
+            }
+          }
+        } catch {
+          return issueCoupure();
+        } finally {
+          lecteur.cancel().catch(() => {});
+        }
+      } finally {
+        signal.removeEventListener("abort", arreter);
+      }
     },
     /** Chemin à pied de `de` (la position) à `a` (la fin de la marche en cours), parti maintenant (spec 20). */
     marche(de: Point, a: Point): Promise<ResultatApi<Etape | null>> {

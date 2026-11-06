@@ -6,7 +6,7 @@ import { Limites } from "./acces/limites.js";
 import { adresseIgn, geocodeurIgn } from "./lieux/ign-geocode.js";
 import { chargerHoraires } from "./itineraires/horaires-gtfs.js";
 import { chargerLieux } from "./lieux/charger.js";
-import { appelAssistant } from "./assistant/assistant.js";
+import { appelDiscussion } from "./assistant/discussion.js";
 import { appelClaude } from "./comprendre/comprendre.js";
 import { CompteurCout } from "./comprendre/cout.js";
 import { Abonnements } from "./abonnements/abonnements.js";
@@ -33,7 +33,7 @@ async function demarrer(): Promise<void> {
     env.ANTHROPIC_API_KEY && env.CLAUDE_MODEL && env.CLAUDE_PLAFOND_MENSUEL_EUR
       ? {
           appel: appelClaude(env.ANTHROPIC_API_KEY, env.CLAUDE_MODEL),
-          assistant: appelAssistant(env.ANTHROPIC_API_KEY, env.CLAUDE_MODEL),
+          discussion: appelDiscussion(env.ANTHROPIC_API_KEY, env.CLAUDE_MODEL),
           modele: env.CLAUDE_MODEL,
           compteur: new CompteurCout(env.CLAUDE_PLAFOND_MENSUEL_EUR),
         }
