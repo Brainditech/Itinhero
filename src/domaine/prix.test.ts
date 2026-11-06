@@ -15,12 +15,12 @@ const MOBIGO: TarifEtape = {
   reseau: "Mobigo",
   produit: "Ticket unitaire car",
   montant_eur: 2,
-  reductions: [{ carte: "avantages-jeunes", nom: "Carte Avantages Jeunes", pourcentage: 100 }],
+  reductions: [{ carte: "avantages-jeunes", nom: "Carte Avantages Jeunes", pourcentage: 100, montant_eur: null, seulement_aller: true, conditions: null }],
   canal_vente: "À bord",
   url: "https://www.viamobigo.fr/grille.pdf",
   lu_le: "2026-11-06",
 };
-const TER: TarifEtape = { ...MOBIGO, id: "ter", reseau: "TER", produit: "Billet", montant_eur: 12.4, reductions: [{ carte: "solidaire", nom: "Solidaire", pourcentage: 75 }] };
+const TER: TarifEtape = { ...MOBIGO, id: "ter", reseau: "TER", produit: "Billet", montant_eur: 12.4, reductions: [{ carte: "solidaire", nom: "Solidaire", pourcentage: 75, montant_eur: null, seulement_aller: false, conditions: null }] };
 const avec = (bus: TarifEtape | null, train: TarifEtape | null): Possibilite => ({
   ...P,
   etapes: P.etapes.map((e, i) => (i === 1 ? { ...e, tarif: bus } : i === 3 ? { ...e, tarif: train } : e)),
@@ -62,5 +62,15 @@ describe("Tri « Moins cher » (spec 43, critère 4, D97)", () => {
     const sansReduction = avec({ ...MOBIGO, montant_eur: 3 }, { ...TER, reductions: [] }); // 15,40
     expect(trier([busCher, sansReduction], "moins_cher").map((r) => r.index)).toEqual([1, 0]);
     expect(trier([busCher, sansReduction], "moins_cher", ["solidaire"]).map((r) => r.index)).toEqual([0, 1]);
+  });
+});
+
+describe("Réductions, revue PR #61", () => {
+  it("montant réduit publié (IDFM 1,30 €) plutôt que calculé (1,28 €) ; aller seulement ⇒ plein tarif au retour", () => {
+    const idfm: TarifEtape = { ...MOBIGO, montant_eur: 2.55, reductions: [{ carte: "reduit", nom: "Réduit", pourcentage: 50, montant_eur: 1.3, seulement_aller: false, conditions: null }] };
+    expect(montantReduit(idfm, ["reduit"])).toBe(1.3);
+    expect(montantReduit({ ...idfm, reductions: [{ ...idfm.reductions[0]!, montant_eur: null }] }, ["reduit"])).toBe(1.28);
+    expect(montantReduit(MOBIGO, ["avantages-jeunes"], "aller")).toBe(0);
+    expect(montantReduit(MOBIGO, ["avantages-jeunes"], "retour")).toBe(2);
   });
 });

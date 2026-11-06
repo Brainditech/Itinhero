@@ -51,15 +51,24 @@ async function garderDejaDit(db: SQLiteDatabase, cle: string, d: DejaDit): Promi
 
 const clePush = (cle: string) => `push|${cle}`;
 
-/** Identifiants des abonnements poussés du trajet (spec 42), gardés sur le téléphone pour les retirer avec lui. */
-async function lireAbonnements(db: SQLiteDatabase, cle: string): Promise<string[]> {
+/**
+ * Abonnements poussés du trajet (spec 42), gardés sur le téléphone pour les retirer avec lui ; `complet` : chaque
+ * course suivie est abonnée (sinon les notifications locales restent, revue de la PR #61).
+ */
+type AbonnementsTrajet = { ids: string[]; complet: boolean };
+async function lireAbonnementsTrajet(db: SQLiteDatabase, cle: string): Promise<AbonnementsTrajet> {
   const l = await db.getFirstAsync<{ valeur: string }>("SELECT valeur FROM reglages WHERE cle = ?", clePush(cle));
   try {
-    const v: unknown = l ? JSON.parse(l.valeur) : [];
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    const v: unknown = l ? JSON.parse(l.valeur) : null;
+    if (Array.isArray(v)) return { ids: v.filter((x): x is string => typeof x === "string"), complet: false };
+    if (v && typeof v === "object" && Array.isArray((v as AbonnementsTrajet).ids)) {
+      const a = v as AbonnementsTrajet;
+      return { ids: a.ids.filter((x) => typeof x === "string"), complet: a.complet === true };
+    }
   } catch {
-    return [];
+    // illisible : rien
   }
+  return { ids: [], complet: false };
 }
 
 /**
@@ -67,7 +76,7 @@ async function lireAbonnements(db: SQLiteDatabase, cle: string): Promise<string[
  * téléphone gardait pour lui (déjà dit, abonnements) est effacé.
  */
 export async function oublierTempsReel(db: SQLiteDatabase, client: ClientApi | null, cle: string): Promise<void> {
-  const ids = await lireAbonnements(db, cle);
+  const { ids } = await lireAbonnementsTrajet(db, cle);
   if (client) await Promise.all(ids.map((id) => client.desabonner(id).catch(() => undefined)));
   await db.runAsync("DELETE FROM reglages WHERE cle IN (?, ?)", cleDejaDit(cle), clePush(cle));
 }
@@ -82,8 +91,8 @@ export async function releverTrajet(db: SQLiteDatabase, client: ClientApi, cle: 
   if (r.etat !== "ok") return null;
   const { alertes, dejaDit } = alertesNouvelles(p, r.donnees, await lireDejaDit(db, cle));
   await garderDejaDit(db, cle, dejaDit);
-  // Revue PR #61 : abonné aux alertes poussées, le serveur prévient déjà ; pas de seconde notification.
-  if ((await lireAbonnements(db, cle)).length > 0) return r.donnees;
+  // Revue PR #61 : toutes les courses abonnées aux alertes poussées ⇒ le serveur prévient déjà ; sinon on notifie ici.
+  if ((await lireAbonnementsTrajet(db, cle)).complet) return r.donnees;
   // Même identifiant pour la même alerte : relevée deux fois (écran et arrière-plan), elle ne s'affiche qu'une fois.
   for (const a of alertes) {
     await Notifications.scheduleNotificationAsync({
@@ -189,19 +198,21 @@ export async function abonnerTrajet(db: SQLiteDatabase, client: ClientApi, cle: 
   } catch {
     return 0;
   }
+  // Revue : le même trajet réenregistré (même clé) retire d'abord ses anciens abonnements.
+  const anciens = await lireAbonnementsTrajet(db, cle);
+  await Promise.all(anciens.ids.map((id) => client.desabonner(id).catch(() => undefined)));
+  const suivies = etapesSuivies(p);
   const ids: string[] = [];
-  for (const { course } of etapesSuivies(p)) {
+  for (const { course } of suivies) {
     const date = /^(\d{4})(\d{2})(\d{2})_/.exec(course);
     if (!date) continue;
     const r = await client.abonner(course, `${date[1]}-${date[2]}-${date[3]}`, jeton);
     if (r.etat === "ok") ids.push(r.donnees.id);
   }
-  if (ids.length > 0) {
-    await db.runAsync(
-      "INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur",
-      clePush(cle),
-      JSON.stringify(ids),
-    );
-  }
+  await db.runAsync(
+    "INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur",
+    clePush(cle),
+    JSON.stringify({ ids, complet: suivies.length > 0 && ids.length === suivies.length } satisfies AbonnementsTrajet),
+  );
   return ids.length;
 }

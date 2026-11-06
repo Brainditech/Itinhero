@@ -93,9 +93,9 @@ function AvertissementNuit({ lieu, minutes }: { lieu: string; minutes: number })
  * Badge du prix (spec 43, invariant 5) : « Prix : 4,55 € » quand chaque véhicule a un tarif validé, la part connue
  * avec « + prix non publié (…) » sinon, ou « Prix non publié ». Les cartes cochées réduisent le prix (invariant 7).
  */
-function BadgePrix({ possibilite }: { possibilite: Possibilite }) {
+function BadgePrix({ possibilite, trajet }: { possibilite: Possibilite; trajet: Trajet }) {
   const { cartes } = useCartes();
-  const prix = prixTrajet(possibilite, cartes);
+  const prix = prixTrajet(possibilite, cartes, trajet);
   if (prix.etat === "non_publie") return <PrixNonPublie />;
   return (
     <View className="flex-row items-center gap-1 rounded-full px-3 py-1" style={{ backgroundColor: couleurs.surface }}>
@@ -270,7 +270,7 @@ export function CartePossibilite({
       ) : null}
       <View className="flex-row flex-wrap items-center justify-between gap-2">
         {aMarcheLongue(p) ? <AvertissementMarche /> : <View />}
-        <BadgePrix possibilite={p} />
+        <BadgePrix possibilite={p} trajet={trajet} />
       </View>
       {pied}
       {ouverte ? (

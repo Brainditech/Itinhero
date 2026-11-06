@@ -9,7 +9,7 @@ const tarif = (t: Partial<Tarif> & Pick<Tarif, "id">): Tarif => ({
   produit: "Ticket unitaire car",
   montant_eur: 2,
   correspondance: { producteurs: ["Région Bourgogne-Franche-Comté"], exploitant: "mobigo", modes: ["bus", "car"] },
-  reductions: [{ carte: "avantages-jeunes", nom: "Carte Avantages Jeunes", pourcentage: 100, conditions: "Aller seulement" }],
+  reductions: [{ carte: "avantages-jeunes", nom: "Carte Avantages Jeunes", pourcentage: 100, seulement_aller: true, conditions: "Aller seulement" }],
   canal_vente: "À bord",
   url: "https://www.viamobigo.fr/grille.pdf",
   lu_le: "2026-11-06",
@@ -33,7 +33,9 @@ describe("Tarif d'une étape (spec 43, critère 1)", () => {
       reseau: "Mobigo",
       produit: "Ticket unitaire car",
       montant_eur: 2,
-      reductions: [{ carte: "avantages-jeunes", nom: "Carte Avantages Jeunes", pourcentage: 100 }],
+      reductions: [
+        { carte: "avantages-jeunes", nom: "Carte Avantages Jeunes", pourcentage: 100, montant_eur: null, seulement_aller: true, conditions: "Aller seulement" },
+      ],
       canal_vente: "À bord",
       url: "https://www.viamobigo.fr/grille.pdf",
       lu_le: "2026-11-06",
@@ -51,6 +53,11 @@ describe("Tarif d'une étape (spec 43, critère 1)", () => {
     const p = { etapes: [{ mode: "marche", exploitant: null, source: { type: "osm" } }, { mode: "bus", exploitant: "MOBIGO 89", source: gtfs("r84072") }] } as unknown as PossibiliteAffichee;
     const [r] = ajouterTarifs([p], tarifs, horaires);
     expect(r!.etapes.map((e) => e.tarif?.montant_eur ?? null)).toEqual([null, 2]);
+  });
+  it("revue : un exploitant avec un caractère spécial ne casse rien", () => {
+    const t = [tarif({ id: "x", correspondance: { producteurs: ["Région Bourgogne-Franche-Comté"], exploitant: "(Mobigo+", modes: ["bus"] } })];
+    expect(tarifDeLEtape(t, { mode: "bus", exploitant: "MOBIGO 89", source: gtfs("r84072") }, horaires)).toBeNull();
+    expect(tarifDeLEtape(t, { mode: "bus", exploitant: "Car (Mobigo+ Yonne)", source: gtfs("r84072") }, horaires)?.id).toBe("x");
   });
   it("cartes connues : seulement celles des tarifs validés", () => {
     expect(cartesConnues(tarifs).map((c) => c.carte)).toEqual(["avantages-jeunes"]);

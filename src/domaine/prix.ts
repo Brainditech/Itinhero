@@ -13,20 +13,27 @@ export type PrixTrajet =
 
 const enVehicule = (e: Etape) => e.mode !== "marche";
 
-/** Montant de l'étape après la meilleure réduction des cartes possédées (centimes arrondis). */
-export function montantReduit(t: TarifEtape, cartes: readonly string[]): number {
-  const meilleure = Math.max(0, ...t.reductions.filter((r) => cartes.includes(r.carte)).map((r) => r.pourcentage));
-  return Math.round(t.montant_eur * (100 - meilleure)) / 100;
+/**
+ * Montant de l'étape avec la meilleure réduction des cartes possédées : le montant réduit **publié** quand il existe
+ * (1,30 € pour IDFM, pas 1,27 € calculé), sinon le pourcentage, en centimes entiers. Une réduction « aller
+ * seulement » ne vaut pas au retour (revue de la PR #61).
+ */
+export function montantReduit(t: TarifEtape, cartes: readonly string[], trajet: "aller" | "retour" = "aller"): number {
+  const centimes = Math.round(t.montant_eur * 100);
+  const possibles = t.reductions
+    .filter((r) => cartes.includes(r.carte) && !(r.seulement_aller && trajet === "retour"))
+    .map((r) => (r.montant_eur !== null ? Math.round(r.montant_eur * 100) : Math.round((centimes * (100 - r.pourcentage)) / 100)));
+  return Math.min(centimes, ...possibles) / 100;
 }
 
-export function prixTrajet(p: Possibilite, cartes: readonly string[]): PrixTrajet {
+export function prixTrajet(p: Possibilite, cartes: readonly string[], trajet: "aller" | "retour" = "aller"): PrixTrajet {
   const etapes = p.etapes.filter(enVehicule);
   let connu = 0;
   const nonPublies: string[] = [];
   let auMoinsUn = false;
   for (const e of etapes) {
     if (e.tarif && e.mode !== "taxi") {
-      connu += montantReduit(e.tarif, cartes);
+      connu += montantReduit(e.tarif, cartes, trajet);
       auMoinsUn = true;
     } else {
       nonPublies.push(libelleEtape(e));

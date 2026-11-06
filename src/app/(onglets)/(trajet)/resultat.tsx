@@ -306,7 +306,7 @@ function Sens({
   horairesIncomplets: boolean;
 }) {
   const { cartes } = useCartes();
-  const rangees = trier(reponse.possibilites, tri, cartes);
+  const rangees = trier(reponse.possibilites, tri, cartes, trajet);
   const etat = enregistrement?.sens[trajet];
   return (
     <>

@@ -12,7 +12,8 @@ set -euo pipefail
 
 RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$RACINE"
-JOUR="$(TZ=Europe/Paris date +%F)"
+# Revue : un nom par passage (date et heure), jamais celui en service, même relancé le même jour.
+JOUR="$(TZ=Europe/Paris date +%F-%H%M)"
 COMPOSE=(docker compose --env-file .env --env-file donnees-actives.env -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml)
 MOTIS_IMAGE="ghcr.io/motis-project/motis:2.11.4"
 
@@ -23,6 +24,10 @@ ACTUEL="${DONNEES:-./donnees}"
 VOLUME_ACTUEL="${MOTIS_DONNEES:-itinhero-national_motis-data}"
 NOUVEAU="./donnees-$JOUR"
 VOLUME_NOUVEAU="itinhero-motis-$JOUR"
+if [ "$NOUVEAU" = "$ACTUEL" ] || [ -e "$NOUVEAU" ] || docker volume inspect "$VOLUME_NOUVEAU" >/dev/null 2>&1; then
+  echo "$(date -Is) $NOUVEAU ou $VOLUME_NOUVEAU existe déjà : rien n'est fait" >&2
+  exit 1
+fi
 
 echo "$(date -Is) ingestion : $ACTUEL ⇒ $NOUVEAU"
 (cd serveur && npm run --silent donnees:nuit -- "../$ACTUEL" "../$NOUVEAU")
@@ -34,11 +39,13 @@ if ! docker run --rm -v "$RACINE/${NOUVEAU#./}:/donnees:ro" -v "$VOLUME_NOUVEAU:
   /motis import -c /donnees/config.yml -d /data; then
   echo "$(date -Is) import échoué : on reste sur $ACTUEL" >&2
   docker volume rm "$VOLUME_NOUVEAU" >/dev/null 2>&1 || true
+  rm -rf "$NOUVEAU"
   exit 1
 fi
 
 basculer() {
-  printf 'DONNEES=%s\nMOTIS_DONNEES=%s\n' "$1" "$2" > donnees-actives.env
+  # PRECEDENT_* : ce qu'il faut garder pour revenir en arrière à la main.
+  printf 'DONNEES=%s\nMOTIS_DONNEES=%s\nPRECEDENT_DONNEES=%s\nPRECEDENT_MOTIS=%s\n' "$1" "$2" "$3" "$4" > donnees-actives.env
   "${COMPOSE[@]}" up -d --no-build motis api
 }
 
@@ -50,16 +57,22 @@ attendre_sante() {
   return 1
 }
 
-basculer "$NOUVEAU" "$VOLUME_NOUVEAU"
+basculer "$NOUVEAU" "$VOLUME_NOUVEAU" "$ACTUEL" "$VOLUME_ACTUEL"
 if attendre_sante; then
   echo "$(date -Is) bascule faite : $NOUVEAU, $VOLUME_NOUVEAU"
 else
   echo "$(date -Is) /health en échec après bascule : retour à $ACTUEL" >&2
-  basculer "$ACTUEL" "$VOLUME_ACTUEL"
+  basculer "$ACTUEL" "$VOLUME_ACTUEL" "${PRECEDENT_DONNEES:-}" "${PRECEDENT_MOTIS:-}"
   attendre_sante || echo "$(date -Is) l'ancien ne répond pas non plus : intervention nécessaire" >&2
   exit 1
 fi
 
-# Ménage : on garde le dossier et le volume d'avant (retour en arrière), on retire les plus anciens.
-for d in $(ls -d donnees-20??-??-?? 2>/dev/null | sort | head -n -2); do rm -rf "$d"; done
-for v in $(docker volume ls --format '{{.Name}}' | grep '^itinhero-motis-20' | sort | head -n -2); do docker volume rm "$v" || true; done
+# Ménage : on garde le dossier et le volume en service et ceux d'avant (retour en arrière) ; le reste part.
+for d in donnees-20??-??-*; do
+  [ -d "$d" ] || continue
+  case "./$d" in "$NOUVEAU" | "$ACTUEL") continue ;; esac
+  rm -rf "$d"
+done
+for v in $(docker volume ls --format '{{.Name}}' | grep '^itinhero-motis-20' || true); do
+  [ "$v" = "$VOLUME_NOUVEAU" ] || [ "$v" = "$VOLUME_ACTUEL" ] || docker volume rm "$v" || true
+done

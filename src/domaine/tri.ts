@@ -31,7 +31,12 @@ export function etapeAReserver(p: Possibilite): Etape | undefined {
  * « Sans réservation » retire tout trajet avec une étape à réserver, et range le reste comme « Arrivée la plus tôt ».
  * La liste reçue n'est pas modifiée.
  */
-export function trier(possibilites: Possibilite[], tri: Tri, cartes: readonly string[] = []): PossibiliteRangee[] {
+export function trier(
+  possibilites: Possibilite[],
+  tri: Tri,
+  cartes: readonly string[] = [],
+  trajet: "aller" | "retour" = "aller",
+): PossibiliteRangee[] {
   const rangees = possibilites.map((possibilite, index) => ({ possibilite, index }));
   const gardees = tri === "sans_reservation" ? rangees.filter(({ possibilite }) => !etapeAReserver(possibilite)) : rangees;
   // Spec 43 : « Moins cher », trajets sans prix complet à la fin ; à prix égal, « Arrivée la plus tôt ».
@@ -39,7 +44,7 @@ export function trier(possibilites: Possibilite[], tri: Tri, cartes: readonly st
     tri === "marche"
       ? parMarche
       : tri === "moins_cher"
-        ? (a: Possibilite, b: Possibilite) => comparerPrix(prixTrajet(a, cartes), prixTrajet(b, cartes)) || parArrivee(a, b)
+        ? (a: Possibilite, b: Possibilite) => comparerPrix(prixTrajet(a, cartes, trajet), prixTrajet(b, cartes, trajet)) || parArrivee(a, b)
         : parArrivee;
   return gardees.sort((a, b) => comparer(a.possibilite, b.possibilite) || a.index - b.index);
 }

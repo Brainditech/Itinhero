@@ -22,7 +22,8 @@
           "carte": "carte-avantages-jeunes",
           "nom": "Carte Avantages Jeunes (Bourgogne-Franche-Comté)",
           "pourcentage": 100,
-          "conditions": "Aller seulement (retour payant), sur présentation de la carte Avantages Jeunes (sous condition) et du coupon « Avantages » rempli"
+          "conditions": "Aller seulement (retour payant), sur présentation de la carte Avantages Jeunes (sous condition) et du coupon « Avantages » rempli",
+          "seulement_aller": true
         }
       ],
       "canal_vente": "À bord par carte bancaire sans contact (titre unitaire seulement, flash de la CB à la montée) ; m-ticket sur l'application Mobigo (QR code) ; carte rechargeable anonyme (5 €) chez les dépositaires",
@@ -49,7 +50,8 @@
           "carte": "idfm-tarif-reduit",
           "nom": "Tarif réduit Île-de-France Mobilités",
           "pourcentage": 50,
-          "conditions": "Bénéficiaires de la Tarification Solidarité Transport ; enfants de 4 ans à moins de 10 ans (gratuit pour les moins de 4 ans) ; titulaires d'une carte « Familles nombreuses » ; personnes invalides et leur accompagnant sous conditions. IDFM le présente comme un demi-tarif (1,30 € au lieu de 2,55 €)"
+          "conditions": "Bénéficiaires de la Tarification Solidarité Transport ; enfants de 4 ans à moins de 10 ans (gratuit pour les moins de 4 ans) ; titulaires d'une carte « Familles nombreuses » ; personnes invalides et leur accompagnant sous conditions. IDFM le présente comme un demi-tarif (1,30 € au lieu de 2,55 €)",
+          "montant_eur": 1.3
         }
       ],
       "canal_vente": "Sans contact uniquement : passe Navigo Easy (points de vente, agents, automates des transporteurs, applications mobiles) ou téléphone via les applications proposant le service d'achat",

@@ -127,7 +127,16 @@ export const schemaEtape = z.object({
       reseau: z.string(),
       produit: z.string(),
       montant_eur: z.number().positive(),
-      reductions: z.array(z.object({ carte: z.string(), nom: z.string(), pourcentage: z.number().int().min(1).max(100) })),
+      reductions: z.array(
+        z.object({
+          carte: z.string(),
+          nom: z.string(),
+          pourcentage: z.number().int().min(1).max(100),
+          montant_eur: z.number().min(0).nullable().default(null),
+          seulement_aller: z.boolean().default(false),
+          conditions: z.string().nullable().default(null),
+        }),
+      ),
       canal_vente: z.string().nullable(),
       url: z.string(),
       lu_le: z.iso.date(),

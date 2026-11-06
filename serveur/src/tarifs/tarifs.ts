@@ -30,6 +30,10 @@ export const schemaTarif = z
           carte: z.string().regex(/^[a-z0-9-]+$/),
           nom: z.string().min(1).max(80),
           pourcentage: z.number().int().min(1).max(100),
+          // Revue : montant réduit tel que publié (« 1,30 € ») ; sans lui, le pourcentage (jamais un prix recalculé quand il est publié).
+          montant_eur: z.number().min(0).max(500).optional(),
+          // Revue : réduction valable à l'aller seulement (Carte Avantages Jeunes Mobigo : « retour payant »).
+          seulement_aller: z.boolean().default(false),
           conditions: z.string().max(300).nullable(),
         })
         .strict(),
@@ -49,7 +53,7 @@ export type TarifEtape = {
   reseau: string;
   produit: string;
   montant_eur: number;
-  reductions: { carte: string; nom: string; pourcentage: number }[];
+  reductions: { carte: string; nom: string; pourcentage: number; montant_eur: number | null; seulement_aller: boolean; conditions: string | null }[];
   canal_vente: string | null;
   url: string;
   lu_le: string;
@@ -86,7 +90,8 @@ export function tarifDeLEtape(
       x.valide_le !== null &&
       x.correspondance.producteurs.includes(producteur) &&
       (x.correspondance.modes as string[]).includes(etape.mode) &&
-      (!x.correspondance.exploitant || new RegExp(x.correspondance.exploitant, "i").test(etape.exploitant ?? "")),
+      // Revue : texte contenu, sans casse (pas d'expression régulière tirée d'un fichier).
+      (!x.correspondance.exploitant || (etape.exploitant ?? "").toLowerCase().includes(x.correspondance.exploitant.toLowerCase())),
   );
   if (!t) return null;
   return {
@@ -94,7 +99,14 @@ export function tarifDeLEtape(
     reseau: t.reseau,
     produit: t.produit,
     montant_eur: t.montant_eur,
-    reductions: t.reductions.map(({ carte, nom, pourcentage }) => ({ carte, nom, pourcentage })),
+    reductions: t.reductions.map(({ carte, nom, pourcentage, montant_eur, seulement_aller, conditions }) => ({
+      carte,
+      nom,
+      pourcentage,
+      montant_eur: montant_eur ?? null,
+      seulement_aller,
+      conditions,
+    })),
     canal_vente: t.canal_vente,
     url: t.url,
     lu_le: t.lu_le,

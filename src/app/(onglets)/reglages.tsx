@@ -106,12 +106,15 @@ function CartesReduction() {
   const [catalogue, setCatalogue] = useState<CatalogueCartes["cartes"] | null>(null);
   useEffect(() => {
     let actif = true;
+    // Revue : la liste du serveur, si elle arrive, l'emporte sur celle gardée, même lue après.
+    let fraiche = false;
     void lireCatalogueCartes(db).then((brut) => {
       const lu = schemaCatalogueCartes.safeParse(brut);
-      if (actif && lu.success) setCatalogue(lu.data.cartes);
+      if (actif && !fraiche && lu.success) setCatalogue(lu.data.cartes);
     });
     void client?.fiches().then((r) => {
       if (!actif || r.etat !== "ok") return;
+      fraiche = true;
       setCatalogue(r.donnees.cartes);
       void enregistrerCatalogueCartes(db, r.donnees).catch(() => undefined);
     });

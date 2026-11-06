@@ -59,6 +59,8 @@ export function deciderJeu(ancien: Ancien | null, nouveau: Nouveau, aujourdhui: 
   return { etat: ancien ? "remplace" : "nouveau", raison: null };
 }
 
+class Inchange extends Error {}
+
 /** Lien dur (même disque : ni place ni temps perdus pour l'OSM de 5 Go), sinon copie. */
 async function lierOuCopier(de: string, vers: string): Promise<void> {
   await rm(vers, { force: true });
@@ -87,10 +89,15 @@ async function principal(): Promise<void> {
   const actuel = path.resolve(process.argv[2] ?? path.join(ici, "../../../donnees"));
   const aujourdhui = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
   const nouveauDossier = path.resolve(process.argv[3] ?? `${actuel}-${aujourdhui}`);
+  // Revue : préparer dans le dossier en service écraserait les fichiers servis avant tout contrôle (invariant 14).
+  if (nouveauDossier === actuel) throw new Error("le dossier préparé doit être différent du dossier en service");
   await mkdir(path.join(nouveauDossier, "gtfs"), { recursive: true });
 
   const manifestActuel: Manifest = await lireManifest(path.join(actuel, "manifest.json"));
   const parEtiquette = new Map(manifestActuel.fichiers.map((f) => [f.jeu, f]));
+  const horairesActuels = JSON.parse(await readFile(path.join(actuel, "horaires.json"), "utf8").catch(() => '{"jeux":{}}')) as {
+    jeux: Record<string, { fin_validite: string | null }>;
+  };
   const jeuxActuels = JSON.parse(await readFile(path.join(actuel, "jeux.json"), "utf8")) as Ressource[];
 
   const rep = await fetch("https://transport.data.gouv.fr/api/datasets", { signal: AbortSignal.timeout(600_000) });
@@ -110,11 +117,7 @@ async function principal(): Promise<void> {
         const ancienF = parEtiquette.get(r.etiquette);
         const cheminAncien = ancienF ? path.join(actuel, ancienF.chemin) : null;
         const cheminNouveau = path.join(nouveauDossier, "gtfs", `${r.etiquette}.zip`);
-        const ancien: Ancien | null =
-          ancienF && cheminAncien
-            ? { sha256: ancienF.sha256, fin_validite: (await lireHorairesJeu(cheminAncien).catch(() => null))?.fin_validite ?? null, temoins: await temoinsDe(cheminAncien) }
-            : null;
-        let nouveau: Nouveau;
+        let nouveau: Nouveau | undefined;
         try {
           const reponse = await fetch(r.url, { redirect: "follow", signal: AbortSignal.timeout(600_000), headers: { "user-agent": "itinhero-ingestion-nuit" } });
           if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
@@ -126,20 +129,37 @@ async function principal(): Promise<void> {
               return { ok: false as const, raison: `contrôle impossible : ${(e as Error).message}` };
             }
           })();
+          const s = sha256(octets);
+          if (ancienF && s === ancienF.sha256) {
+            // Même fichier : ni écrit ni relu (l'ancien est lié plus bas).
+            nouveau = { etat: "lu", sha256: s, controle, fin_validite: null, temoins: [] };
+            throw new Inchange();
+          }
           await writeFile(cheminNouveau, octets);
           nouveau = controle.ok
             ? { etat: "lu", sha256: sha256(octets), controle, fin_validite: (await lireHorairesJeu(cheminNouveau).catch(() => null))?.fin_validite ?? null, temoins: await temoinsDe(cheminNouveau) }
             : { etat: "lu", sha256: sha256(octets), controle, fin_validite: null, temoins: [] };
         } catch (e) {
-          nouveau = { etat: "echec", raison: `téléchargement : ${(e as Error).message}` };
+          if (!(e instanceof Inchange)) nouveau = { etat: "echec", raison: `téléchargement : ${(e as Error).message}` };
         }
-        const d = deciderJeu(ancien, nouveau, aujourdhui);
+        // L'ancien n'est relu que s'il faut comparer (fichier changé) : sa fin vient de horaires.json.
+        const ancien: Ancien | null =
+          ancienF && cheminAncien
+            ? {
+                sha256: ancienF.sha256,
+                fin_validite: horairesActuels.jeux[r.etiquette]?.fin_validite ?? null,
+                temoins: nouveau!.etat === "lu" && nouveau!.sha256 !== ancienF.sha256 ? await temoinsDe(cheminAncien) : [],
+              }
+            : null;
+        const d = deciderJeu(ancien, nouveau!, aujourdhui);
         decisions.push({ etiquette: r.etiquette, jeu: r.jeu, ...d });
         if ((d.etat === "inchange" || d.etat === "ancien_garde") && ancienF && cheminAncien) {
           await lierOuCopier(cheminAncien, cheminNouveau);
           retenus.push({ r, taille: ancienF.taille, sha256: ancienF.sha256, date: ancienF.date_telechargement, source: "ancien" });
-        } else if ((d.etat === "remplace" || d.etat === "nouveau") && nouveau.etat === "lu") {
-          retenus.push({ r, taille: (await stat(cheminNouveau)).size, sha256: nouveau.sha256, date: aujourdhui, source: "nouveau" });
+        } else if ((d.etat === "remplace" || d.etat === "nouveau") && nouveau!.etat === "lu") {
+          retenus.push({ r, taille: (await stat(cheminNouveau)).size, sha256: nouveau!.sha256, date: aujourdhui, source: "nouveau" });
+        } else {
+          await rm(cheminNouveau, { force: true });
         }
       }
     }),
