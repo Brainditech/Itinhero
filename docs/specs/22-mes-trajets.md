@@ -1,7 +1,7 @@
 # Spec 22 — Mes trajets : un voyage enregistré, rouvert sans réseau
 
 - **Date** : 2026-11-06
-- **État** : **approuvée par délégation** de Brainditech (« implemente les prochaines phases », 2026-11-06), comme la spec 19. Règle : D98. **Appliquée** sur `phase-5/mes-trajets` ; critère 2 (téléphone) à constater.
+- **État** : **approuvée par délégation** de Brainditech (« implemente les prochaines phases », 2026-11-06), comme la spec 19. Règle : D98. **Appliquée** sur `phase-5/mes-trajets` ; critère 2 constaté par adb (§6.2) sans serveur ; mode avion à faire.
 - **Branche** : `phase-5/mes-trajets`.
 - **Case de PLAN.md** : phase 5, « Instantané expo-sqlite, ouvert en mode avion ». La capture côte à côte avec la maquette 06 sert aussi à la case « Écran en valeurs en dur, comparé à sa maquette » (l'écran est branché d'emblée, comme depuis D54).
 - **Invariants** : 3 par extension (l'app ne recalcule aucune heure : elle relit la réponse du serveur telle quelle), 4 (chaque étape garde sa source), 6 (le voyage, ses lieux et le domicile restent sur le téléphone), 9 (ce qui est relu de la base passe par un schéma Zod), 12 (aucun « en direct » : l'horaire enregistré est dit prévu), 20 (jetons du design system seulement).
@@ -81,10 +81,22 @@ Un débutant qui a préparé son voyage la veille doit pouvoir, le lendemain dan
 - Base du téléphone migrée en version 2 (`src/stockage/reglages.ts`) : la table `reglages` est gardée telle quelle, `voyages` s'ajoute.
 - « Ouvrir le trajet » passe par `router.navigate("/resultat")` : l'onglet Chercher s'ouvre sur le Résultat du voyage.
 - Le crayon « Modifier la recherche » de « Votre trajet » est retiré aussi sur un voyage rouvert (même raison que le lien du bas, §3.5).
+- **Corrigé à l'essai** : `FournisseurRecherche` n'enveloppait que la pile de l'onglet Chercher ; Mes trajets plantait (« useRecherche hors de FournisseurRecherche »). Il est remonté au niveau des onglets (`src/app/(onglets)/_layout.tsx`).
 
-### 6.2 Téléphone
+### 6.2 Téléphone (2026-11-06, adb, MOTIS national)
 
-(Critère 2, à constater par adb.)
+Captures `docs/screenshots/spec-22/01` à `11` (non versionnées, D93 : elles montrent l'adresse du domicile).
+
+| Point du critère 2 | Constaté |
+|---|---|
+| Mes trajets vide | « Aucun trajet enregistré. Cherchez un trajet, puis touchez « Enregistrer ce voyage ». » ; la base migrée en version 2 se lit (01) |
+| Domicile → Agence France travail (Joigny), jeudi 12/11, arriver avant 10:00, fin 16:00 | « Possible · Départ 06:18 » ; « Enregistrer ce voyage » en bas ⇒ « Enregistré dans Mes trajets » et « Voir Mes trajets » (02, 03) |
+| Carte de Mes trajets | « Jeudi 12/11 », « Départ 06:18 », « Domicile → Agence France travail », « Horaire prévu, sans suivi en direct », « Disponible sans réseau », « Retour : départ 16:28 », « Enregistré le 06/11 à 02:37 », « Supprimer », puis « Ouvrir le trajet » en bouton principal : comme la maquette 06, sans les écarts voulus du §3 (04) |
+| Même recherche relancée puis enregistrée | Le bouton revient pour la nouvelle réponse ; une seule carte, « Enregistré le 06/11 à 02:38 » (remplacée) (05) |
+| Sans serveur (`adb reverse` du port 3000 retiré) et app rechargée (mémoire vidée) | La carte est là ; « Ouvrir le trajet » ⇒ Résultat avec le bandeau « Voyage enregistré le 06/11 à 02:38. Horaires prévus, sans suivi en direct. », sans crayon, aller, puces et retour (06) ; Étape « Bus K941 n° 43281 » (07) ; « Voir tous les arrêts » ⇒ « Arrêts indisponibles. Le serveur ne répond pas. » (08) ; « Me guider » ⇒ guidage « Attendez le bus K941 direction Gare de Troyes, passage prévu à 06:27 » (09) |
+| « Supprimer » | « Supprimer ce trajet ? », « Jeudi 12/11 · Domicile → Agence France travail », « Annuler » / « Supprimer » ; puis la liste vide (10, 11) |
+
+- **Reste à faire** : le vrai **mode avion**, app fermée puis rouverte. Couper l'API par adb prouve que rien ne vient du serveur, mais le mode avion est un réglage du téléphone, pas touché sans l'accord de Brainditech. **Case non cochée** jusque-là.
 
 ## 7. Ce qui n'est pas fait ici
 
