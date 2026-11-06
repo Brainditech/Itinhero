@@ -20,6 +20,7 @@ import {
   libelleCorrespondances,
   libelleEtape,
   phraseVerdict,
+  possibiliteDuVerdict,
   resumePossibilite,
   nomBout,
   NOM_MAX,
@@ -508,5 +509,35 @@ describe("retour planifié (spec 19, D94)", () => {
     expect(trajetDuParametre("retour")).toBe("retour");
     expect(trajetDuParametre(undefined)).toBe("aller");
     expect(trajetDuParametre("autre")).toBe("aller");
+  });
+});
+
+describe("D103 (spec 25) : le verdict évite une longue marche", () => {
+  const marche = chatelet.etapes.find((e) => e.mode === "marche")!;
+  const avecMarche = (depart: string, minutes: number): Possibilite => ({
+    ...chatelet,
+    depart,
+    etapes: [{ ...marche, duree_minutes: minutes }, ...chatelet.etapes.filter((e) => e.mode !== "marche")],
+  });
+
+  it("s'appuie sur un trajet sans marche longue quand il y en a un", () => {
+    const r = phraseVerdict({ ...REPONSE_CHATELET, possibilites: [avecMarche("06:18", 48), avecMarche("06:50", 12)] });
+    expect(r.heureDepart).toBe("06:50");
+  });
+
+  it("toutes avec une marche longue : la première, comme avant", () => {
+    const r = phraseVerdict({ ...REPONSE_CHATELET, possibilites: [avecMarche("06:18", 48), avecMarche("06:50", 20)] });
+    expect(r.heureDepart).toBe("06:18");
+  });
+
+  it("une nuit dehors reste évitée avant tout, même avec une longue marche", () => {
+    const longue = { ...RETOUR_DIJON, possibilites: [NUIT, avecMarche("19:00", 48)] };
+    expect(phraseVerdict(longue).heureDepart).toBe("19:00");
+  });
+
+  it("un taxi est évité avant une longue marche", () => {
+    const taxi = etape({ mode: "taxi", mode_motis: "CAR", ligne: null, duree_minutes: 12 });
+    const avecTaxi: Possibilite = { ...chatelet, depart: "06:40", etapes: [taxi, ...chatelet.etapes.filter((e) => e.mode !== "marche")] };
+    expect(possibiliteDuVerdict({ ...REPONSE_CHATELET, possibilites: [avecTaxi, avecMarche("06:18", 48)] })?.depart).toBe("06:18");
   });
 });

@@ -244,14 +244,16 @@ describe("un trajet par sens (spec 24 §7, D101)", () => {
   });
 
   it("résumé : le tri gardé choisit la possibilité montrée ; « arrivée » ou tri vide ⇒ celle du verdict", () => {
-    // Même trajet sans aucune marche, parti à 07:02 : « Moins de marche » le met en tête.
+    // Même trajet avec une seule marche de 18 min, parti à 07:02 : « Moins de marche » le met en tête. Les deux
+    // ont une marche longue (20 et 18 min) : D103 ne départage pas, le verdict garde la première.
+    const marcheSeule = { ...POSSIBILITE.etapes.find((e) => e.mode === "marche")!, duree_minutes: 18 };
     const sansMarche: Possibilite = {
       ...POSSIBILITE,
       depart: "07:02",
       arrivee: "10:50",
       depart_utc: "2026-11-14T06:02:00.000Z",
       arrivee_utc: "2026-11-14T09:50:00.000Z",
-      etapes: POSSIBILITE.etapes.filter((e) => e.mode !== "marche"),
+      etapes: [...POSSIBILITE.etapes.filter((e) => e.mode !== "marche"), marcheSeule],
     };
     const reponse: ReponseItineraires = { ...REPONSE, retour: null, possibilites: [POSSIBILITE, sansMarche] };
     const montre = (tri: Voyage["tri"]) => {
