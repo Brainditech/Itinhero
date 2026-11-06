@@ -281,8 +281,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] GTFS régionaux et urbains de transport.data.gouv.fr et OSM France entière.
   Preuve : liste des jeux chargés (URL, date, sha256) dans le manifeste ; test Brienon-sur-Armançon → Wissous.
   Fait en partie (spec 08) : 516 GTFS et l'OSM France chargés sur le PC, manifeste et rejets dans `docs/preuves/2026-11-04-donnees-nationales/` ; Brienon Mairie → Wissous le 12/11 : car 06:27 → Troyes, train → Paris Est, RER B → Antony, bus 297 → Wissous 10:18 (recherche manuelle). Manque : le test automatisé, et le chargement nocturne (phase 8).
-- [ ] Refus explicite hors des données chargées (étranger, réseau sans données).
+- [x] Refus explicite hors des données chargées (étranger, réseau sans données).
   Preuve : test (départ ou arrivée hors données ⇒ « hors de la zone couverte », aucune possibilité affichée).
+  Fait (spec 27, D105) : contour de l'extrait OSM chargé (`france.poly` de Geofabrik) ; `serveur/src/zone/zone.test.ts` (12 lieux dedans, 8 dehors dont l'outre-mer), `serveur/src/routes/itineraires.test.ts` (hors zone ⇒ 422 `hors_zone` sans appeler MOTIS), `src/domaine/api.test.ts` (« Le départ est hors de la zone couverte… »), 2026-11-06. Réseau sans données dans la zone : verdict « Impossible » avec sa raison (spec 15). Reste à voir le message sur le téléphone (spec 27, critère 4).
 - [ ] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
   Preuve : carte de Flers affichée en mode avion.
 

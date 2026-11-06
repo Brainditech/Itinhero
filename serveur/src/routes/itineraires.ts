@@ -10,6 +10,7 @@ import { retenir, retenirPartir, verdict } from "../itineraires/verdict.js";
 import type { AdresseInverse } from "../lieux/ign-geocode.js";
 import { hhmm, instantParis } from "../temps.js";
 import { appelMoteur, refuserEntree } from "./erreurs.js";
+import { dansZoneCouverte } from "../zone/zone.js";
 
 /** `POST /v1/itineraires` (spec 09, §4.5) : verdict et possibilités sourcées. */
 export const MAX_POSSIBILITES = 10;
@@ -173,6 +174,10 @@ export function routeItineraires(
     const entree = schemaRequeteItineraires.safeParse(requete.body);
     if (!entree.success) return refuserEntree(reponse, entree.error);
     const { fin_rdv, ...aller } = entree.data;
+
+    // Spec 27 (D105) : hors de l'extrait OSM chargé, aucune recherche ; le refus nomme le point, jamais ses coordonnées.
+    const points = (["depart", "arrivee"] as const).filter((p) => !dansZoneCouverte(aller[p]));
+    if (points.length > 0) return reponse.code(422).send({ erreur: "hors_zone", points });
 
     // Spec 19 (D94) : l'aller et, avec une fin de rendez-vous, le retour inversé, cherchés en même temps.
     const sens = await appelMoteur(reponse, () =>

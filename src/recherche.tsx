@@ -181,6 +181,8 @@ export function useDeroulerRecherche() {
       await oublierCle();
       return null;
     }
+    // Spec 27 : un seul point hors zone ⇒ le message va sous son champ.
+    if (res.etat === "hors_zone") return { champ: res.points.length === 1 ? res.points[0]! : null, message: messageEchec(res) };
     if (res.etat !== "ok") return { champ: null, message: messageEchec(res) };
     setRecherche({ ...courante, reponse: res.donnees });
     if (ouvrir === "revenir") router.dismissTo("/resultat");

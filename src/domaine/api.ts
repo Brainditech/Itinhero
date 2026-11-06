@@ -171,7 +171,15 @@ export type ResultatApi<T> =
   | { etat: "cle_refusee" }
   | { etat: "trop_de_demandes"; minutes: number }
   | { etat: "injoignable" }
+  | { etat: "hors_zone"; points: PointHorsZone[] }
   | { etat: "erreur_serveur" };
+
+/** Spec 27 (D105) : point de la demande hors de l'extrait OSM chargé (France métropolitaine et Corse). */
+export type PointHorsZone = "depart" | "arrivee";
+
+const schemaHorsZone = z
+  .object({ erreur: z.literal("hors_zone"), points: z.array(z.enum(["depart", "arrivee"])).min(1) })
+  .transform((r) => r.points);
 
 export type Echec = Exclude<ResultatApi<unknown>, { etat: "ok" }>;
 
@@ -218,6 +226,10 @@ export function clientApi({
     try {
       if (reponse.status === 401) return { etat: "cle_refusee" };
       if (reponse.status === 429) return { etat: "trop_de_demandes", minutes: minutesAttente(reponse.headers.get("retry-after")) };
+      if (reponse.status === 422) {
+        const lu = schemaHorsZone.safeParse(await reponse.json().catch(() => null));
+        return lu.success ? { etat: "hors_zone", points: lu.data } : { etat: "erreur_serveur" };
+      }
       if (!reponse.ok) return { etat: "erreur_serveur" };
       let corps: unknown;
       try {
@@ -271,5 +283,7 @@ export function messageEchec(echec: Exclude<Echec, { etat: "cle_refusee" }>): st
       return `Trop de recherches. Réessayez dans ${echec.minutes} min.`;
     case "erreur_serveur":
       return "La recherche a échoué.";
+    case "hors_zone":
+      return `${echec.points.length === 2 ? "Le départ et l'arrivée sont" : echec.points[0] === "depart" ? "Le départ est" : "L'arrivée est"} hors de la zone couverte : Itinhero ne connaît que la France métropolitaine et la Corse.`;
   }
 }
