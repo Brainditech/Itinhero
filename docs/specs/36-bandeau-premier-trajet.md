@@ -1,7 +1,7 @@
 # Spec 36 — Le bandeau du Résultat dit le premier trajet de la liste
 
 - **Date** : 2026-11-06
-- **État** : **approuvée par délégation** de Brainditech (« je te laisse choisir et implémente toutes les solutions, teste, capture », 2026-11-06). Règle : D114.
+- **État** : **approuvée par délégation** de Brainditech (« je te laisse choisir et implémente toutes les solutions, teste, capture », 2026-11-06). Règle : D114. **Appliquée** sur `app/bandeau-premier-trajet`.
 - **Branche** : `app/bandeau-premier-trajet`.
 - **Case de PLAN.md** : aucune ; demande consignée dans `docs/ETAT.md` (« implémente toutes les solutions », choix 2 B).
 - **Invariants** : aucun calcul nouveau. Les possibilités sont celles du serveur, seul leur ordre et le choix du verdict changent sur le téléphone.
@@ -34,3 +34,7 @@ Sur l'exemple : bandeau « Possible, départ 14:48 », liste 14:48, 15:47, 15:17
 2. Une nuit dehors est dernière dans les trois tris, même si elle arrive plus tôt ou marche moins (tests).
 3. Toutes les possibilités avec une nuit dehors ⇒ verdict « Nuit dehors » comme avant (D79, test existant).
 4. Sur le téléphone, Domicile → gare de Flers : bandeau « Départ » = l'heure de la première carte ; la nuit dehors en dernier.
+
+## 4. Constat (adb, 2026-11-06)
+
+Domicile → gare de Flers, vendredi 14:45, « Partir à » : bandeau « Possible, Départ 14:48 », déplié « Arrivée prévue à 19:59. Avec un taxi à réserver (prix non publié). » ; liste 14:48 → 19:59, 15:47 → 21:04, 15:17 → 22:18 (marche de plus de 15 min), 18:26 → samedi 09:10 (nuit dehors) en dernier (`docs/screenshots/20261106-spec36-resultat.png`, `-bandeau-deplie.png`, `-liste-bas.png`). Tests : `tri.test.ts` « D114 » (4 cas), `resultat.test.ts` et `voyages.test.ts` adaptés ; 383 tests, lint et types verts.

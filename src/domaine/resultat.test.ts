@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Etape, Possibilite, ReponseItineraires } from "./api";
 import { REPONSE_CHATELET } from "./reponse-chatelet";
 import { versRequeteItineraires, type BoutLieu } from "./demande";
+import { trier } from "./tri";
 import {
   aMarcheLongue,
   attenteApres,
@@ -460,9 +461,13 @@ describe("taxi comme étape (spec 16)", () => {
     expect(r.detail).toBe("Arrivée prévue à 18:43. Avec un taxi à réserver (prix non publié).");
   });
 
-  it("le verdict préfère un trajet sans taxi quand il n'impose pas de nuit", () => {
-    const soir = { ...chatelet, depart: "19:00", arrivee: "20:10", duree_minutes: 70 };
-    expect(phraseVerdict({ ...RETOUR_DIJON, possibilites: [soirTaxi, soir] }).heureDepart).toBe("19:00");
+  it("D114 : le verdict prend la première de la liste, même avec un taxi ; le taxi est dit", () => {
+    const soir = { ...chatelet, depart: "19:00", arrivee: "20:10", duree_minutes: 70, arrivee_utc: "2026-11-05T19:10:00.000Z" };
+    const taxiTot = { ...soirTaxi, arrivee_utc: "2026-11-05T17:43:00.000Z" };
+    const v = phraseVerdict({ ...RETOUR_DIJON, possibilites: [soir, taxiTot] });
+    expect(v.heureDepart).toBe("17:23");
+    expect(v.detail).toContain("taxi à réserver");
+    expect(trier([soir, taxiTot], "arrivee")[0]!.possibilite).toBe(taxiTot);
   });
 });
 

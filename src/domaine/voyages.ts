@@ -198,7 +198,7 @@ export type ResumeVoyage = {
 
 /**
  * La possibilité que le rectangle montre (D101) : la première du tri gardé ; avec « Arrivée la plus tôt », ou
- * si le tri n'en garde aucune, celle du verdict (D80).
+ * si le tri n'en garde aucune, celle du verdict (D114).
  */
 export function possibiliteMontree(r: ReponseSens, tri: Tri | undefined) {
   if (r.verdict === "impossible") return undefined;

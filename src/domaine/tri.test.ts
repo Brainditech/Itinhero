@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { schemaPossibilite, type Etape, type Possibilite } from "./api";
+import { nuitDehors, phraseVerdict, possibiliteDuVerdict } from "./resultat";
 import { etapeAReserver, LIBELLES_TRIS, minutesDeMarche, TRIS, trier, type Tri } from "./tri";
 
 /**
@@ -157,5 +158,50 @@ describe("D103 (spec 25) : une longue marche ne passe plus en tête", () => {
   it("« Sans réservation » range de la même façon", () => {
     const ps = [possibilite("06:18", "07:40", { marches: [48] }), possibilite("07:05", "08:30", { marches: [5] })];
     expect(ordre(ps, "sans_reservation")).toEqual(["1:07:05-08:30", "0:06:18-07:40"]);
+  });
+});
+
+describe("D114 (spec 36) : nuit dehors en dernier, verdict = première de la liste", () => {
+  /** Arrivée tôt, mais 8 h d'attente de nuit entre la marche (arrivée 21:10) et le transport (départ 05:30). */
+  function avecNuit(depart: string, arrivee: string): Possibilite {
+    const p = possibilite(depart, arrivee, { marches: [2] });
+    const [marche, transport] = p.etapes;
+    return {
+      ...p,
+      etapes: [
+        { ...marche!, depart: "21:00", arrivee: "21:10" },
+        { ...transport!, depart: "05:30", arrivee: "06:30" },
+      ],
+    };
+  }
+  const nuit = avecNuit("07:00", "08:00");
+  const taxi = possibilite("08:40", "10:30", { transport: { mode: "taxi" } });
+  const longue = possibilite("08:00", "10:00", { marches: [48] });
+  const simple = possibilite("08:30", "10:50");
+
+  it("la fixture a bien une nuit dehors, les autres non", () => {
+    expect(nuitDehors(nuit)).not.toBeNull();
+    for (const p of [taxi, longue, simple]) expect(nuitDehors(p)).toBeNull();
+  });
+
+  it("une nuit dehors passe en dernier dans les trois tris, même arrivée la première et sans marche", () => {
+    const ps = [nuit, taxi, longue, simple];
+    expect(trier(ps, "arrivee").map((x) => x.index)).toEqual([1, 3, 2, 0]);
+    expect(trier(ps, "marche").at(-1)!.index).toBe(0);
+    expect(trier([nuit, simple], "sans_reservation").map((x) => x.index)).toEqual([1, 0]);
+  });
+
+  it("le verdict porte sur la première carte de « Arrivée la plus tôt », taxi compris (exemple de Flers)", () => {
+    const ps = [nuit, longue, simple, taxi];
+    const r = { verdict: "possible" as const, demande: { date: "2026-11-14", heure: "08:00", sens: "partir" as const, marge: null, limite: null }, arrivee: { nom: "Flers", adresse: null }, possibilites: ps };
+    const premiere = trier(ps, "arrivee")[0]!.possibilite;
+    expect(premiere).toBe(taxi);
+    expect(possibiliteDuVerdict(r)).toBe(premiere);
+    expect(phraseVerdict(r).heureDepart).toBe("08:40");
+  });
+
+  it("toutes avec une nuit dehors ⇒ verdict « Nuit dehors » (D79 inchangé)", () => {
+    const r = { verdict: "possible" as const, demande: { date: "2026-11-14", heure: "08:00", sens: "partir" as const, marge: null, limite: null }, arrivee: { nom: "Flers", adresse: null }, possibilites: [nuit, avecNuit("06:00", "09:00")] };
+    expect(phraseVerdict(r).etat).toBe("nuit");
   });
 });
