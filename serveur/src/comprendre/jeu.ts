@@ -11,7 +11,8 @@ import { coutEur, MODELES_CLAUDE, type ModeleClaude } from "./cout.js";
  */
 export type Cas = { phrase: string; attendu: Partial<Comprehension> };
 
-const CHAMPS = ["lieu_texte", "depart_texte", "date", "heure", "sens", "marge", "fin_rdv"] as const;
+// Spec 35 : les zones aussi (null attendu quand la phrase n'en dit pas : Claude n'en invente pas).
+const CHAMPS = ["lieu_texte", "depart_texte", "date", "heure", "sens", "marge", "fin_rdv", "lieu_zone", "depart_zone"] as const;
 
 const norme = (s: string) =>
   s
@@ -28,7 +29,7 @@ export function ecarts(sortie: unknown, attendu: Partial<Comprehension>): string
   return CHAMPS.filter((champ) => {
     const a = attendu[champ] ?? null;
     const o = lu.data[champ];
-    if ((champ === "lieu_texte" || champ === "depart_texte") && typeof a === "string" && typeof o === "string") {
+    if ((champ === "lieu_texte" || champ === "depart_texte" || champ === "lieu_zone" || champ === "depart_zone") && typeof a === "string" && typeof o === "string") {
       const [x, y] = [norme(a), norme(o)];
       return !(x.includes(y) || y.includes(x));
     }

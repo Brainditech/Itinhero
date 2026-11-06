@@ -9,21 +9,24 @@ import { BoutonPrincipal, CarteFlottante, Lien, MotItinhero, Puce } from "@/comp
 import { AttributionCarte, FondCarte, useAttributionCarte } from "@/composants/FondCarte";
 import { champsDepuisComprehension } from "@/domaine/comprendre";
 import { maintenantAParis } from "@/domaine/demande";
-import { useRecherche } from "@/recherche";
+import { useLieuxDeLaPhrase, useRecherche } from "@/recherche";
 import { useClient, useSession } from "@/session";
 import { couleurs } from "@/theme/jetons";
 
 type Depart = "domicile" | "position";
 
 // Phase 1 : écran comparé à design/accueil/01-accueil.png. Derrière : la carte (D36).
-// « Chercher » (spec 28, D106) : la phrase part à `POST /v1/comprendre` ; comprise ⇒ le formulaire s'ouvre
-// pré-rempli, à vérifier avant de chercher ; tout échec (Claude absent, plafond, réseau) ⇒ formulaire de repli.
+// « Chercher » (spec 28, D106) : la phrase part à `POST /v1/comprendre` ; comprise ⇒ ses lieux sont cherchés (spec 35,
+// D113), puis le formulaire s'ouvre pré-rempli, listes de lieux ouvertes, à vérifier avant de chercher ; tout échec
+// de la compréhension (Claude absent, plafond, réseau) ⇒ formulaire de repli.
 export default function Accueil() {
   const insets = useSafeAreaInsets();
   const client = useClient();
   const { oublierCle } = useSession();
   const { setModification } = useRecherche();
-  const [enCours, setEnCours] = useState(false);
+  // Spec 35 : « phrase » pendant `/v1/comprendre`, « lieux » pendant la recherche des lieux compris.
+  const [enCours, setEnCours] = useState<"phrase" | "lieux" | null>(null);
+  const lieuxDeLaPhrase = useLieuxDeLaPhrase();
   const clavier = useAnimatedKeyboard();
   const [phrase, setPhrase] = useState("jeudi 10h RDV à Joigny");
   const [depart, setDepart] = useState<Depart>("domicile");
@@ -35,19 +38,30 @@ export default function Accueil() {
       router.push({ pathname: "/formulaire", params: { depart } });
       return;
     }
-    setEnCours(true);
+    setEnCours("phrase");
     const r = await client.comprendre(texte);
-    setEnCours(false);
     if (r.etat === "cle_refusee") {
+      setEnCours(null);
       await oublierCle();
       return;
     }
     if (r.etat !== "ok") {
+      setEnCours(null);
       router.push({ pathname: "/formulaire", params: { raison: "indisponible", depart } });
       return;
     }
     const champs = champsDepuisComprehension(r.donnees, { type: depart }, maintenantAParis(new Date()));
-    setModification({ remplace: null, champs, jeton: Date.now() });
+    // Spec 35 (D113) : les lieux compris sont cherchés tout de suite ; en cas d'échec, le formulaire garde le texte.
+    setEnCours("lieux");
+    let verifies: Awaited<ReturnType<typeof lieuxDeLaPhrase>> | undefined;
+    try {
+      verifies = await lieuxDeLaPhrase(r.donnees, champs);
+    } catch {
+      verifies = undefined;
+    }
+    setEnCours(null);
+    if (verifies === null) return;
+    setModification({ remplace: null, jeton: Date.now(), ...(verifies ?? { champs }) });
     router.push({ pathname: "/formulaire", params: { raison: "comprise", depart } });
   }
 
@@ -104,7 +118,11 @@ export default function Accueil() {
         <View className="flex-1" style={{ pointerEvents: "box-none" }} />
 
         <View className="px-4 pt-2" style={{ pointerEvents: "box-none" }}>
-          <BoutonPrincipal libelle={enCours ? "Lecture de la phrase…" : "Chercher"} desactive={enCours} onPress={chercher} />
+          <BoutonPrincipal
+            libelle={enCours === "phrase" ? "Lecture de la phrase…" : enCours === "lieux" ? "Recherche des lieux…" : "Chercher"}
+            desactive={enCours !== null}
+            onPress={chercher}
+          />
         </View>
       </Animated.View>
     </View>

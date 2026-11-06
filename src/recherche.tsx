@@ -3,7 +3,8 @@ import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 
 import { allerALAccueil } from "@/composants/BarreOnglets";
-import { messageEchec, type Candidat, type Point, type ReponseItineraires } from "@/domaine/api";
+import { messageEchec, type Candidat, type Comprehension, type Point, type ReponseItineraires } from "@/domaine/api";
+import { appliquerLieux, lieuDeLaPhrase, type LieuVerifie } from "@/domaine/comprendre";
 import {
   demandeRecalcul,
   maintenantAParis,
@@ -13,10 +14,11 @@ import {
   type ChampsFormulaire,
   type CoteBout,
   type Demande,
+  type ErreursFormulaire,
   type Trajet,
 } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
-import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS } from "@/domaine/suggestions";
+import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS, SUGGESTION_MIN } from "@/domaine/suggestions";
 import { champsDepuisVoyage, resumeVoyage, type Voyage } from "@/domaine/voyages";
 import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
@@ -56,7 +58,47 @@ export type Modification = {
   jeton: number;
   /** « Modifier la recherche » du Résultat (spec 34) : la recherche en cours reprise, sans bandeau « Vérifiez ». */
   reprise?: true;
+  /** Spec 35 : lieux de la phrase déjà cherchés par l'Accueil : listes à ouvrir sous les champs, et leurs messages. */
+  aChoisir?: Partial<Record<CoteBout, Candidat[]>>;
+  erreurs?: ErreursFormulaire;
 };
+
+/**
+ * Spec 35 (D113) : l'Accueil cherche chaque lieu de la phrase par `GET /v1/lieux` avant d'ouvrir le formulaire,
+ * le départ d'abord, près du domicile (départ Domicile) ou de la position si son accès est déjà accordé (D78) ;
+ * l'arrivée près du départ trouvé. Rend les champs, listes et messages du formulaire, ou null si la clé est refusée.
+ */
+export function useLieuxDeLaPhrase() {
+  const client = useClient();
+  const db = useSQLiteContext();
+  const { oublierCle } = useSession();
+  return async (c: Comprehension, champs: ChampsFormulaire) => {
+    let proche: Point | undefined;
+    if (champs.depart.type === "domicile") {
+      const d = await lireDomicileEnBase(db);
+      if (d) proche = { lat: d.lat, lon: d.lon };
+    }
+    proche ??= (await lirePositionSiAccordee()) ?? undefined;
+    const verifies: Partial<Record<CoteBout, LieuVerifie>> = {};
+    const zones: [CoteBout, string | null][] = [
+      ["depart", c.depart_zone ?? null],
+      ["arrivee", c.lieu_zone ?? null],
+    ];
+    for (const [cote, zone] of zones) {
+      const bout = champs[cote];
+      if (bout.type !== "texte" || bout.texte.trim().length < SUGGESTION_MIN) continue;
+      const r = await client.lieux(bout.texte.trim(), proche);
+      if (r.etat === "cle_refusee") {
+        await oublierCle();
+        return null;
+      }
+      const v = lieuDeLaPhrase(r, zone);
+      verifies[cote] = v;
+      if (v.etat === "retenu") proche = { lat: v.bout.lat, lon: v.bout.lon };
+    }
+    return appliquerLieux(champs, verifies);
+  };
+}
 
 /**
  * Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null).

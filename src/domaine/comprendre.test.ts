@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { clientApi, type Comprehension } from "./api";
-import { champsDepuisComprehension } from "./comprendre";
+import { clientApi, type Candidat, type Comprehension } from "./api";
+import { appliquerLieux, champsDepuisComprehension, lieuDeLaPhrase } from "./comprendre";
+import { boutDuCandidat, MESSAGES_SUGGESTIONS } from "./suggestions";
 
 const MAINTENANT = { date: "2026-11-06", heure: "09:41" };
 const VIDE: Comprehension = { lieu_texte: null, depart_texte: null, date: null, heure: null, sens: null, marge: null, fin_rdv: null };
@@ -52,5 +53,49 @@ describe("clientApi.comprendre (spec 28, critère 10)", () => {
     expect(JSON.parse(ok.mock.calls[0]![1].body as string)).toEqual({ phrase: "jeudi Joigny" });
     const ko = vi.fn(async () => new Response(JSON.stringify({ erreur: "plafond_atteint" }), { status: 503 }));
     expect(await clientApi({ urlApi: "http://x", cle: "k", fetch: ko }).comprendre("jeudi Joigny")).toEqual({ etat: "erreur_serveur" });
+  });
+});
+
+describe("lieux de la phrase (spec 35, D113, critère 4)", () => {
+  const lieu = (nom: string, code_postal: string, transport?: "train"): Candidat => ({
+    nom,
+    lat: 48.74,
+    lon: -0.57,
+    type: transport ? "arret" : "lieu",
+    commune: "Flers",
+    code_postal,
+    ...(transport ? { transport } : {}),
+  });
+  const GARE = lieu("Flers", "61100", "train");
+  const SOMME = lieu("Flers", "80360");
+  const champs = champsDepuisComprehension({ ...VIDE, lieu_texte: "flers" }, { type: "domicile" }, MAINTENANT);
+
+  it("un seul lieu ⇒ écrit dans le champ", () => {
+    const r = lieuDeLaPhrase({ etat: "ok", donnees: [GARE] }, null);
+    expect(r).toEqual({ etat: "retenu", bout: boutDuCandidat(GARE) });
+    expect(appliquerLieux(champs, { arrivee: r })).toEqual({ champs: { ...champs, arrivee: boutDuCandidat(GARE) }, aChoisir: {}, erreurs: {} });
+  });
+
+  it("plusieurs ⇒ la liste (5 au plus) sous le champ, texte gardé", () => {
+    const six = [GARE, SOMME, GARE, SOMME, GARE, SOMME];
+    const r = lieuDeLaPhrase({ etat: "ok", donnees: six }, null);
+    expect(r).toEqual({ etat: "choisir", candidats: six.slice(0, 5) });
+    expect(appliquerLieux(champs, { arrivee: r })).toEqual({
+      champs,
+      aChoisir: { arrivee: six.slice(0, 5) },
+      erreurs: { arrivee: MESSAGES_SUGGESTIONS.choisir },
+    });
+  });
+
+  it("zone dite ⇒ seuls les lieux de la zone ; un seul reste ⇒ écrit", () => {
+    expect(lieuDeLaPhrase({ etat: "ok", donnees: [SOMME, GARE] }, "basse normandie")).toEqual({ etat: "retenu", bout: boutDuCandidat(GARE) });
+  });
+
+  it("aucun ⇒ message sous le champ ; recherche impossible ⇒ texte seul, sans message", () => {
+    const aucun = lieuDeLaPhrase({ etat: "ok", donnees: [] }, null);
+    expect(appliquerLieux(champs, { arrivee: aucun }).erreurs).toEqual({ arrivee: MESSAGES_SUGGESTIONS.aucun("flers") });
+    const panne = lieuDeLaPhrase({ etat: "injoignable" }, null);
+    expect(panne).toEqual({ etat: "inconnu" });
+    expect(appliquerLieux(champs, { arrivee: panne })).toEqual({ champs, aChoisir: {}, erreurs: {} });
   });
 });

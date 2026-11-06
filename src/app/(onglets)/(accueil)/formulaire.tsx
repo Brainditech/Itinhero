@@ -94,13 +94,14 @@ export default function Formulaire() {
   const estComprise = (m: typeof modification) => m !== null && m.remplace === null && !m.reprise;
   const [comprise, setComprise] = useState(() => estComprise(modification));
   const [modificationVue, setModificationVue] = useState(modification?.jeton);
-  const [erreurs, setErreurs] = useState<ErreursFormulaire>({});
+  // Spec 35 : lieux de la phrase déjà cherchés par l'Accueil ⇒ leurs listes et messages sont ouverts dès l'arrivée.
+  const [erreurs, setErreurs] = useState<ErreursFormulaire>(() => modification?.erreurs ?? {});
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
   const [enCours, setEnCours] = useState(false);
   const { demarrer } = useDeroulerRecherche();
   // Champ de lieu qui a le clavier, et lieux à choisir laissés par « Chercher » sous un champ (D91).
   const [actif, setActif] = useState<CoteBout | null>(null);
-  const [aChoisir, setAChoisir] = useState<Partial<Record<CoteBout, Candidat[]>>>({});
+  const [aChoisir, setAChoisir] = useState<Partial<Record<CoteBout, Candidat[]>>>(() => modification?.aChoisir ?? {});
   const suggereDepart = useSuggestionsLieu(champs.depart, champs.arrivee, actif === "depart");
   const suggereArrivee = useSuggestionsLieu(champs.arrivee, champs.depart, actif === "arrivee");
   const listeDe = (cote: CoteBout): EtatSuggestions => {
@@ -143,9 +144,9 @@ export default function Formulaire() {
     // Reprise de la recherche (spec 34) : le trajet à remplacer déjà retenu ici reste retenu.
     if (!modification.reprise) setRemplace(modification.remplace);
     setComprise(estComprise(modification));
-    setErreurs({});
+    setErreurs(modification.erreurs ?? {});
     setErreurRecherche(undefined);
-    setAChoisir({});
+    setAChoisir(modification.aChoisir ?? {});
   }
   // Lue une fois : une recherche ouverte plus tard depuis l'Accueil part des valeurs habituelles.
   useEffect(() => {
