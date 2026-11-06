@@ -14,7 +14,8 @@ import { CartePossibilite } from "@/composants/Trajet";
 import { VotreTrajet } from "@/composants/VotreTrajet";
 import type { ReponseSens } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
-import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
+import { maintenantAParis } from "@/domaine/demande";
+import { adresseArrivee, bandeauLointain, finHoraires, horairesDu, ligneHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
 import { bandeauVoyage, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
 import { useModifierVoyage, useRecherche, type Recherche } from "@/recherche";
@@ -52,7 +53,11 @@ export default function Resultat() {
   const arrivee = recherche?.arrivee.lieu;
   if (!recherche?.reponse || !depart || !arrivee) return <Redirect href="/formulaire" />;
   const { reponse, demande, rouvert } = recherche;
-  const horaires = finHoraires([...reponse.possibilites, ...(reponse.retour?.possibilites ?? [])]);
+  const toutes = [...reponse.possibilites, ...(reponse.retour?.possibilites ?? [])];
+  const du = horairesDu(toutes);
+  const horaires = ligneHoraires(du, finHoraires(toutes));
+  // Spec 32 : un trajet rouvert garde la date d'aujourd'hui pour le calcul (les horaires enregistrés ne changent pas).
+  const lointain = bandeauLointain(demande.date, maintenantAParis(new Date()).date, du);
   const modifier = () => router.dismissTo("/formulaire");
   const choisirTri = (trajet: Trajet, tri: Tri) => {
     setChoixTris({ pour: reponse, tris: { ...tris, [trajet]: tri } });
@@ -62,6 +67,7 @@ export default function Resultat() {
   return (
     <Ecran ref={defilement}>
       {rouvert ? <BandeauInfo texte={bandeauVoyage(rouvert.voyage.enregistre_le)} /> : null}
+      {lointain ? <BandeauInfo texte={lointain} /> : null}
       <VotreTrajet
         demande={demande}
         depart={{ nom: depart.nom, adresse: depart.adresse }}
@@ -99,7 +105,7 @@ export default function Resultat() {
       ) : null}
 
       {horaires ? (
-        <Text className="text-center font-inter-medium text-secondaire text-primaire">{`Horaires valables jusqu'au ${horaires}`}</Text>
+        <Text className="text-center font-inter-medium text-secondaire text-primaire">{horaires}</Text>
       ) : null}
       {rouvert ? null : (
         <View className="items-center">

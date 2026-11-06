@@ -98,6 +98,7 @@ describe("POST /v1/itineraires, normalisation (critère 6)", () => {
       trip_id: "1014608-1-1",
       date_service: "2026-11-12",
       fin_validite: null, // aucun horaires.json dans ce test
+      date_horaires: "2026-09-21", // spec 32 : date des fichiers du jeu dans le manifeste
     });
     expect(car.de.arret).toBe("600326");
     const train = p.etapes[3];

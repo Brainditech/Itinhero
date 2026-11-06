@@ -72,6 +72,8 @@ export type SourceEtape =
       date_service: string;
       /** Dernier jour couvert par le jeu (issue 0010, H) ; null si inconnu. */
       fin_validite: string | null;
+      /** Spec 32 (D110) : date des horaires du jeu (fichiers, sinon téléchargement), AAAA-MM-JJ ; null si inconnue. */
+      date_horaires: string | null;
     }
   | { type: "osm"; jeu: string; version: string };
 
@@ -134,17 +136,26 @@ export function lireTripId(tripId: string): { date_service: string; jeu: string;
   return { date_service: `${m[1]}-${m[2]}-${m[3]}`, jeu: m[4]!, trip_id: m[5]! };
 }
 
-type IndexManifest = { gtfs: Map<string, string>; osm: { jeu: string; version: string } | null };
+type IndexManifest = {
+  gtfs: Map<string, string>;
+  dates: Map<string, string | null>;
+  osm: { jeu: string; version: string } | null;
+};
 
 export function indexer(manifest: Manifest): IndexManifest {
   const gtfs = new Map<string, string>();
+  const dates = new Map<string, string | null>();
   let osm: IndexManifest["osm"] = null;
   for (const f of manifest.fichiers) {
     const version = f.feed_version ?? f.date_fichiers ?? f.date_telechargement;
-    if (f.type === "gtfs") gtfs.set(f.jeu, version);
+    if (f.type === "gtfs") {
+      gtfs.set(f.jeu, version);
+      const d = f.date_fichiers ?? f.date_telechargement;
+      dates.set(f.jeu, /^\d{4}-\d{2}-\d{2}$/.test(d ?? "") ? d : null);
+    }
     else osm ??= { jeu: f.jeu, version: f.date_fichiers ?? f.date_telechargement };
   }
-  return { gtfs, osm };
+  return { gtfs, dates, osm };
 }
 
 function sourceEtape(e: Etape, idx: IndexManifest, horaires?: IndexHoraires): SourceEtape | null {
@@ -153,7 +164,8 @@ function sourceEtape(e: Etape, idx: IndexManifest, horaires?: IndexHoraires): So
     const version = t ? idx.gtfs.get(t.jeu) : undefined;
     if (!t || !version) return null;
     const fin_validite = horaires?.finValidite(t.jeu) ?? null;
-    return { type: "gtfs", jeu: t.jeu, version, trip_id: t.trip_id, date_service: t.date_service, fin_validite };
+    const date_horaires = idx.dates.get(t.jeu) ?? null;
+    return { type: "gtfs", jeu: t.jeu, version, trip_id: t.trip_id, date_service: t.date_service, fin_validite, date_horaires };
   }
   // Marche et taxi : routage de MOTIS sur la carte OSM chargée.
   if ((e.mode === "WALK" || e.mode === "CAR") && idx.osm) return { type: "osm", jeu: idx.osm.jeu, version: idx.osm.version };

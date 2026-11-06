@@ -403,6 +403,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests (fichier cassé ⇒ ancien jeu conservé, plus événement Sentry).
 - [ ] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
   Preuve : test, plus capture.
+  Fait en partie (spec 32, D110) : `date_horaires` dans la source GTFS (serveur), ligne « Horaires du …, valables jusqu'au … » et bandeau au-delà de 7 jours au Résultat ; tests `src/domaine/horaires.test.ts`, `serveur/src/routes/itineraires.test.ts`, 2026-11-06. Manque : la capture.
 
 ### Phase 9 — Surveillance et sécurisation
 

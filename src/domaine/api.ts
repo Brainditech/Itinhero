@@ -39,6 +39,8 @@ const schemaSource = z.discriminatedUnion("type", [
     date_service: z.string().min(1),
     // Dernier jour couvert par le jeu (issue 0010, H) ; null si le serveur ne le sait pas.
     fin_validite: z.iso.date().nullable(),
+    // Spec 32 (D110) : date des horaires du jeu ; absente d'un serveur plus ancien ⇒ null.
+    date_horaires: z.iso.date().nullable().default(null),
   }),
   z.object({ type: z.literal("osm"), jeu: z.string().min(1), version: z.string().min(1) }),
 ]);
