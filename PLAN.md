@@ -43,6 +43,7 @@
 | expo-secure-store | ~58.0.2 | `npx expo install`, 2026-11-04 (spec 10) |
 | expo-location | ~58.0.20 | `npx expo install`, 2026-11-04 (spec 10) |
 | expo-sqlite | ~58.0.15 | `npx expo install`, 2026-11-04 (spec 10) |
+| @anthropic-ai/sdk | 1.3.0 (2026-10-23) | `npm install --save-exact`, 2026-11-06 (spec 28) ; 1.6.0 publiée la veille, écartée (moins de deux semaines) |
 | MOTIS | v2.11.4 (2026-10-21) | https://api.github.com/repos/motis-project/motis/releases/latest, lu le 2026-11-02 |
 | GTFS SNCF | feed_version 2026-10-18, sha256 `6892f10eb62e48e2a6dc6fd0ea6e27cbadcc1163d44b34e64661dae6be701dce` | `fixtures/_rapatrie-2026-10-19/sncf.zip` |
 | GTFS Mobigo 89 | fichiers du 2026-09-21, sha256 `201780dac66a1663607d4c12f138d60c7e2b78ee7ae896eae06abbdc85d09db6` | `fixtures/_rapatrie-2026-10-19/mobigo89.zip` |
@@ -252,8 +253,10 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait à moitié (spec 09, D55, D56) : côté serveur, `serveur/src/acces/acces.test.ts` (sans clé, clé vide, mal formée, inconnue ⇒ 401 ; minute et jour de Paris dépassés ⇒ 429 avec `Retry-After`), 2026-11-04. Côté app (spec 10, D64) : écran de la clé au premier lancement, vérifiée par le serveur puis gardée dans `expo-secure-store`, 401 ⇒ écran de la clé (`src/domaine/api.test.ts`, `src/domaine/cle.test.ts`, `npm run test:national`), 2026-11-04. Manque : la saisie constatée sur le téléphone de Brainditech (spec 10, critère 4).
 - [ ] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.
   Preuve : jeu d'au moins 30 phrases réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
-- [ ] Plafond mensuel et compteur de coût.
+  Fait en partie (spec 28, D106) : route, sortie structurée revalidée par Zod, contexte de Paris fourni par le serveur, tests `serveur/src/routes/comprendre.test.ts` ; jeu de 30 phrases `serveur/src/comprendre/jeu-30-phrases.json` et `npm run comprendre:jeu`, 2026-11-06. Manque : la mesure avec la clé Anthropic (Brainditech) et le modèle retenu, consigné.
+- [x] Plafond mensuel et compteur de coût.
   Preuve : test (plafond atteint ⇒ formulaire de repli).
+  Fait (spec 28, D106) : `serveur/src/routes/comprendre.test.ts` (plafond atteint ⇒ 503 `plafond_atteint` sans appeler Claude, remis à zéro le mois suivant) et `src/domaine/comprendre.test.ts` (503 ⇒ échec, l'Accueil ouvre le formulaire de repli), 2026-11-06.
 - [x] Formulaire de repli : lieu, date, heure, « arriver avant » / « partir à », marge.
   Preuve : test, plus capture.
   Fait : `src/domaine/demande.test.ts` (20 tests : validation, Europe/Paris, `formaterDate`, schéma Zod) ; captures du téléphone de Brainditech regardées le 2026-11-03 (hors dépôt, D38) : formulaire conforme à la maquette, bandeau, sélecteurs de date et d'heure, marge masquée avec « Partir à », erreur « Indiquez le lieu du rendez-vous. », « Chercher » au-dessus du clavier ; retour vers l'Accueil. Spec 02, issue 0004.
@@ -414,8 +417,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Secrets lus seulement dans l'environnement, refus de démarrer sans eux.
   Preuve : test.
   Fait (spec 04, spec 09) : `serveur/src/env.test.ts` (absente, mal formée sans recopier la valeur), `serveur/src/index.ts` ne lit que `process.env` et sort en erreur, 2026-11-06 (spec 26).
-- [ ] Limite de débit et plafond de coût sur toute route qui appelle Claude.
+- [x] Limite de débit et plafond de coût sur toute route qui appelle Claude.
   Preuve : test.
+  Fait (spec 28) : `/v1/comprendre`, seule route qui appelle Claude, sous la clé et les limites de `/v1` (401, 429) et le plafond du mois (503), `serveur/src/routes/comprendre.test.ts`, 2026-11-06. `/v1/assistant` (phase 6 bis) devra avoir le même test.
 - [x] Conteneurs sans utilisateur root, avec healthcheck.
   Preuve : `docker inspect` (User, Healthcheck).
   Fait (spec 26) : `docker inspect` sur le PC, 2026-11-06 : `api` `User=node` avec healthcheck `fetch /health`, `motis` `User=motis` avec healthcheck `wget /api/v1/health` (sortie dans `docs/specs/26-securisation-serveur.md` §7). À refaire sur le VPS (phase 10).

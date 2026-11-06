@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MODELES_CLAUDE } from "./comprendre/cout.js";
 
 /**
  * Variables d'environnement du serveur (PLAN §3, invariant 11).
@@ -24,10 +25,22 @@ const schemaEnv = z
     LIEUX_OSM: z.string().min(1).optional(),
     // Facultative (D69) : chemin de `horaires.json` (`npm run donnees:horaires`). Absente ⇒ réservations non signalées.
     HORAIRES_GTFS: z.string().min(1).optional(),
+    // Spec 28 (D106) : Claude, toutes les trois ou aucune. Absentes ⇒ `/v1/comprendre` répond 503 et l'app
+    // passe au formulaire ; une seule ou deux ⇒ le serveur refuse de démarrer.
+    ANTHROPIC_API_KEY: z.string().regex(/^sk-ant-[A-Za-z0-9_-]{20,}$/).optional(),
+    CLAUDE_MODEL: z.enum(MODELES_CLAUDE).optional(),
+    CLAUDE_PLAFOND_MENSUEL_EUR: z.coerce.number().positive().max(1000).optional(),
   })
   .refine((e) => e.LIMITE_REQ_JOUR >= e.LIMITE_REQ_MINUTE, {
     path: ["LIMITE_REQ_JOUR"],
     message: "inférieure à la limite par minute",
+  })
+  .superRefine((e, ctx) => {
+    const claude = ["ANTHROPIC_API_KEY", "CLAUDE_MODEL", "CLAUDE_PLAFOND_MENSUEL_EUR"] as const;
+    const presentes = claude.filter((n) => e[n] !== undefined);
+    if (presentes.length > 0 && presentes.length < claude.length) {
+      for (const n of claude) if (e[n] === undefined) ctx.addIssue({ code: "custom", path: [n], message: "absente alors que Claude est configuré" });
+    }
   });
 
 export type Env = z.infer<typeof schemaEnv>;
@@ -44,7 +57,8 @@ export class ErreurEnv extends Error {
 
 /** Lit l'environnement ; le message d'erreur nomme les variables sans jamais recopier leur valeur. */
 export function lireEnv(source: Record<string, string | undefined>): Env {
-  const resultat = schemaEnv.safeParse(source);
+  // Une variable vide (`${X:-}` du compose) vaut une variable absente.
+  const resultat = schemaEnv.safeParse(Object.fromEntries(Object.entries(source).filter(([, v]) => v !== "")));
   if (!resultat.success) {
     const noms = [...new Set(resultat.error.issues.map((i) => String(i.path[0])))];
     throw new ErreurEnv(noms);

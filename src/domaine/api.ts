@@ -164,6 +164,22 @@ export type RequeteItineraires = {
   fin_rdv?: string;
 };
 
+// ——— Phrase comprise (spec 28, D106) ———
+
+const HEURE_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Champs rendus par `POST /v1/comprendre` : seulement ce que la phrase dit, null sinon (invariant 3). */
+export const schemaComprehension = z.object({
+  lieu_texte: z.string().min(2).max(200).nullable(),
+  depart_texte: z.string().min(2).max(200).nullable(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  heure: z.string().regex(HEURE_HHMM).nullable(),
+  sens: z.enum(["arriver", "partir"]).nullable(),
+  marge: z.number().int().min(0).max(120).nullable(),
+  fin_rdv: z.string().regex(HEURE_HHMM).nullable(),
+});
+export type Comprehension = z.infer<typeof schemaComprehension>;
+const schemaReponseComprendre = z.object({ comprehension: schemaComprehension });
+
 // ——— Résultat d'un appel ———
 
 export type ResultatApi<T> =
@@ -259,6 +275,14 @@ export function clientApi({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(requete),
+      });
+    },
+    /** Phrase de l'Accueil ⇒ champs compris par le serveur (spec 28). Tout échec ⇒ le formulaire de repli. */
+    comprendre(phrase: string): Promise<ResultatApi<Comprehension>> {
+      return appeler("/v1/comprendre", schemaReponseComprendre.transform((r) => r.comprehension), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phrase }),
       });
     },
     /** Chemin à pied de `de` (la position) à `a` (la fin de la marche en cours), parti maintenant (spec 20). */

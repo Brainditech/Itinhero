@@ -7,19 +7,49 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
 import { BoutonPrincipal, CarteFlottante, Lien, MotItinhero, Puce } from "@/composants/elements";
 import { AttributionCarte, FondCarte, useAttributionCarte } from "@/composants/FondCarte";
+import { champsDepuisComprehension } from "@/domaine/comprendre";
+import { maintenantAParis } from "@/domaine/demande";
+import { useRecherche } from "@/recherche";
+import { useClient, useSession } from "@/session";
 import { couleurs } from "@/theme/jetons";
 
 type Depart = "domicile" | "position";
 
-// Phase 1, étape 1 : écran en valeurs en dur, comparé à design/accueil/01-accueil.png.
-// « Chercher » ouvre le formulaire de repli avec le bandeau « indisponible » (D15 : /v1/comprendre n'existe pas
-// encore, spec 10) et le départ choisi ; la phrase n'est pas transmise. Derrière : la carte (D36).
+// Phase 1 : écran comparé à design/accueil/01-accueil.png. Derrière : la carte (D36).
+// « Chercher » (spec 28, D106) : la phrase part à `POST /v1/comprendre` ; comprise ⇒ le formulaire s'ouvre
+// pré-rempli, à vérifier avant de chercher ; tout échec (Claude absent, plafond, réseau) ⇒ formulaire de repli.
 export default function Accueil() {
   const insets = useSafeAreaInsets();
+  const client = useClient();
+  const { oublierCle } = useSession();
+  const { setModification } = useRecherche();
+  const [enCours, setEnCours] = useState(false);
   const clavier = useAnimatedKeyboard();
   const [phrase, setPhrase] = useState("jeudi 10h RDV à Joigny");
   const [depart, setDepart] = useState<Depart>("domicile");
   const attribution = useAttributionCarte();
+
+  async function chercher() {
+    const texte = phrase.trim();
+    if (texte.length < 3) {
+      router.push({ pathname: "/formulaire", params: { depart } });
+      return;
+    }
+    setEnCours(true);
+    const r = await client.comprendre(texte);
+    setEnCours(false);
+    if (r.etat === "cle_refusee") {
+      await oublierCle();
+      return;
+    }
+    if (r.etat !== "ok") {
+      router.push({ pathname: "/formulaire", params: { raison: "indisponible", depart } });
+      return;
+    }
+    const champs = champsDepuisComprehension(r.donnees, { type: depart }, maintenantAParis(new Date()));
+    setModification({ remplace: null, champs, jeton: Date.now() });
+    router.push({ pathname: "/formulaire", params: { raison: "comprise", depart } });
+  }
 
   // Clavier fermé : on laisse la place de la barre d'onglets. Ouvert : le bouton se pose sur le clavier.
   const reserveOnglets = insets.bottom + 8 + HAUTEUR_BARRE_ONGLETS + 16;
@@ -74,10 +104,7 @@ export default function Accueil() {
         <View className="flex-1" style={{ pointerEvents: "box-none" }} />
 
         <View className="px-4 pt-2" style={{ pointerEvents: "box-none" }}>
-          <BoutonPrincipal
-            libelle="Chercher"
-            onPress={() => router.push({ pathname: "/formulaire", params: { raison: "indisponible", depart } })}
-          />
+          <BoutonPrincipal libelle={enCours ? "Lecture de la phrase…" : "Chercher"} desactive={enCours} onPress={chercher} />
         </View>
       </Animated.View>
     </View>

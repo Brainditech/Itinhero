@@ -71,8 +71,8 @@ const CHOIX_SENS = [
 ] as const satisfies readonly [{ valeur: Sens; libelle: string }, { valeur: Sens; libelle: string }];
 
 /**
- * Formulaire de repli (spec 02). Ouvert par le lien de l'Accueil, ou par son « Chercher » avec
- * `raison=indisponible` (D15 : /v1/comprendre n'existe pas encore), et le départ choisi (`depart`).
+ * Formulaire de repli (spec 02). Ouvert par le lien de l'Accueil, ou par son « Chercher » : pré-rempli avec la
+ * phrase comprise (`raison=comprise`, spec 28), ou vide quand `/v1/comprendre` échoue (`raison=indisponible`).
  * Départ et Arrivée (spec 13) : texte tapé, Domicile ou Ma position, échangés par ⇅.
  * Pendant la frappe, les lieux suggérés s'affichent sous le champ (spec 18, D90) ; un lieu touché s'y écrit (D91).
  * « Chercher » : validation, puis la recherche dans l'ordre de D78 (`useDeroulerRecherche`) ; un texte tapé
@@ -88,9 +88,9 @@ export default function Formulaire() {
   // « Modifier » dans Mes trajets (spec 24, D100) : le formulaire reprend le voyage, et retient celui à remplacer.
   const { modification, setModification } = useRecherche();
   const [champs, setChamps] = useState<ChampsFormulaire>(() => modification?.champs ?? valeursInitiales(departParam));
-  const [remplace, setRemplace] = useState<{ cle: string; titre: string } | null>(() =>
-    modification ? { cle: modification.cle, titre: modification.titre } : null,
-  );
+  const [remplace, setRemplace] = useState<{ cle: string; titre: string } | null>(() => modification?.remplace ?? null);
+  // Spec 28 : ouvert avec la phrase comprise de l'Accueil ⇒ bandeau « Vérifiez » jusqu'au prochain changement.
+  const [comprise, setComprise] = useState(() => modification !== null && modification.remplace === null);
   const [modificationVue, setModificationVue] = useState(modification?.jeton);
   const [erreurs, setErreurs] = useState<ErreursFormulaire>({});
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
@@ -110,6 +110,7 @@ export default function Formulaire() {
   // Un champ modifié perd son message d'erreur ; les autres le gardent jusqu'au prochain « Chercher ».
   function changer<K extends keyof ChampsFormulaire>(cle: K, valeur: ChampsFormulaire[K]) {
     setChamps((c) => ({ ...c, [cle]: valeur }));
+    setComprise(false);
     setErreurs((e) => ({ ...e, [cle]: undefined }));
     if (cle === "depart" || cle === "arrivee") setAChoisir((a) => ({ ...a, [cle]: undefined }));
   }
@@ -137,7 +138,8 @@ export default function Formulaire() {
   if (modification && modification.jeton !== modificationVue) {
     setModificationVue(modification.jeton);
     setChamps(modification.champs);
-    setRemplace({ cle: modification.cle, titre: modification.titre });
+    setRemplace(modification.remplace);
+    setComprise(modification.remplace === null);
     setErreurs({});
     setErreurRecherche(undefined);
     setAChoisir({});
@@ -236,6 +238,9 @@ export default function Formulaire() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {comprise ? (
+            <BandeauInfo texte="Voici ce qui a été compris. Vérifiez chaque champ, puis touchez « Chercher »." />
+          ) : null}
           {raison === "indisponible" ? (
             <BandeauInfo texte="La compréhension de phrase est indisponible. Remplissez ces champs." />
           ) : null}

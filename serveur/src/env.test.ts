@@ -60,3 +60,23 @@ describe("lireEnv", () => {
     refuse({ ...BASE, LIMITE_REQ_JOUR: "10" }, "LIMITE_REQ_JOUR");
   });
 });
+
+describe("lireEnv, Claude (spec 28, D106)", () => {
+  const CLE = "sk-ant-api03-" + "x".repeat(40);
+  const CLAUDE = { ANTHROPIC_API_KEY: CLE, CLAUDE_MODEL: "claude-haiku-5-5", CLAUDE_PLAFOND_MENSUEL_EUR: "5" };
+  it("les trois variables ⇒ lues ; aucune ⇒ Claude absent", () => {
+    expect(lireEnv({ ...BASE, ...CLAUDE })).toMatchObject({ CLAUDE_MODEL: "claude-haiku-5-5", CLAUDE_PLAFOND_MENSUEL_EUR: 5 });
+    expect(lireEnv(BASE).ANTHROPIC_API_KEY).toBeUndefined();
+    // Le compose passe `${X:-}` : vides, elles valent absentes.
+    expect(lireEnv({ ...BASE, ANTHROPIC_API_KEY: "", CLAUDE_MODEL: "", CLAUDE_PLAFOND_MENSUEL_EUR: "" }).CLAUDE_MODEL).toBeUndefined();
+  });
+  it("une ou deux seulement ⇒ refus qui nomme celles qui manquent", () => {
+    refuse({ ...BASE, ANTHROPIC_API_KEY: CLE }, "CLAUDE_MODEL", CLE);
+    refuse({ ...BASE, ANTHROPIC_API_KEY: CLE, CLAUDE_MODEL: "claude-haiku-5-5" }, "CLAUDE_PLAFOND_MENSUEL_EUR", CLE);
+  });
+  it("clé mal formée, modèle sans prix connu, plafond nul ⇒ refus sans recopier la valeur", () => {
+    refuse({ ...BASE, ...CLAUDE, ANTHROPIC_API_KEY: "cle-canari-1234567890" }, "ANTHROPIC_API_KEY", "canari");
+    refuse({ ...BASE, ...CLAUDE, CLAUDE_MODEL: "modele-canari" }, "CLAUDE_MODEL", "canari");
+    refuse({ ...BASE, ...CLAUDE, CLAUDE_PLAFOND_MENSUEL_EUR: "0" }, "CLAUDE_PLAFOND_MENSUEL_EUR");
+  });
+});
