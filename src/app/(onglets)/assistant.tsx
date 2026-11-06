@@ -1,26 +1,22 @@
-import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from "react-native";
 import { SymbolView } from "expo-symbols";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
-import { BoutonPrincipal, CarteErreur, CarteFlottante, Lien, MotItinhero, Puce } from "@/composants/elements";
-import { messageEchec } from "@/domaine/api";
+import { Lien, MotItinhero, Puce } from "@/composants/elements";
 import {
-  appliquerChangements,
-  MESSAGES_ASSISTANT,
-  pucesReglages,
-  reglagesDepuisChamps,
-  remplirConseil,
-  SUGGESTIONS_ASSISTANT,
-  type ReponseAssistant,
-} from "@/domaine/assistant";
-import { maintenantAParis, validerFormulaire, type ChampsFormulaire } from "@/domaine/demande";
+  MESSAGES_DISCUSSION,
+  messageIssue,
+  messagesAEnvoyer,
+  pucesDepart,
+  resumeRecherche,
+  TEXTE_MAX,
+  type MessageFil,
+} from "@/domaine/discussion";
 import { jourCourt, possibiliteDuVerdict } from "@/domaine/resultat";
-import { champsDepuisRecherche } from "@/domaine/voyages";
-import { useDeroulerRecherche, useOuvrirFormulaire, useRecherche, type Modification, type Recherche } from "@/recherche";
+import { useRecherche, type Recherche } from "@/recherche";
 import { useClient, useSession } from "@/session";
 import { couleurs, rayons } from "@/theme/jetons";
 
@@ -28,9 +24,9 @@ import { couleurs, rayons } from "@/theme/jetons";
 const RAYON_BULLE = parseInt(rayons.bulle, 10);
 
 /**
- * Assistant (phase 6 bis, spec 37, D31, D115 ; maquette design/assistant/09-assistant.png). La demande et les réglages
- * de la recherche en cours partent à `POST /v1/assistant` (sans coordonnées ni historique) ; la réponse est montrée,
- * et rien n'est relancé ni rangé sans « Relancer la recherche » ou « Voir les trajets ».
+ * Assistant en discussion (spec 39, D117 ; maquette design/assistant/09-assistant.png). Chaque message part à
+ * `POST /v1/assistant/discussion` avec la discussion et le résumé de la recherche en cours (sans coordonnées) ; la
+ * réponse s'écrit à mesure qu'elle arrive. La discussion ne vit que tant que l'app est ouverte : rien n'est enregistré.
  */
 export default function Assistant() {
   const insets = useSafeAreaInsets();
@@ -40,6 +36,7 @@ export default function Assistant() {
   const styleBas = useAnimatedStyle(() => ({
     paddingBottom: clavier.height.value > 0 ? clavier.height.value + 8 : reserveOnglets,
   }));
+  const enCours = recherche?.reponse && recherche.depart.lieu && recherche.arrivee.lieu ? recherche : null;
 
   return (
     <View className="flex-1 bg-surface">
@@ -49,172 +46,203 @@ export default function Assistant() {
           <Text accessibilityRole="header" className="mt-2 font-inter-bold text-titre-ecran text-texte">
             Assistant
           </Text>
-          <Text className="font-inter text-secondaire text-texte-secondaire">{MESSAGES_ASSISTANT.sousTitre}</Text>
+          <Text className="font-inter text-secondaire text-texte-secondaire">{MESSAGES_DISCUSSION.sousTitre}</Text>
         </View>
-        {recherche?.reponse && recherche.depart.lieu && recherche.arrivee.lieu ? (
-          <Conversation recherche={recherche} />
-        ) : (
-          <View className="px-4 pt-2">
-            <CarteFlottante>
-              <Text className="font-inter text-corps text-texte">{MESSAGES_ASSISTANT.aucuneRecherche}</Text>
-            </CarteFlottante>
-          </View>
-        )}
+        <Discussion recherche={enCours} />
       </Animated.View>
     </View>
   );
 }
 
-type Echange =
-  | { etat: "attente"; phrase: string }
-  | { etat: "reponse"; phrase: string; reponse: ReponseAssistant }
-  | { etat: "echec"; phrase: string; message: string };
-
-function Conversation({ recherche }: { recherche: Recherche }) {
+function Discussion({ recherche }: { recherche: Recherche | null }) {
   const client = useClient();
   const { oublierCle } = useSession();
-  const { setRecherche } = useRecherche();
-  const ouvrirFormulaireAccueil = useOuvrirFormulaire();
-  const { demarrer } = useDeroulerRecherche();
+  const [fil, setFil] = useState<MessageFil[]>([]);
   const [texte, setTexte] = useState("");
-  const [echange, setEchange] = useState<Echange | null>(null);
-  const [relance, setRelance] = useState<{ enCours: boolean; erreur?: string }>({ enCours: false });
+  const [ecrit, setEcrit] = useState(false);
+  const controle = useRef<AbortController | null>(null);
+  const prochainId = useRef(0);
+  const defilement = useRef<ScrollViewInstance>(null);
 
-  const depart = recherche.depart.lieu!;
-  const arrivee = recherche.arrivee.lieu!;
-  const aujourdhui = maintenantAParis(new Date()).date;
-  const champs: ChampsFormulaire = champsDepuisRecherche(recherche.demande, depart, arrivee, aujourdhui);
-  const premiere = recherche.reponse ? possibiliteDuVerdict(recherche.reponse) : undefined;
-  const suivi = [jourCourt(recherche.demande.date), premiere ? `départ ${premiere.depart}` : null].filter(Boolean).join(" · ");
+  // L'écran quitte la mémoire (app fermée) : la réponse en cours est coupée.
+  useEffect(() => () => controle.current?.abort(), []);
 
-  async function envoyer() {
-    const phrase = texte.trim();
-    if (phrase.length < 3 || echange?.etat === "attente") return;
-    setEchange({ etat: "attente", phrase });
-    setRelance({ enCours: false });
-    const r = await client.assistant(phrase, reglagesDepuisChamps(champs));
-    if (r.etat === "cle_refusee") {
+  const premiere = recherche?.reponse ? possibiliteDuVerdict(recherche.reponse) : undefined;
+  const suivi = recherche
+    ? [jourCourt(recherche.demande.date), premiere ? `départ ${premiere.depart}` : null].filter(Boolean).join(" · ")
+    : "";
+
+  function changerReponse(id: number, maj: (m: Extract<MessageFil, { role: "assistant" }>) => MessageFil | null) {
+    setFil((f) => f.flatMap((m) => (m.id === id && m.role === "assistant" ? (maj(m) ?? []) : [m])));
+  }
+
+  /** Envoie la discussion `avant` (qui finit par la question) et écrit la réponse à mesure qu'elle arrive. */
+  async function repondre(avant: MessageFil[]) {
+    const id = prochainId.current++;
+    setFil([...avant, { id, role: "assistant", texte: "", etat: "ecrit" }]);
+    const c = new AbortController();
+    controle.current = c;
+    setEcrit(true);
+    let recu = "";
+    const resume = recherche
+      ? resumeRecherche(
+          recherche.demande,
+          { bout: recherche.demande.depart, choisi: recherche.depart.lieu },
+          { bout: recherche.demande.arrivee, choisi: recherche.arrivee.lieu },
+          recherche.reponse,
+        )
+      : undefined;
+    const issue = await client.discussion(
+      { messages: messagesAEnvoyer(avant), ...(resume ? { recherche: resume } : {}) },
+      {
+        signal: c.signal,
+        surTexte: (t) => {
+          recu += t;
+          changerReponse(id, (m) => ({ ...m, texte: m.texte + t }));
+        },
+      },
+    );
+    if (controle.current === c) {
+      controle.current = null;
+      setEcrit(false);
+    }
+    if (issue.etat === "cle_refusee") {
       await oublierCle();
       return;
     }
-    if (r.etat === "ok") {
-      setEchange({ etat: "reponse", phrase, reponse: r.donnees });
-      setTexte("");
-    } else setEchange({ etat: "echec", phrase, message: r.etat === "erreur_serveur" ? MESSAGES_ASSISTANT.indisponible : messageEchec(r) });
+    const echec = messageIssue(issue, recu !== "");
+    if (issue.etat === "arretee" && recu === "") return changerReponse(id, () => null);
+    changerReponse(id, (m) => (echec ? { ...m, etat: "echec", ...echec } : { ...m, etat: issue.etat === "arretee" ? "arretee" : "complete" }));
   }
 
-  // « Modifier la recherche » (spec 34) : le formulaire de l'Accueil reprend la recherche en cours.
-  function ouvrirFormulaire(c: ChampsFormulaire = champs, extra: Pick<Modification, "aChoisir" | "erreurs"> = {}) {
-    ouvrirFormulaireAccueil({ remplace: null, champs: c, reprise: true, ...extra });
+  function envoyer(question: string = texte) {
+    const q = question.trim().slice(0, TEXTE_MAX);
+    if (q === "" || controle.current) return;
+    setTexte("");
+    void repondre([...fil, { id: prochainId.current++, role: "personne", texte: q }]);
   }
 
-  /** « Relancer la recherche » : les réglages proposés, validés comme au formulaire, puis la recherche (D78). */
-  async function relancer(nouveaux: ChampsFormulaire) {
-    const v = validerFormulaire(nouveaux, new Date());
-    if (!v.ok) {
-      setRelance({ enCours: false, erreur: Object.values(v.erreurs)[0] });
-      return;
-    }
-    setRelance({ enCours: true });
-    const remplace = recherche.remplace ?? recherche.rouvert?.cle;
-    const echec = await demarrer(v.demande, undefined, remplace);
-    if (!echec) {
-      setEchange(null);
-      setRelance({ enCours: false });
-      return;
-    }
-    // Plusieurs lieux pour un nouveau texte (D91) : le formulaire s'ouvre avec la liste sous le champ.
-    if (echec.champ && echec.candidats) {
-      setRelance({ enCours: false });
-      ouvrirFormulaire(nouveaux, { aChoisir: { [echec.champ]: echec.candidats }, erreurs: { [echec.champ]: echec.message } });
-      return;
-    }
-    setRelance({ enCours: false, erreur: echec.message });
+  /** « Réessayer » : la réponse en échec est retirée, la même discussion repart. */
+  function reessayer(id: number) {
+    if (controle.current) return;
+    void repondre(fil.filter((m) => m.id !== id));
   }
 
-  function voirTri(tri: Extract<ReponseAssistant, { action: "trier" }>["tri"]) {
-    if (!recherche.reponse) return;
-    // Une copie de la réponse : le Résultat oublie le tri touché avant et part de celui-ci (D97).
-    setRecherche({ ...recherche, reponse: { ...recherche.reponse }, tri });
-    setEchange(null);
-    router.navigate("/resultat");
+  function arreter() {
+    controle.current?.abort();
   }
+
+  function nouvelleDiscussion() {
+    controle.current?.abort();
+    controle.current = null;
+    setEcrit(false);
+    setFil([]);
+  }
+
+  const dernier = fil.at(-1);
 
   return (
     <>
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 px-4 pb-4" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View className="flex-row items-center gap-3 rounded-bouton border border-bordure-carte bg-fond p-4">
-          <SymbolView name={{ android: "bookmark", web: "bookmark" }} size={28} tintColor={couleurs.primaire} />
-          <Text className="flex-1 font-inter text-secondaire text-texte">
-            {`Trajet suivi : ${suivi} · ${depart.nom} → ${arrivee.nom}`}
-          </Text>
-        </View>
-
-        {echange ? (
-          <View className="items-end">
-            <View className="bg-primaire px-4 py-3" style={{ borderRadius: RAYON_BULLE, maxWidth: "85%" }}>
-              <Text className="font-inter-medium text-corps text-fond">{echange.phrase}</Text>
-            </View>
+      <ScrollView
+        ref={defilement}
+        className="flex-1"
+        contentContainerClassName="gap-4 px-4 pb-4"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => defilement.current?.scrollToEnd({ animated: true })}
+      >
+        {recherche ? (
+          <View className="flex-row items-center gap-3 rounded-bouton border border-bordure-carte bg-fond p-4">
+            <SymbolView name={{ android: "bookmark", web: "bookmark" }} size={28} tintColor={couleurs.primaire} />
+            <Text className="flex-1 font-inter text-secondaire text-texte">
+              {`Trajet suivi : ${suivi} · ${recherche.depart.lieu!.nom} → ${recherche.arrivee.lieu!.nom}`}
+            </Text>
           </View>
         ) : null}
 
-        {echange?.etat === "attente" ? (
-          <BulleAssistant>
-            <Text className="font-inter text-corps text-texte">{MESSAGES_ASSISTANT.enCours}</Text>
-          </BulleAssistant>
+        {fil.length > 0 ? (
+          <View className="items-end">
+            <Lien libelle={MESSAGES_DISCUSSION.nouvelle} onPress={nouvelleDiscussion} />
+          </View>
         ) : null}
 
-        {echange?.etat === "echec" ? (
-          <>
-            <CarteErreur message={echange.message} />
-            <Lien libelle="Modifier la recherche" onPress={() => ouvrirFormulaire()} />
-          </>
-        ) : null}
+        {fil.map((m) =>
+          m.role === "personne" ? (
+            <View key={m.id} className="items-end">
+              <View className="bg-primaire px-4 py-3" style={{ borderRadius: RAYON_BULLE, maxWidth: "85%" }}>
+                <Text selectable className="font-inter-medium text-corps text-fond">
+                  {m.texte}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <BulleAssistant key={m.id}>
+              {m.texte === "" && m.etat === "ecrit" ? (
+                <TroisPoints />
+              ) : m.texte !== "" ? (
+                <Text selectable className="font-inter text-corps text-texte">
+                  {m.texte}
+                </Text>
+              ) : null}
+              {m.etat === "echec" && m.erreur ? (
+                <View className="flex-row items-start gap-2" accessibilityRole="alert">
+                  <SymbolView name={{ android: "error", web: "error" }} size={20} tintColor={couleurs.erreur} />
+                  <Text className="flex-1 font-inter-medium text-corps text-texte">{m.erreur}</Text>
+                </View>
+              ) : null}
+              {m.etat === "echec" && m.reessayer && dernier?.id === m.id ? (
+                <View className="items-start">
+                  <Lien libelle="Réessayer" onPress={() => reessayer(m.id)} />
+                </View>
+              ) : null}
+            </BulleAssistant>
+          ),
+        )}
 
-        {echange?.etat === "reponse" ? (
-          <ReponseVue
-            reponse={echange.reponse}
-            champs={champs}
-            valeurs={{ arrivee: arrivee.nom, depart: depart.nom, heure_depart: premiere?.depart }}
-            relance={relance}
-            onRelancer={relancer}
-            onTrier={voirTri}
-            onAnnuler={() => {
-              setEchange(null);
-              setRelance({ enCours: false });
-            }}
-          />
+        {fil.length === 0 ? (
+          <View className="flex-row flex-wrap gap-3">
+            {pucesDepart(recherche !== null).map((p) => (
+              <Puce key={p} libelle={p} active={false} onPress={() => envoyer(p)} />
+            ))}
+          </View>
         ) : null}
       </ScrollView>
 
-      <View className="gap-3 px-4 pt-2">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3" keyboardShouldPersistTaps="handled">
-          {SUGGESTIONS_ASSISTANT.map((s) => (
-            <Puce key={s.libelle} libelle={s.libelle} active={false} onPress={() => setTexte(s.texte)} />
-          ))}
-        </ScrollView>
+      <View className="px-4 pt-2">
         <View className="min-h-14 flex-row items-center gap-2 rounded-full border border-bordure-carte bg-fond pl-5 pr-2">
           <TextInput
-            accessibilityLabel="Écrivez votre demande"
-            placeholder="Écrivez votre demande"
+            accessibilityLabel={MESSAGES_DISCUSSION.champ}
+            placeholder={MESSAGES_DISCUSSION.champ}
             placeholderTextColor={couleurs["texte-secondaire"]}
             value={texte}
             onChangeText={setTexte}
-            onSubmitEditing={envoyer}
+            onSubmitEditing={() => envoyer()}
             returnKeyType="send"
+            maxLength={TEXTE_MAX}
             className="flex-1 py-3 font-inter text-corps text-texte"
             cursorColor={couleurs.primaire}
             selectionColor={couleurs["primaire-doux"]}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Envoyer"
-            disabled={echange?.etat === "attente"}
-            onPress={envoyer}
-            className="h-12 w-12 items-center justify-center rounded-full bg-primaire active:bg-primaire-presse"
-          >
-            <SymbolView name={{ android: "send", web: "send" }} size={24} tintColor={couleurs.fond} />
-          </Pressable>
+          {ecrit ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Arrêter"
+              onPress={arreter}
+              className="h-12 flex-row items-center justify-center gap-1 rounded-full bg-primaire px-4 active:bg-primaire-presse"
+            >
+              <SymbolView name={{ android: "stop", web: "stop" }} size={20} tintColor={couleurs.fond} />
+              <Text className="font-inter-medium text-badge text-fond">Arrêter</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Envoyer"
+              onPress={() => envoyer()}
+              className="h-12 w-12 items-center justify-center rounded-full bg-primaire active:bg-primaire-presse"
+            >
+              <SymbolView name={{ android: "send", web: "send" }} size={24} tintColor={couleurs.fond} />
+            </Pressable>
+          )}
         </View>
       </View>
     </>
@@ -234,78 +262,16 @@ function BulleAssistant({ children }: { children: ReactNode }) {
   );
 }
 
-function ReponseVue({
-  reponse,
-  champs,
-  valeurs,
-  relance,
-  onRelancer,
-  onTrier,
-  onAnnuler,
-}: {
-  reponse: ReponseAssistant;
-  champs: ChampsFormulaire;
-  valeurs: Record<string, string | undefined>;
-  relance: { enCours: boolean; erreur?: string };
-  onRelancer: (c: ChampsFormulaire) => void;
-  onTrier: (tri: Extract<ReponseAssistant, { action: "trier" }>["tri"]) => void;
-  onAnnuler: () => void;
-}) {
-  if (reponse.action === "relancer") {
-    const nouveaux = appliquerChangements(champs, reponse.changements);
-    return (
-      <>
-        <BulleAssistant>
-          <Text className="font-inter-medium text-corps text-texte">{MESSAGES_ASSISTANT.relancer}</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {pucesReglages(nouveaux, reponse.changements).map((p) => (
-              <View
-                key={p.cle}
-                accessibilityLabel={p.change ? `${p.libelle}, changé` : p.libelle}
-                className={`rounded-full px-4 py-2 ${p.change ? "bg-primaire-doux" : "bg-surface"}`}
-                style={p.change ? { borderWidth: 1.5, borderColor: couleurs.primaire } : undefined}
-              >
-                <Text className={`font-inter-medium text-badge ${p.change ? "text-primaire" : "text-texte"}`}>
-                  {p.libelle}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </BulleAssistant>
-        {relance.erreur ? <CarteErreur message={relance.erreur} /> : null}
-        <BoutonPrincipal
-          libelle={relance.enCours ? "Recherche…" : "Relancer la recherche"}
-          desactive={relance.enCours}
-          onPress={() => onRelancer(nouveaux)}
-        />
-        <Lien libelle="Annuler" onPress={onAnnuler} />
-      </>
-    );
-  }
-  if (reponse.action === "trier") {
-    return (
-      <>
-        <BulleAssistant>
-          <Text className="font-inter-medium text-corps text-texte">{MESSAGES_ASSISTANT.trier(reponse.tri)}</Text>
-        </BulleAssistant>
-        <BoutonPrincipal libelle="Voir les trajets" onPress={() => onTrier(reponse.tri)} />
-        <Lien libelle="Annuler" onPress={onAnnuler} />
-      </>
-    );
-  }
-  if (reponse.action === "conseil") {
-    return (
-      <BulleAssistant>
-        <Text accessibilityRole="header" className="font-inter-semibold text-corps text-texte">
-          {reponse.conseil.titre}
-        </Text>
-        <Text className="font-inter text-corps text-texte">{remplirConseil(reponse.conseil.texte, valeurs)}</Text>
-      </BulleAssistant>
-    );
-  }
+/** Trois points animés tant que le premier mot n'est pas arrivé (spec 39 §2.4). */
+function TroisPoints() {
+  const [n, setN] = useState(1);
+  useEffect(() => {
+    const t = setInterval(() => setN((x) => (x % 3) + 1), 400);
+    return () => clearInterval(t);
+  }, []);
   return (
-    <BulleAssistant>
-      <Text className="font-inter text-corps text-texte">{MESSAGES_ASSISTANT.incompris}</Text>
-    </BulleAssistant>
+    <Text accessibilityLabel="L'Assistant écrit" className="font-inter-bold text-corps text-texte-secondaire">
+      {"•".repeat(n).padEnd(3, " ")}
+    </Text>
   );
 }

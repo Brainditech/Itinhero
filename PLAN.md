@@ -133,7 +133,7 @@ source = { type, jeu, feed_version, trip_id | stop_id | fiche_id, date_service }
 |---|---|---|
 | `GET /health` | état de l'API, de MOTIS et date du jeu GTFS actif | 0 (squelette), 9 |
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond | 1 |
-| `POST /v1/assistant` | demande + réglages en cours (sans historique ni coordonnées) → `{action, parametres}` ou `{conseil_id, valeurs}` par Claude, sous limite et plafond (D31) | 6 bis |
+| `POST /v1/assistant/discussion` | discussion + résumé de la recherche en cours (sans coordonnées) → réponse en flux, filtrée par le serveur, sous limite et plafond (D117) | 6 bis |
 | `GET /v1/lieux?q=&proche=` | candidats de l'IGN (adresses, lieux) et de MOTIS (arrêts, lieux d'OSM), classés ensemble (D60) ; catégories autour de `proche` (D61) | 2 |
 | `POST /v1/itineraires` | origine, destination, date, heure, sens, marge → verdict + possibilités (segments sourcés, tous les tarifs applicables) | 3 |
 | `POST /v1/itineraires` (suite) | heure de fin du rendez-vous facultative → retour lié (D47) ; taxi comme étape (D48) | 3 |
@@ -359,27 +359,25 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] « Depuis ma position » (autorisation au premier plan seulement).
   Preuve : capture de la demande d'autorisation, plus test.
 
-### Phase 6 bis — Assistant (D31)
+### Phase 6 bis — Assistant (D31, réécrite par D117, spec 39)
+
+L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retirées (spec 39 §8) : « Claude transforme la demande en action », le jeu de 30 demandes, `conseils.json` et la confirmation avant modification (sans objet). Leur preuve reste dans l'historique (spec 37, PR #57).
 
 - [x] Écran en valeurs en dur, comparé à `design/assistant/09-assistant.png`.
   Preuve : capture côte à côte.
-  Fait (spec 37) : écran branché directement (pas d'étape en dur), capture `docs/screenshots/20261106-spec37-assistant-marge.png` comparée à la maquette le 2026-11-06 : en-tête, « Trajet suivi », bulle de la demande, bulle de l'Assistant et ses puces (changée entourée), « Relancer la recherche », « Annuler », puces de suggestion, champ et ➤. Écart : la barre a cinq onglets (spec 34).
-- [x] `POST /v1/assistant` : Claude transforme la demande en action (relancer avec de nouveaux réglages, trier, choisir un conseil), sortie validée par Zod. Aucune heure, aucun arrêt, aucun prix ni numéro dans la sortie de Claude.
-  Preuve : tests (sortie hors schéma ⇒ rejet ; requête sans historique ni coordonnées).
-  Fait (spec 37, D115) : `serveur/src/routes/assistant.test.ts` (hors schéma ⇒ 503 ; coordonnées, lieu avec point, historique ⇒ 400), `serveur/src/assistant/assistant.test.ts`, 2026-11-06.
-- [x] Jeu d'au moins 30 demandes (changer la marge, l'heure, le jour, le départ, « moins de marche », « si je rate le car »…).
-  Preuve : réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
-  Fait (spec 37) : `serveur/src/assistant/jeu-30-demandes.json`, `npm run assistant:jeu`. `claude-haiku-5-5` : 29/30 puis 30/30 après la correction de « la veille », 0,0079 € les 30, 2026-11-06. Modèle retenu : celui de `CLAUDE_MODEL` (haiku), le seul mesuré.
-- [ ] `data/conseils.json` : gabarits relus, validés par Brainditech, remplis par les valeurs du moteur et des fiches.
-  Preuve : tests (gabarit non validé ⇒ non affiché ; valeur absente ⇒ « — »), au moins un gabarit validé.
-- [ ] Confirmation avant toute modification : rien n'est relancé ni modifié sans « Relancer la recherche ».
-  Preuve : test.
-- [x] Même clé d'appareil, mêmes limites de débit et même plafond de coût que `/v1/comprendre`. Au-delà, message et renvoi vers le formulaire.
+  Fait (spec 37), puis bulles de discussion (spec 39) : `docs/screenshots/20261106-spec39-*`, 2026-11-06.
+- [x] Même clé d'appareil, mêmes limites de débit et même plafond de coût que `/v1/comprendre`.
   Preuve : tests (sans clé ⇒ 401, limites ⇒ 429, plafond ⇒ repli).
-  Fait (spec 37) : `serveur/src/routes/assistant.test.ts` (401, 429, plafond ⇒ 503 `plafond_atteint` sans appel, même compteur), `securite.test.ts` ; l'app dit « L'assistant est indisponible pour l'instant. » et propose « Modifier la recherche », 2026-11-06.
-- [x] Branchement réel.
-  Preuve : capture de « Je voudrais 20 min d'avance au lieu de 10. » relancée et du nouveau résultat.
-  Fait (spec 37) : « Je voudrais 20 minutes de marge au lieu de 10. » (l'apostrophe ne passe pas par `adb input`) sur Domicile → gare de Joigny, jeudi 12/11, avant 10:00 ⇒ puce « Marge 20 min » entourée ; « Relancer la recherche » ⇒ « À faire : être sur place avant 09:40 (rendez-vous 10:00, marge 20 min) » (`docs/screenshots/20261106-spec37-assistant-marge.png`, `20261106-spec37-relance-resultat.png`), 2026-11-06.
+  Fait (spec 37), repris par la spec 39 : `serveur/src/routes/discussion.test.ts` (plafond ⇒ `erreur` `indisponible` sans appel), `securite.test.ts`, 2026-11-06.
+- [x] `POST /v1/assistant/discussion` en flux et son filtre : aucune heure, aucun prix, aucun numéro ni coordonnée n'arrive à l'app, même coupé entre deux morceaux ; entrée avec coordonnées, plus de 20 messages ou message trop long ⇒ 400 ; journal sans texte.
+  Preuve : tests.
+  Fait (spec 39) : `serveur/src/assistant/filtre.test.ts` (toutes les découpes d'un texte donnent le même résultat que le texte entier), `serveur/src/routes/discussion.test.ts`, `serveur/src/assistant/discussion.test.ts`, 2026-11-06.
+- [x] Fenêtre de discussion en flux : la réponse s'écrit à mesure qu'elle arrive, « Arrêter » la coupe.
+  Preuve : captures adb, texte qui grandit.
+  Fait (spec 39) : `docs/screenshots/20261106-spec39-05-flux-1.png` (trois points, « Arrêter »), `-05-flux-2.png`, `-05-flux-3.png` (texte plus long 0,5 s après), `-05-flux-4.png` (fini) ; `-08-arrete-apres.png` (coupé à « Pour le prix et », le texte reste) ; `-11-explique.png` (« Explique-moi mon trajet » sur Domicile → Flers) ; `-12-plafond.png` (plafond atteint), 2026-11-06. `src/domaine/discussion.test.ts` (lecture du flux, arrêt, réseau coupé).
+- [x] Jeu de 20 questions de voyageur.
+  Preuve : 20 réponses en français, aucune heure, aucun prix, aucun numéro après filtre, coût consigné.
+  Fait (spec 39) : `serveur/src/assistant/jeu-discussion.ts`, lancé dans le conteneur (`node dist/assistant/jeu-discussion.js`) : `claude-haiku-5-5` 20/20, premier morceau médian 1,3 s, 0,0071 € les 20, sortie dans `docs/preuves/2026-11-06-spec39/`, 2026-11-06.
 
 ### Phase 6 ter — Covoiturage (D50)
 

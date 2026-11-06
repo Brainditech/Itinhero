@@ -1,0 +1,46 @@
+import { describe, expect, it } from "vitest";
+import { contexteDiscussion, messagesClaude, schemaRequeteDiscussion } from "./discussion.js";
+import { CONTEXTE_JEU, INTERDITS, QUESTIONS_JEU, RECHERCHE_JEU } from "./jeu-discussion.js";
+import { filtrerTexte } from "./filtre.js";
+
+/** Spec 39 §3 et §8. */
+describe("discussion de l'Assistant (spec 39)", () => {
+  it("messages pour l'API : rôles traduits, consécutifs réunis, l'Assistant ne commence jamais", () => {
+    expect(
+      messagesClaude([
+        { role: "assistant", texte: "Bonjour" },
+        { role: "personne", texte: "Je rate le car" },
+        { role: "personne", texte: "Je rate le car" },
+        { role: "assistant", texte: "Pas de panique." },
+        { role: "personne", texte: "Merci" },
+      ]),
+    ).toEqual([
+      { role: "user", content: "Je rate le car\n\nJe rate le car" },
+      { role: "assistant", content: "Pas de panique." },
+      { role: "user", content: "Merci" },
+    ]);
+  });
+
+  it("contexte : date de Paris, lieux en texte, trajets sans horaire", () => {
+    const c = contexteDiscussion(CONTEXTE_JEU, RECHERCHE_JEU);
+    expect(c).toContain("vendredi 2026-11-06");
+    expect(c).toContain("de Domicile à Flers, le 2026-11-12, arriver avant 10:00 (rendez-vous), marge 10 min");
+    expect(c).toContain("Trajet 2 : marche puis car puis train puis taxi ; 2 correspondances ; 6 min de marche ; taxi à réserver.");
+    expect(c).toContain("Trajet 3 : marche puis train puis transport à la demande ; 1 correspondance");
+    expect(contexteDiscussion(CONTEXTE_JEU, undefined)).toContain("Aucune recherche en cours.");
+  });
+
+  it("jeu de 20 questions : entrées valides pour la route", () => {
+    expect(QUESTIONS_JEU).toHaveLength(20);
+    for (const q of QUESTIONS_JEU) {
+      const corps = { messages: [{ role: "personne", texte: q.question }], ...(q.avecRecherche ? { recherche: RECHERCHE_JEU } : {}) };
+      expect(schemaRequeteDiscussion.safeParse(corps).success, q.question).toBe(true);
+    }
+  });
+
+  it("les motifs interdits du jeu ne survivent jamais au filtre", () => {
+    const texte = "Départ 14:48 ou 9h30, 12 €, 3 euros, appelez le 03 86 12 34 56 ou le +33 3 86 12 34 56.";
+    expect(INTERDITS.some((r) => r.test(texte))).toBe(true);
+    expect(INTERDITS.every((r) => !r.test(filtrerTexte(texte)))).toBe(true);
+  });
+});
