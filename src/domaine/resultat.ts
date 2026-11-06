@@ -122,6 +122,14 @@ export function detailCandidat(c: Candidat): string {
   return morceaux.filter((m) => m !== "").join(" · ");
 }
 
+/**
+ * Issue 0028 : une marche de quelques mètres s'arrondit à « 0 m » ; elle n'a pas de distance à dire.
+ * Vrai seulement si `formaterDistance` écrirait autre chose que « 0 m ».
+ */
+export function distanceADire(metres: number | null | undefined): metres is number {
+  return metres != null && Math.round(metres / 10) * 10 > 0;
+}
+
 export function formaterDistance(metres: number): string {
   if (metres < 1000) return `${Math.round(metres / 10) * 10} m`;
   const km = metres / 1000;

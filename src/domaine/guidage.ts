@@ -2,7 +2,7 @@ import type { Consigne, Etape, Point, Possibilite } from "./api";
 import { phraseConsigne } from "./consignes";
 import { cap, decoderTrace, distance, ligne, pointA, projeter, projeterEnAvancant, type Ligne } from "./geo";
 import { maintenantAParis } from "./demande";
-import { formaterDistance, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVousChercher } from "./resultat";
+import { distanceADire, formaterDistance, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVousChercher } from "./resultat";
 
 // Guidage en direct (spec 12, §4.4) : pur TypeScript, sans Expo, testé sous Node.
 // La position et l'heure entrent ; l'écran à montrer et les phrases à dire sortent. Rien n'est gardé.
@@ -522,10 +522,10 @@ export function aLieu(destination: string): string {
 
 /**
  * Ligne d'une marche dans le détail : « 5 min, 310 m jusqu'à l'arrêt Mairie, arrivée 06:22 ».
- * Une correspondance dans la même gare (0 m) ne dit pas « 0 m ».
+ * Une correspondance dans la même gare (0 m, ou quelques mètres arrondis à 0, issue 0028) ne dit pas « 0 m ».
  */
 export function phraseMarche(e: Etape, suivante?: Etape): string {
-  const metres = e.distance_metres ? `, ${formaterDistance(e.distance_metres)}` : "";
+  const metres = distanceADire(e.distance_metres) ? `, ${formaterDistance(e.distance_metres)}` : "";
   const fin = suivante ? nomLieuVehicule(suivante, e.a) : nomLieuEtape(e.a);
   return `${e.duree_minutes} min${metres} jusqu'${aLieu(fin)}, arrivée ${e.arrivee}`;
 }

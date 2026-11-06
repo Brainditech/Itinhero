@@ -28,3 +28,5 @@ D108 avait choisi « livraison au mieux, sans alarme exacte ». Ce choix ne tien
 ## 6. Constat
 
 À faire après le development build (le manifeste change).
+
+2026-11-06, par adb, development build refait : `USE_EXACT_ALARM: granted=true` ; trajet Domicile → Gare de Sens du jeudi 12/11 enregistré ⇒ `dumpsys alarm` : veille 11/11 19:00, taxi 12/11 07:46, « Partez » 12/11 08:31, tous en `RTC_WAKEUP`, **`window=0`**, `exactAllowReason=policy_permission` (au lieu de `window=+1h`). Issue close.

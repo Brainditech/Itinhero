@@ -1,7 +1,7 @@
 # Spec 50 — Sentry dans l'app et sur le serveur, sans donnée de trajet
 
 - **Date** : 2026-11-06
-- **État** : **approuvée par délégation** de Brainditech (D119, étape 15 « Sentry » ; demande du 2026-11-06 : « implémente les specs une fois que les tests sont ok sur adb »). Règle : D131. Remplace la spec 07, jamais versionnée. **Appliquée** le 2026-11-06 (critères 1 à 3) ; critère 4 après le development build, critère 5 avec les DSN.
+- **État** : **approuvée par délégation** de Brainditech (D119, étape 15 « Sentry » ; demande du 2026-11-06 : « implémente les specs une fois que les tests sont ok sur adb »). Règle : D131. Remplace la spec 07, jamais versionnée. **Appliquée** le 2026-11-06 (critères 1 à 3) ; critère 4 constaté le 2026-11-06 (§6) ; critère 5 avec les DSN.
 - **Branche** : `phase-0/sentry`.
 - **Case de PLAN.md** : Phase 0 · « Sentry installé dans l'app et sur le serveur, sans donnée de trajet » (preuve : configuration, plus test du nettoyage `beforeSend`). Prépare sans les cocher : Phase 9 · « Erreur volontaire vue dans Sentry », « Replay Sentry masqué » ; Phase 8 · « événement Sentry » de l'ingestion (spec 44). Ces trois-là demandent les DSN de Brainditech.
 - **Invariants** : 10 (rien de personnel dans les journaux ni Sentry, replay jamais démasqué), 17 (dev et prod ne partagent pas d'environnement Sentry), 2 (aucun secret dans l'app : le DSN n'est pas un secret).
@@ -60,3 +60,8 @@ Une fonction pure par côté, testée : `nettoyerEvenement` (`beforeSend`) et `n
 - **Traces de performance** : elles portent des URL et des durées par trajet ; hors besoin v1.
 - **Envoi des source maps dès maintenant** : il faut le compte, l'organisation et un jeton ; sans eux, le build échouerait. `disableAutoUpload` jusqu'à la phase 10.
 - **Compter sur `sendDefaultPii: false` seul** : la doc de `@sentry/node` 11 dit que les requêtes d'URL et les corps partent par défaut ; d'où `dataCollection` et le nettoyage maison.
+
+## 6. Constats
+
+- 2026-11-06, par adb, development build refait avec le module natif : l'app démarre comme avant (Accueil, carte), toute la passe des specs se fait sans plantage (critère 4, `docs/screenshots/passe/00-demarrage.png`).
+- Corrigé pendant l'essai : sans DSN, `Sentry.wrap` enveloppait quand même l'app et Metro avertissait « App Start Span could not be finished. `Sentry.wrap` was called before `Sentry.init` » (bandeau LogBox en développement). `src/app/_layout.tsx` n'enveloppe plus que si Sentry est actif ; après rechargement, l'avertissement ne revient plus.

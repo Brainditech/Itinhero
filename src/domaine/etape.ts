@@ -1,13 +1,13 @@
 import type { ArretCourse, Etape, Point } from "./api";
 import { decoderTrace, distance } from "./geo";
-import { directionEtape, formaterDistance, formaterDuree, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVousChercher } from "./resultat";
+import { directionEtape, distanceADire, formaterDistance, formaterDuree, libelleEtape, nomLieuEtape, nomLieuVehicule, vientVousChercher } from "./resultat";
 
 // Fenêtre d'une étape (spec 17) : en-tête, arrêts du trajet, positions du panneau du bas.
 
 /** En-tête du panneau : « Marche 5 min » / « Bus K941 », la direction, puis « 06:17 → 06:22 · 5 min · 310 m ». */
 export function enteteEtape(e: Etape): { titre: string; direction: string | null; horaire: string } {
   const marche = e.mode === "marche";
-  const distance = marche && e.distance_metres ? ` · ${formaterDistance(e.distance_metres)}` : "";
+  const distance = marche && distanceADire(e.distance_metres) ? ` · ${formaterDistance(e.distance_metres)}` : "";
   return {
     titre: marche ? "Marche" : libelleEtape(e).replace(/ \d+ min$/, ""),
     direction: marche ? null : directionEtape(e),
