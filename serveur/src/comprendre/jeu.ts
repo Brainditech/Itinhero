@@ -48,23 +48,34 @@ async function principal(): Promise<void> {
   const jeu = JSON.parse(await readFile(path.join(ici, "../../src/comprendre/jeu-30-phrases.json"), "utf8")) as {
     contexte: Contexte;
     phrases: Cas[];
+    regressions: Cas[];
   };
   for (const modele of modeles as ModeleClaude[]) {
     const appel = appelClaude(cle, modele);
-    let reussies = 0;
     let cout = 0;
-    for (const cas of jeu.phrases) {
-      try {
-        const r = await appel(cas.phrase, jeu.contexte);
-        cout += coutEur(modele, r.jetons);
-        const faux = r.refus ? ["(refus)"] : ecarts(r.sortie, cas.attendu);
-        if (faux.length === 0) reussies++;
-        else console.log(`✗ ${cas.phrase} — ${faux.join(", ")} — ${JSON.stringify(r.sortie)}`);
-      } catch (e) {
-        console.log(`✗ ${cas.phrase} — erreur ${(e as Error).name}`);
+    // Une liste de phrases ⇒ le nombre de réussies ; chaque échec est affiché.
+    const passer = async (cas: Cas[]): Promise<number> => {
+      let reussies = 0;
+      for (const c of cas) {
+        try {
+          const r = await appel(c.phrase, jeu.contexte);
+          cout += coutEur(modele, r.jetons);
+          const faux = r.refus ? ["(refus)"] : ecarts(r.sortie, c.attendu);
+          if (faux.length === 0) reussies++;
+          else console.log(`✗ ${c.phrase} — ${faux.join(", ")} — ${JSON.stringify(r.sortie)}`);
+        } catch (e) {
+          console.log(`✗ ${c.phrase} — erreur ${(e as Error).name}`);
+        }
       }
-    }
-    console.log(`${modele} : ${reussies}/${jeu.phrases.length} réussies, coût ${cout.toFixed(4)} € (1 $ compté pour 1 €).`);
+      return reussies;
+    };
+    const reussies = await passer(jeu.phrases);
+    // Issue 0023 : les phrases qui ont déjà échoué doivent toutes réussir.
+    const regressions = await passer(jeu.regressions);
+    console.log(
+      `${modele} : ${reussies}/${jeu.phrases.length} réussies, régressions ${regressions}/${jeu.regressions.length}, ` +
+        `coût ${cout.toFixed(4)} € (1 $ compté pour 1 €).`,
+    );
   }
 }
 

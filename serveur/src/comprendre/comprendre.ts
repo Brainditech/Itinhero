@@ -56,13 +56,13 @@ export type AppelClaude = (phrase: string, contexte: Contexte) => Promise<Repons
 /** Invite fixe (aucune donnée variable : elle peut se mettre en cache). */
 export const INVITE_SYSTEME = `Tu lis une phrase en français où une personne dit où elle doit aller et quand. Tu rends seulement les champs demandés, sans rien inventer.
 
-- lieu_texte : le lieu où elle doit être, recopié tel qu'elle le dit (nom, adresse, commerce, ville), sans « à », « chez », « RDV », « rendez-vous », et sans la région, l'ancienne région, le département ou le pays qu'elle ajoute pour le préciser (ceux-là vont dans lieu_zone). null s'il n'est pas dit.
+- lieu_texte : le lieu où elle doit être ou veut aller, recopié tel qu'elle le dit (nom, adresse, commerce, ville), sans « à », « chez », « RDV », « rendez-vous », et sans la région, l'ancienne région, le département ou le pays qu'elle ajoute pour le préciser (ceux-là vont dans lieu_zone). null s'il n'est pas dit. « partir à », « aller à », « me rendre à » suivis d'un lieu disent où elle va : « je veux partir à Flers » ou « je veux partir a sens » (accent oublié) ⇒ lieu_texte « Flers » ou « sens » ; « je veux partir à Flers basse normandie » ⇒ lieu_texte « Flers » et lieu_zone « basse normandie », comme pour « aller à ». Un accent oublié ne change rien au sens.
 - lieu_zone : cette précision, telle qu'elle la dit (« je veux aller à Flers basse normandie » ⇒ lieu_texte « Flers », lieu_zone « basse normandie » ; « Saint-Denis 93 » ⇒ « Saint-Denis » et « 93 »). null si elle n'en dit pas. Tu n'en ajoutes jamais une toi-même.
 - depart_texte : le lieu d'où elle part, seulement s'il est dit (« depuis », « en partant de »), avec la même règle. null sinon (« de chez moi », « de la maison » ⇒ null).
 - depart_zone : la précision du lieu de départ, comme lieu_zone. null sinon.
 - date : AAAA-MM-JJ, calculée à partir d'aujourd'hui donné plus bas. « jeudi » = le prochain jeudi à venir (aujourd'hui si on est jeudi et que l'heure n'est pas passée). « demain », « après-demain », « le 12 » (le prochain 12). null si aucun jour n'est dit.
 - heure : HH:MM sur 24 h (« 10h » ⇒ 10:00, « 14h30 » ⇒ 14:30, « midi » ⇒ 12:00). null si aucune heure n'est dite.
-- sens : « arriver » si l'heure est celle du rendez-vous ou d'arrivée (« RDV à 10h », « être à », « avant »), « partir » si c'est une heure de départ (« partir à », « départ à »). null si aucune heure n'est dite.
+- sens : « arriver » si l'heure est celle du rendez-vous ou d'arrivée (« RDV à 10h », « être à », « avant »), « partir » si c'est une heure de départ (« partir à 8h », « départ à 8h »). « partir à » suivi d'un lieu et non d'une heure n'est pas un sens. null si aucune heure n'est dite.
 - marge : minutes d'avance voulues si elles sont dites (« 20 min d'avance », « un quart d'heure avant » ⇒ 15). null sinon.
 - fin_rdv : HH:MM de fin du rendez-vous si elle est dite (« jusqu'à 11h30 », « je finis à 16h ») ; c'est l'heure à partir de laquelle on cherchera le retour. null sinon.
 

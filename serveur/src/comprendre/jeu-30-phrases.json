@@ -32,5 +32,13 @@
     { "phrase": "Toulouse aéroport le 25 novembre à 7h45", "attendu": { "lieu_texte": "Toulouse aéroport", "date": "2026-11-25", "heure": "07:45", "sens": "arriver" } },
     { "phrase": "dimanche départ à 10h pour Sens", "attendu": { "lieu_texte": "Sens", "date": "2026-11-08", "heure": "10:00", "sens": "partir" } },
     { "phrase": "mission locale de Joigny mardi 14h, ça dure une heure", "attendu": { "lieu_texte": "mission locale de Joigny", "date": "2026-11-10", "heure": "14:00", "sens": "arriver", "fin_rdv": "15:00" } }
+ ],
+  "note_regressions": "Issue 0023 : phrases qui ont échoué une fois. Toutes doivent réussir, en plus des 27/30 du jeu principal.",
+  "regressions": [
+    { "phrase": "je veux partir a flers", "attendu": { "lieu_texte": "flers" } },
+    { "phrase": "je veux partir à flers", "attendu": { "lieu_texte": "flers" } },
+    { "phrase": "je veux partir à sens", "attendu": { "lieu_texte": "sens" } },
+    { "phrase": "je veux partir à flers basse normandie", "attendu": { "lieu_texte": "flers", "lieu_zone": "basse normandie" } },
+    { "phrase": "je veux partir à 8h", "attendu": { "heure": "08:00", "sens": "partir" } }
   ]
 }
