@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -183,7 +183,10 @@ function LigneAttente({ texte }: { texte: string }) {
   );
 }
 
-/** Carte d'une possibilité ; la toucher (ou son chevron, en haut à droite) déplie ou replie ses étapes. */
+/**
+ * Carte d'une possibilité ; la toucher déplie ou replie ses étapes. En haut à droite, son chevron, ou `action`
+ * (la disquette qui enregistre cette possibilité seule, spec 24 §8, D102) ; `pied` s'affiche sous le résumé.
+ */
 export function CartePossibilite({
   possibilite,
   index,
@@ -191,6 +194,8 @@ export function CartePossibilite({
   destination,
   date,
   adresse,
+  action,
+  pied,
 }: {
   possibilite: Possibilite;
   /** Rang dans la réponse, pour ouvrir son guidage (spec 12). */
@@ -201,6 +206,8 @@ export function CartePossibilite({
   /** Jour demandé (« 2026-11-12 »), pour dire « vendredi » quand l'arrivée est le lendemain (spec 15). */
   date: string;
   adresse: string | null;
+  action?: ReactNode;
+  pied?: ReactNode;
 }) {
   const [ouverte, setOuverte] = useState(false);
   const p = possibilite;
@@ -226,7 +233,7 @@ export function CartePossibilite({
           {`${p.depart} → ${p.arrivee}`}
         </Text>
         <Text className="font-inter text-secondaire text-texte-secondaire">{formaterDuree(p.duree_minutes)}</Text>
-        <Chevron ouvert={ouverte} />
+        {action ? <View className="-my-2 -mr-2">{action}</View> : <Chevron ouvert={ouverte} />}
       </View>
       {jourArrivee ? (
         <Text className="-mt-2 font-inter-semibold text-badge text-texte-secondaire">{`Arrivée ${jourArrivee}`}</Text>
@@ -247,6 +254,7 @@ export function CartePossibilite({
         {aMarcheLongue(p) ? <AvertissementMarche /> : <View />}
         <PrixNonPublie />
       </View>
+      {pied}
       {ouverte ? (
         <View className="mt-2 border-t border-bordure-carte pt-4">
           {p.etapes.map((e, i) => {
