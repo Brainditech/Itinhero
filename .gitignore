@@ -11,6 +11,8 @@ expo-env.d.ts
 
 # Native
 .kotlin/
+# Modules natifs locaux (spec 23) : seules les sources sont versionnées
+/modules/*/android/build/
 *.orig.*
 *.jks
 *.p8

@@ -4,8 +4,11 @@ import { useFocusEffect } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
+import { supprimerCarte } from "@/carte/packs";
+import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { BoutonPrincipal, BoutonSecondaire, CarteFlottante, Lien } from "@/composants/elements";
+import { LigneCarte } from "@/composants/LigneCarte";
 import { maintenantAParis } from "@/domaine/demande";
 import { rangerVoyages, resumeVoyage, type Voyage } from "@/domaine/voyages";
 import { useOuvrirVoyage } from "@/recherche";
@@ -17,7 +20,8 @@ type VoyageLu = Voyage & { cle: string };
 /**
  * Mes trajets (phase 5, maquette 06, spec 22, D98) : les voyages enregistrés sur le téléphone, rouverts sans réseau.
  * Le prochain voyage a le bouton principal sous sa carte ; les autres, un bouton secondaire dans la leur.
- * Pas de « Carte enregistrée », de « Rappels » ni de bandeau « Hors connexion » : ils arrivent avec leurs cases.
+ * « Carte enregistrée » (spec 23, D99) dit si la carte de la zone est gardée. Pas encore de « Rappels » ni de
+ * bandeau « Hors connexion » : ils arrivent avec leurs cases.
  */
 export default function MesTrajets() {
   const db = useSQLiteContext();
@@ -55,7 +59,10 @@ export default function MesTrajets() {
         text: "Supprimer",
         style: "destructive",
         onPress: () => {
-          supprimerVoyage(db, cle).then(relire, () => setErreur(true));
+          // La carte du voyage part avec lui (D99, §3.5) ; un échec ici ne garde pas le voyage.
+          supprimerVoyage(db, cle)
+            .then(() => supprimerCarte(cle).catch(() => undefined))
+            .then(relire, () => setErreur(true));
         },
       },
     ]);
@@ -140,6 +147,7 @@ function CarteVoyage({
   onSupprimer: (cle: string, nom: string) => void;
 }) {
   const r = resumeVoyage(voyage);
+  const carte = useCarteVoyage(voyage.cle, voyage);
   return (
     <CarteFlottante>
       <View className="gap-3">
@@ -159,6 +167,7 @@ function CarteVoyage({
         </View>
         <View className="gap-3 border-t border-bordure-carte pt-3">
           <Ligne icone="check_circle" teinte={couleurs.possible} texte="Disponible sans réseau" />
+          <LigneCarte etat={carte.etat} onEnregistrer={() => carte.lancer(false)} />
           {r.retour ? <Ligne icone="undo" teinte={couleurs.primaire} texte={r.retour} /> : null}
         </View>
         <Text className="font-inter text-secondaire text-texte-secondaire">{r.enregistre}</Text>
