@@ -440,3 +440,33 @@ export function finHoraires(possibilites: Possibilite[]): string | null {
   const [a, m, j] = [...fins].sort()[0]!.split("-");
   return `${j}/${m}/${a}`;
 }
+
+// ——— Date des horaires (spec 32, D110) ———
+
+/** Au-delà de ce nombre de jours, le Résultat prévient que les horaires peuvent encore changer. */
+export const JOURS_HORAIRES_SURS = 7;
+
+/** « 21/09/2026 » : la date des horaires la plus ancienne parmi les jeux GTFS des possibilités ; null si aucune. */
+export function horairesDu(possibilites: Possibilite[]): string | null {
+  const dates = possibilites.flatMap((p) =>
+    p.etapes.flatMap((e) => (e.source.type === "gtfs" && e.source.date_horaires ? [e.source.date_horaires] : [])),
+  );
+  if (dates.length === 0) return null;
+  const [a, m, j] = [...dates].sort()[0]!.split("-");
+  return `${j}/${m}/${a}`;
+}
+
+/** Ligne sous le Résultat : « Horaires du 21/09/2026, valables jusqu'au 31/08/2027 » (morceaux connus seulement). */
+export function ligneHoraires(du: string | null, jusquau: string | null): string | null {
+  if (du && jusquau) return `Horaires du ${du}, valables jusqu'au ${jusquau}`;
+  if (du) return `Horaires du ${du}`;
+  return jusquau ? `Horaires valables jusqu'au ${jusquau}` : null;
+}
+
+/** Bandeau quand le jour demandé est à plus de 7 jours (le jeu peut être remplacé d'ici là, phase 8). */
+export function bandeauLointain(dateDemandee: string, aujourdhui: string, du: string | null): string | null {
+  const ecart = (Date.parse(dateDemandee) - Date.parse(aujourdhui)) / 86_400_000;
+  if (ecart <= JOURS_HORAIRES_SURS) return null;
+  const quels = du ? `Horaires du ${du}` : "Horaires connus aujourd'hui";
+  return `Trajet dans plus de ${JOURS_HORAIRES_SURS} jours. ${quels} : ils peuvent changer d'ici là. Revérifiez la veille.`;
+}

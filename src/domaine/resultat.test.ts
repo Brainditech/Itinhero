@@ -153,7 +153,7 @@ describe("étapes", () => {
 
 describe("fin de validité des horaires (issue 0010, H)", () => {
   const gtfs = (fin: string | null) =>
-    etape({ source: { type: "gtfs", jeu: "r1", version: "2026-09-21", trip_id: "t", date_service: "2026-11-13", fin_validite: fin } });
+    etape({ source: { type: "gtfs", jeu: "r1", version: "2026-09-21", trip_id: "t", date_service: "2026-11-13", fin_validite: fin, date_horaires: null } });
   it("la fin la plus proche parmi les jeux, l'OSM ignoré", () => {
     expect(finHoraires([chatelet])).toBe("31/12/2026");
     expect(finHoraires([chatelet, { ...chatelet, etapes: [gtfs("2026-11-30")] }])).toBe("30/11/2026");
