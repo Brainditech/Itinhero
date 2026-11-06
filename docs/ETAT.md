@@ -7,7 +7,7 @@
 
 - **Phase en cours** : 0 — Socle, avec les phases 1 et 2 bis avancées (D34, D54) ; spec 08 fusionnée (PR #4), issue 0007 fusionnée (PR #5), spec 09 fusionnée (PR #7), issue 0008 fusionnée (PR #8), spec 10 appliquée sur `app/branchee`. La spec 07 (Sentry) attend sur `phase-0/sentry`, repoussée par D54.
 - **Dernière case cochée** : Phase 5 · « Instantané expo-sqlite, ouvert en mode avion » (2026-11-06, spec 22, D98).
-- **Prochaine action** : phase 5 : pack de carte de la zone du trajet (spec 23), puis rappels locaux. Spec 21 : entendre l'annonce TalkBack au changement de tri, puis cocher la case des tris. En parallèle : critères 10 et 11 de la spec 18 ; la boussole de la spec 17 et le nouveau chemin à pied (spec 20) restent à essayer dehors.
+- **Prochaine action** : spec 23 (pack de carte) : Brainditech refait le development build (module natif `modules/reseau-carte`), puis essai par adb (« Carte enregistrée », mode avion sur une marche jamais vue) et case cochée. Ensuite, rappels locaux (`expo-notifications`, un build de plus). Spec 21 : entendre l'annonce TalkBack au changement de tri, puis cocher la case des tris. En parallèle : critères 10 et 11 de la spec 18 ; la boussole de la spec 17 et le nouveau chemin à pied (spec 20) restent à essayer dehors.
 - **Action précédente** (D54) : Brainditech relit la PR de la spec 10 (l'app branchée, branche `app/branchee`), puis constate les critères 4 à 9 sur son téléphone : `EXPO_PUBLIC_API_URL=http://localhost:3000` dans le `.env`, `adb reverse tcp:3000 tcp:3000`, `npx expo prebuild --platform android --clean`, `npx expo run:android`, saisie de la clé de la spec 09, domicile, recherches comparées à Google Maps. En attente aussi : l'issue 0008 §7 (13 stations à corriger dans OSM ou à signaler à MOTIS), l'issue 0009 (Toulouse → aéroport) et la spec 09 §11.5 (Annuaire santé, compte data.grandlyon). Le MOTIS national tourne sur le PC (`docker compose -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml up -d motis api`) ; le stack des fixtures est arrêté.
 
 ## État par phase
@@ -20,7 +20,7 @@
 | 2 — Confirmation du lieu | en cours (avancé par D54) | 2026-11-04 | 0 jour |
 | 3 — Résultat | en cours (avancé par D54) | 2026-11-04 | 0 jour |
 | 4 — Détail | en cours (avancé par la spec 20) | 2026-11-05 | 0 jour |
-| 5 — Mes trajets | en cours (spec 22) | 2026-11-06 | 0 jour |
+| 5 — Mes trajets | en cours (specs 22, 23) | 2026-11-06 | 0 jour |
 | 6 — Réglages | à faire | — | — |
 | 6 bis — Assistant | à faire | — | — |
 | 7 — Temps réel et alertes | à faire | — | — |
@@ -117,6 +117,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-06 | Phase 5 ouverte. Spec 22 (Mes trajets : voyage enregistré, rouvert sans réseau) rédigée et approuvée par délégation (« implemente les prochaines phases »), D98 ; codée : table `voyages` (base en version 2), « Enregistrer ce voyage » sous le Résultat, écran Mes trajets, bandeau du voyage rouvert. 12 tests de `voyages.test.ts` rouges puis verts ; app 292 tests, lint, types et export Android verts. Critère 2 (téléphone) à constater | `docs/specs/22-mes-trajets.md`, `src/domaine/voyages.test.ts` |
 | 2026-11-06 | Spec 22 constatée par adb sans serveur (port 3000 coupé, app rechargée) : enregistrer, carte de Mes trajets comme la maquette 06, doublon remplacé, voyage rouvert avec bandeau, Étape, guidage, « Arrêts indisponibles » sans serveur, suppression confirmée. Corrigé : fournisseur de la recherche remonté aux onglets. Case non cochée : mode avion à faire | `docs/specs/22-mes-trajets.md` §6.2, captures `docs/screenshots/spec-22/` (non versionnées) |
 | 2026-11-06 | Spec 22 constatée en vrai mode avion par adb, avec l'accord de Brainditech : voyage aller et retour enregistré, mode avion, app arrêtée puis rouverte ; Mes trajets, voyage rouvert avec bandeau, Étape du bus K941 et guidage. Case « Instantané expo-sqlite, ouvert en mode avion » cochée | `docs/specs/22-mes-trajets.md` §6.3, captures `docs/screenshots/spec-22/2026-11-06-avion-*` (non versionnées, D93) |
+| 2026-11-06 | Spec 23 (pack de carte de la zone du trajet) rédigée et approuvée par délégation, D99 ; codée : `src/domaine/pack-carte.ts` (zones et budget de tuiles, 18 tests rouges puis verts), module Expo local `modules/reseau-carte` (4 requêtes, User-Agent, conditions d'OpenFreeMap), packs MapLibre par voyage, « Carte enregistrée » dans le Résultat et Mes trajets. App 310 tests, lint, types, export Android et compilation Kotlin du module verts. Attend le nouveau development build | `docs/specs/23-pack-de-carte.md`, `src/domaine/pack-carte.test.ts` |
 
 ## Trous ouverts
 

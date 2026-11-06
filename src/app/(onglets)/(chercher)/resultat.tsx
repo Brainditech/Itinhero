@@ -4,8 +4,10 @@ import { Redirect, router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SymbolView } from "expo-symbols";
 
+import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { BandeauInfo, BoutonPrincipal, Lien, Puce } from "@/composants/elements";
+import { LigneCarte } from "@/composants/LigneCarte";
 import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
 import { VotreTrajet } from "@/composants/VotreTrajet";
@@ -13,7 +15,7 @@ import type { ReponseSens } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
 import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
-import { bandeauVoyage, peutEnregistrer, voyageDepuisRecherche } from "@/domaine/voyages";
+import { bandeauVoyage, peutEnregistrer, voyageDepuisRecherche, type Voyage } from "@/domaine/voyages";
 import { useRecherche, type Recherche } from "@/recherche";
 import { enregistrerVoyage } from "@/stockage/voyages";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -85,20 +87,26 @@ export default function Resultat() {
 /**
  * « Enregistrer ce voyage » (D98, §3.2) : tout le voyage va dans la base du téléphone ; la même recherche
  * remplace l'ancien. L'état vaut pour cette réponse : une nouvelle réponse remet le bouton.
+ * Puis la carte de la zone du voyage se télécharge (spec 23, D99), avec son état sous « Enregistré ».
  */
 function EnregistrerVoyage({ recherche }: { recherche: Recherche }) {
   const db = useSQLiteContext();
   const [etat, setEtat] = useState<{ pour: Recherche["reponse"]; etat: "enCours" | "fait" | "echec" } | null>(null);
   const courant = etat?.pour === recherche.reponse ? etat.etat : null;
+  const [enregistre, setEnregistre] = useState<{ cle: string; voyage: Voyage } | null>(null);
+  const carte = useCarteVoyage(enregistre?.cle ?? null, enregistre?.voyage ?? null);
 
   async function enregistrer() {
     const voyage = voyageDepuisRecherche(recherche, new Date());
     if (!voyage) return;
     setEtat({ pour: recherche.reponse, etat: "enCours" });
     try {
-      await enregistrerVoyage(db, voyage);
+      const cle = await enregistrerVoyage(db, voyage);
       setEtat({ pour: recherche.reponse, etat: "fait" });
       AccessibilityInfo.announceForAccessibility("Voyage enregistré dans Mes trajets");
+      // Le même voyage enregistré de nouveau : ses anciens packs sont remplacés (D99, §3.5).
+      setEnregistre({ cle, voyage });
+      carte.lancer(true, cle, voyage);
     } catch {
       setEtat({ pour: recherche.reponse, etat: "echec" });
     }
@@ -106,10 +114,13 @@ function EnregistrerVoyage({ recherche }: { recherche: Recherche }) {
 
   if (courant === "fait") {
     return (
-      <View className="flex-row items-center gap-3 rounded-bouton border border-bordure-carte bg-fond p-4">
-        <SymbolView name={{ android: "check_circle", web: "check_circle" }} size={24} tintColor={couleurs.possible} />
-        <Text className="flex-1 font-inter-medium text-corps text-texte">Enregistré dans Mes trajets</Text>
-        <Lien libelle="Voir Mes trajets" onPress={() => router.navigate("/mes-trajets")} />
+      <View className="gap-3 rounded-bouton border border-bordure-carte bg-fond p-4">
+        <View className="flex-row items-center gap-3">
+          <SymbolView name={{ android: "check_circle", web: "check_circle" }} size={24} tintColor={couleurs.possible} />
+          <Text className="flex-1 font-inter-medium text-corps text-texte">Enregistré dans Mes trajets</Text>
+          <Lien libelle="Voir Mes trajets" onPress={() => router.navigate("/mes-trajets")} />
+        </View>
+        <LigneCarte etat={carte.etat} onEnregistrer={() => carte.lancer(false)} />
       </View>
     );
   }
