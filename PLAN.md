@@ -43,6 +43,7 @@
 | expo-secure-store | ~58.0.2 | `npx expo install`, 2026-11-04 (spec 10) |
 | expo-location | ~58.0.20 | `npx expo install`, 2026-11-04 (spec 10) |
 | expo-sqlite | ~58.0.15 | `npx expo install`, 2026-11-04 (spec 10) |
+| expo-notifications | ~58.1.8 | `npx expo install`, 2026-11-06 (spec 30) |
 | @anthropic-ai/sdk | 1.3.0 (2026-10-23) | `npm install --save-exact`, 2026-11-06 (spec 28) ; 1.6.0 publiée la veille, écartée (moins de deux semaines) |
 | MOTIS | v2.11.4 (2026-10-21) | https://api.github.com/repos/motis-project/motis/releases/latest, lu le 2026-11-02 |
 | GTFS SNCF | feed_version 2026-10-18, sha256 `6892f10eb62e48e2a6dc6fd0ea6e27cbadcc1163d44b34e64661dae6be701dce` | `fixtures/_rapatrie-2026-10-19/sncf.zip` |
@@ -342,6 +343,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : carte affichée en mode avion.
 - [ ] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
   Preuve : test de programmation, plus notification reçue.
+  Fait en partie (spec 30, D108) : `expo-notifications` 58.1.8, `src/domaine/rappels.ts` (veille 19:00, réservation la veille 10:00, taxi 60 min avant, partir 15 min avant) et `src/rappels.ts` (programmés à l'enregistrement, annulés avec le trajet) ; tests `src/domaine/rappels.test.ts`, 2026-11-06. Manque : le development build et une notification reçue sur le téléphone (spec 30, critère 4).
 - [ ] Plan de voyage complet enregistré : aller, retour, appels à passer (taxi, transport à la demande) avec leurs rappels (« appelez le taxi maintenant »).
   Preuve : test de l'instantané, plus capture en mode avion.
 

@@ -19,6 +19,7 @@ import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
 import { bandeauVoyage, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
 import { useModifierVoyage, useRecherche, type Recherche } from "@/recherche";
 import { enregistrerVoyage, supprimerVoyage } from "@/stockage/voyages";
+import { annulerRappels, programmerRappels } from "@/rappels";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /**
@@ -140,7 +141,10 @@ function useEnregistrement(recherche: Recherche | null) {
         await supprimerVoyage(db, ancien)
           .then(() => supprimerCarte(ancien))
           .catch(() => undefined);
+        await annulerRappels(ancien).catch(() => undefined);
       }
+      // Spec 30 : rappels locaux du trajet ; un refus ou un échec n'empêche jamais l'enregistrement.
+      await programmerRappels(cle, voyage).catch(() => 0);
       poser({ etat: "fait", cle, voyage, index, jeton: Date.now() });
       AccessibilityInfo.announceForAccessibility("Trajet enregistré dans Mes trajets");
     } catch {

@@ -16,6 +16,7 @@ import {
 import { ConfigurationIncomplete } from "@/composants/ConfigurationIncomplete";
 import { lireEnvironnement } from "@/domaine/environnement";
 import { FournisseurSession } from "@/session";
+import { preparerNotifications } from "@/rappels";
 import { effacerCle, enregistrerCle, lireCle } from "@/stockage/cle";
 import { migrer, NOM_BASE } from "@/stockage/reglages";
 
@@ -23,6 +24,9 @@ SplashScreen.preventAutoHideAsync();
 
 // Lue une fois au démarrage (spec 10, §4.3). Expo n'inline la variable qu'écrite en toutes lettres.
 const ENVIRONNEMENT = lireEnvironnement({ EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL });
+
+// Spec 30 : les rappels s'affichent aussi app ouverte.
+preparerNotifications();
 
 export default function RootLayout() {
   const [policesChargees, erreurPolices] = useFonts({
