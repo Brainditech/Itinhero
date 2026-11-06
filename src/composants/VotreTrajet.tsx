@@ -44,7 +44,8 @@ export function VotreTrajet({
   demande: Demande;
   depart: BoutRecap;
   arrivee: BoutRecap;
-  onModifier: () => void;
+  /** Absent pour un voyage rouvert depuis Mes trajets (spec 22, D98) : pas de crayon. */
+  onModifier?: () => void;
 }) {
   const [ouverte, setOuverte] = useState(false);
   return (
@@ -53,7 +54,7 @@ export function VotreTrajet({
         <Text accessibilityRole="header" className="flex-1 font-inter-medium text-corps text-texte-secondaire">
           Votre trajet
         </Text>
-        <BoutonIcone icone="edit" nom="Modifier la recherche" onPress={onModifier} />
+        {onModifier ? <BoutonIcone icone="edit" nom="Modifier la recherche" onPress={onModifier} /> : null}
         <BoutonRepli ouvert={ouverte} nom="Votre trajet" onPress={() => setOuverte((o) => !o)} />
       </View>
 

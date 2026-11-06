@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
 import { Redirect, router } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
 import { SymbolView } from "expo-symbols";
 
 import { Ecran } from "@/composants/Ecran";
-import { Lien, Puce } from "@/composants/elements";
+import { BandeauInfo, BoutonPrincipal, Lien, Puce } from "@/composants/elements";
 import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
 import { VotreTrajet } from "@/composants/VotreTrajet";
@@ -12,7 +13,9 @@ import type { ReponseSens } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
 import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
-import { useRecherche } from "@/recherche";
+import { bandeauVoyage, peutEnregistrer, voyageDepuisRecherche } from "@/domaine/voyages";
+import { useRecherche, type Recherche } from "@/recherche";
+import { enregistrerVoyage } from "@/stockage/voyages";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /**
@@ -21,6 +24,8 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
  * Pas de « Moins cher », de prix ni de « Voir le trajet » ici ; toucher une carte déplie ses étapes.
  * Chaque bloc a un chevron qui le replie (spec 14 §11).
  * Avec une fin de rendez-vous (spec 19, D94) : l'aller, puis « Retour », son verdict et ses possibilités.
+ * En bas, « Enregistrer ce voyage » (spec 22, D98) ; un voyage rouvert depuis Mes trajets porte un bandeau,
+ * sans « Enregistrer » ni « Modifier la recherche ».
  */
 export default function Resultat() {
   const { recherche } = useRecherche();
@@ -39,13 +44,16 @@ export default function Resultat() {
   const horaires = finHoraires([...reponse.possibilites, ...(reponse.retour?.possibilites ?? [])]);
   const modifier = () => router.dismissTo("/formulaire");
 
+  const rouvert = recherche.enregistre_le;
+
   return (
     <Ecran ref={defilement}>
+      {rouvert ? <BandeauInfo texte={bandeauVoyage(rouvert)} /> : null}
       <VotreTrajet
         demande={demande}
         depart={{ nom: depart.nom, adresse: depart.adresse }}
         arrivee={{ nom: arrivee.nom, adresse: adresseArrivee(demande.arrivee, arrivee.adresse, reponse.arrivee.adresse) }}
-        onModifier={modifier}
+        onModifier={rouvert ? undefined : modifier}
       />
       <Sens reponse={reponse} trajet="aller" destination={arrivee.nom} date={demande.date} adresse={reponse.arrivee.adresse} />
 
@@ -62,10 +70,62 @@ export default function Resultat() {
       {horaires ? (
         <Text className="text-center font-inter-medium text-secondaire text-primaire">{`Horaires valables jusqu'au ${horaires}`}</Text>
       ) : null}
-      <View className="items-center">
-        <Lien libelle="Modifier la recherche" onPress={modifier} />
-      </View>
+      {rouvert ? null : (
+        <>
+          {peutEnregistrer(reponse) ? <EnregistrerVoyage recherche={recherche} /> : null}
+          <View className="items-center">
+            <Lien libelle="Modifier la recherche" onPress={modifier} />
+          </View>
+        </>
+      )}
     </Ecran>
+  );
+}
+
+/**
+ * « Enregistrer ce voyage » (D98, §3.2) : tout le voyage va dans la base du téléphone ; la même recherche
+ * remplace l'ancien. L'état vaut pour cette réponse : une nouvelle réponse remet le bouton.
+ */
+function EnregistrerVoyage({ recherche }: { recherche: Recherche }) {
+  const db = useSQLiteContext();
+  const [etat, setEtat] = useState<{ pour: Recherche["reponse"]; etat: "enCours" | "fait" | "echec" } | null>(null);
+  const courant = etat?.pour === recherche.reponse ? etat.etat : null;
+
+  async function enregistrer() {
+    const voyage = voyageDepuisRecherche(recherche, new Date());
+    if (!voyage) return;
+    setEtat({ pour: recherche.reponse, etat: "enCours" });
+    try {
+      await enregistrerVoyage(db, voyage);
+      setEtat({ pour: recherche.reponse, etat: "fait" });
+      AccessibilityInfo.announceForAccessibility("Voyage enregistré dans Mes trajets");
+    } catch {
+      setEtat({ pour: recherche.reponse, etat: "echec" });
+    }
+  }
+
+  if (courant === "fait") {
+    return (
+      <View className="flex-row items-center gap-3 rounded-bouton border border-bordure-carte bg-fond p-4">
+        <SymbolView name={{ android: "check_circle", web: "check_circle" }} size={24} tintColor={couleurs.possible} />
+        <Text className="flex-1 font-inter-medium text-corps text-texte">Enregistré dans Mes trajets</Text>
+        <Lien libelle="Voir Mes trajets" onPress={() => router.navigate("/mes-trajets")} />
+      </View>
+    );
+  }
+  return (
+    <View className="gap-2">
+      <BoutonPrincipal
+        libelle={courant === "enCours" ? "Enregistrement…" : "Enregistrer ce voyage"}
+        onPress={enregistrer}
+        desactive={courant === "enCours"}
+      />
+      {courant === "echec" ? (
+        <Text accessibilityLiveRegion="polite" className="font-inter-medium text-badge text-erreur">
+          Le voyage n&apos;a pas pu être enregistré sur le téléphone.
+        </Text>
+      ) : null}
+    </View>
   );
 }
 

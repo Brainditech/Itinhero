@@ -6,6 +6,7 @@ import { messageEchec, type Candidat, type Point, type ReponseItineraires } from
 import { demandeRecalcul, versRequeteItineraires, type Bout, type BoutLieu, type CoteBout, type Demande, type Trajet } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
 import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS } from "@/domaine/suggestions";
+import type { Voyage } from "@/domaine/voyages";
 import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
@@ -24,6 +25,8 @@ export type Recherche = {
   depart: EtatBout;
   arrivee: EtatBout;
   reponse: ReponseItineraires | null;
+  /** Voyage rouvert depuis Mes trajets (spec 22, D98) : instant de son enregistrement ; absent pour une recherche. */
+  enregistre_le?: string;
 };
 
 /**
@@ -62,6 +65,24 @@ export function useRecherche(): ContexteValeur {
   const v = use(Contexte);
   if (!v) throw new Error("useRecherche hors de FournisseurRecherche");
   return v;
+}
+
+/**
+ * « Ouvrir le trajet » (spec 22, D98) : le voyage enregistré devient la recherche en cours, sans réseau,
+ * et le Résultat s'ouvre dans l'onglet Chercher.
+ */
+export function useOuvrirVoyage() {
+  const { setRecherche } = useRecherche();
+  return (v: Voyage) => {
+    setRecherche({
+      demande: v.demande,
+      depart: { lieu: v.depart },
+      arrivee: { lieu: v.arrivee },
+      reponse: v.reponse,
+      enregistre_le: v.enregistre_le,
+    });
+    router.navigate("/resultat");
+  };
 }
 
 /**
