@@ -59,7 +59,9 @@ export function filtrerTexte(texte: string, avant = ""): string {
     .replace(NUMERO, REMPLACEMENTS.numero)
     .replace(COORDONNEES, "")
     .replace(PRIX, REMPLACEMENTS.prix)
-    .replace(HEURE_DEUX_POINTS, REMPLACEMENTS.heure);
+    .replace(HEURE_DEUX_POINTS, REMPLACEMENTS.heure)
+    // Gras Markdown : l'app affiche du texte brut (les consignes l'interdisent déjà ; ceci rattrape un oubli).
+    .replace(/\*\*/g, "");
   return remplacerHeuresH(t, avant);
 }
 

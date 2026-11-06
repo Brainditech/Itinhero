@@ -32,6 +32,10 @@ describe("filtrerTexte (spec 39 §5)", () => {
     ["Appelez le 03.86.12.34.56 avant.", `Appelez le ${N} avant.`],
   ])("numéro : %s", (entree, attendu) => expect(filtrerTexte(entree)).toBe(attendu));
 
+  it("gras Markdown retiré", () => {
+    expect(filtrerTexte("Je vous conseille le **trajet 1**.")).toBe("Je vous conseille le trajet 1.");
+  });
+
   it("coordonnées retirées", () => {
     expect(filtrerTexte("Le point 47.98, 3.39 est la gare.")).toBe("Le point  est la gare.");
   });
@@ -72,7 +76,7 @@ const LONG = [
   "Le billet coûte 12,50 euros. Comptez 1 h 30 de trajet et gardez 20 minutes de marge. ",
   "Le taxi vient vers 9 h, réservez-le la veille au +33 3 86 12 34 56. ",
   "Le point de rendez-vous est 47.98, 3.39. Prévoyez plus de 2 h d'attente à Paris. ",
-  "Le train de 7 h 12 passe ensuite, avant 8 h 45, pour environ 8 € seulement.",
+  "Le train de 7 h 12 passe ensuite, avant 8 h 45, pour environ 8 € seulement. **Trajet 1** : le plus simple.",
 ].join("");
 
 describe("filtreFlux (spec 39 §5, critère 6)", () => {
@@ -89,6 +93,7 @@ describe("filtreFlux (spec 39 §5, critère 6)", () => {
       }
       expect(sortie).toContain("1 h 30 de trajet");
       expect(sortie).toContain("20 minutes de marge");
+      expect(sortie).not.toContain("*");
     }
   });
 
