@@ -168,7 +168,11 @@ export function possibiliteDuVerdict(r: ReponseSens): Possibilite | undefined {
  * défaut (D114), qui n'a une nuit dehors que si toutes en ont une. Une nuit dehors n'est jamais « Possible » en vert (D79) ; une arrivée le lendemain
  * est toujours dite.
  */
-export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller"): PhraseVerdict {
+export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller", horairesIncomplets = false): PhraseVerdict {
+  // Issue 0025 : des réseaux n'ont pas encore publié ce jour-là ; « aucun trajet » serait affirmer ce qu'on ne sait pas.
+  const aucun = horairesIncomplets ? "Aucun trajet trouvé ce jour-là" : "Aucun trajet ce jour-là";
+  const aucunRetour = horairesIncomplets ? "Aucun retour trouvé ce jour-là" : "Aucun retour ce jour-là";
+  const suite = horairesIncomplets ? " : certains horaires de ce jour ne sont pas encore publiés." : ".";
   const choisie = possibiliteDuVerdict(r);
   if (r.verdict === "impossible" || !choisie) {
     if (trajet === "retour") {
@@ -177,7 +181,7 @@ export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller"): PhraseV
         etat: "impossible",
         titre: "Impossible",
         heureDepart: null,
-        detail: `Aucun retour ce jour-là après ${r.demande.heure}.`,
+        detail: `${aucunRetour} après ${r.demande.heure}${suite}`,
       };
     }
     const quand = r.demande.sens === "arriver" ? `pour arriver avant ${r.demande.limite ?? r.demande.heure}` : `au départ de ${r.demande.heure}`;
@@ -186,7 +190,7 @@ export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller"): PhraseV
       etat: "impossible",
       titre: "Impossible",
       heureDepart: null,
-      detail: `Aucun trajet ce jour-là ${quand}.`,
+      detail: `${aucun} ${quand}${suite}`,
     };
   }
   const plus = joursEnPlus(choisie);
@@ -472,10 +476,13 @@ export function horairesDu(possibilites: Possibilite[]): string | null {
   return `${j}/${m}/${a}`;
 }
 
-/** Ligne sous le Résultat : « Horaires du 21/09/2026, valables jusqu'au 31/08/2027 » (morceaux connus seulement). */
+/**
+ * Ligne sous le Résultat : « Horaires publiés le 21/09/2026, valables jusqu'au 31/08/2027 » (morceaux connus
+ * seulement). Issue 0025 : « Horaires du 20/08/2026 » sur un trajet du 28/12 se lisait comme la date du trajet.
+ */
 export function ligneHoraires(du: string | null, jusquau: string | null): string | null {
-  if (du && jusquau) return `Horaires du ${du}, valables jusqu'au ${jusquau}`;
-  if (du) return `Horaires du ${du}`;
+  if (du && jusquau) return `Horaires publiés le ${du}, valables jusqu'au ${jusquau}`;
+  if (du) return `Horaires publiés le ${du}`;
   return jusquau ? `Horaires valables jusqu'au ${jusquau}` : null;
 }
 
@@ -483,6 +490,32 @@ export function ligneHoraires(du: string | null, jusquau: string | null): string
 export function bandeauLointain(dateDemandee: string, aujourdhui: string, du: string | null): string | null {
   const ecart = (Date.parse(dateDemandee) - Date.parse(aujourdhui)) / 86_400_000;
   if (ecart <= JOURS_HORAIRES_SURS) return null;
-  const quels = du ? `Horaires du ${du}` : "Horaires connus aujourd'hui";
+  const quels = du ? `Horaires publiés le ${du}` : "Horaires connus aujourd'hui";
   return `Trajet dans plus de ${JOURS_HORAIRES_SURS} jours. ${quels} : ils peuvent changer d'ici là. Revérifiez la veille.`;
+}
+
+// ——— Horaires pas encore publiés (issue 0025) ———
+
+const dateFr = (iso: string) => {
+  const [a, m, j] = iso.split("-");
+  return `${j}/${m}/${a}`;
+};
+
+/**
+ * « Les horaires de 3 réseaux, dont Île-de-France Mobilités et SNCF, ne sont pas encore publiés à partir du
+ * 03/12/2026 : les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date. »
+ */
+export function phraseHorairesAVenir(h: { nombre: number; reseaux: string[]; des_le: string }): string {
+  const qui = h.nombre === 1 ? "d'un réseau" : `de ${h.nombre} réseaux`;
+  const noms = h.reseaux.length === 0 ? "" : h.reseaux.length === 1 ? h.reseaux[0]! : `${h.reseaux.slice(0, -1).join(", ")} et ${h.reseaux.at(-1)!}`;
+  const dont = noms === "" ? "" : h.nombre === 1 ? ` (${noms})` : `, dont ${noms},`;
+  return (
+    `Les horaires ${qui}${dont} ne sont pas encore publiés à partir du ${dateFr(h.des_le)} : ` +
+    "les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date."
+  );
+}
+
+/** Le bandeau se montre quand un sens est « Impossible » ou que le trajet est à plus de 7 jours (sinon : bruit). */
+export function montrerHorairesAVenir(impossible: boolean, dateDemandee: string, aujourdhui: string): boolean {
+  return impossible || (Date.parse(dateDemandee) - Date.parse(aujourdhui)) / 86_400_000 > JOURS_HORAIRES_SURS;
 }

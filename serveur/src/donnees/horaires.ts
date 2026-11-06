@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { lireManifest } from "../manifest.js";
@@ -20,6 +20,19 @@ async function principal(): Promise<void> {
   const fichier = await lireHoraires(manifest, path.dirname(manifeste), (jeu, e) =>
     console.error(`${jeu} : illisible (${e instanceof Error ? e.message : String(e)}), laissé de côté`),
   );
+  // Issue 0025 : le nom du réseau (producteur du jeu sur transport.data.gouv.fr), quand `jeux.json` est là.
+  try {
+    const liste = JSON.parse(await readFile(path.join(path.dirname(manifeste), "jeux.json"), "utf8")) as {
+      etiquette: string;
+      producteur?: string;
+    }[];
+    for (const j of liste) {
+      const h = fichier.jeux[j.etiquette];
+      if (h && j.producteur?.trim()) h.nom = j.producteur.trim().slice(0, 120);
+    }
+  } catch {
+    console.warn("jeux.json absent ou illisible : les réseaux restent sans nom.");
+  }
   await writeFile(sortie, JSON.stringify(fichier));
   const jeux = Object.values(fichier.jeux);
   const courses = jeux.reduce((n, j) => n + Object.keys(j.reservations).length, 0);

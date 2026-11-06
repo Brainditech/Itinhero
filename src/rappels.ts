@@ -1,14 +1,14 @@
 import * as Notifications from "expo-notifications";
 import { AndroidImportance } from "expo-notifications";
 
-import { rappelsDuVoyage } from "@/domaine/rappels";
+import { livraisonDe, rappelsDuVoyage } from "@/domaine/rappels";
 import type { Voyage } from "@/domaine/voyages";
 
 /**
  * Rappels locaux (spec 30, D108), par expo-notifications (SDK 58). Pas de table `rappels_programmes` :
  * chaque notification porte l'identifiant « rappel|<clé du trajet>|<clé du rappel> », ce qui suffit pour
- * retrouver et annuler ceux d'un trajet. Livraison « au mieux » (pas d'alarme exacte) : Android peut
- * décaler de quelques minutes.
+ * retrouver et annuler ceux d'un trajet. Issue 0026 (D120) : alarmes exactes (`USE_EXACT_ALARM` dans app.json) ;
+ * « Partez » et « Appelez le taxi » en `alarmClock`, que l'économie de batterie ne décale jamais.
  */
 export const CANAL = "rappels";
 const PREFIXE = "rappel|";
@@ -51,7 +51,12 @@ export async function programmerRappels(cleVoyage: string, voyage: Voyage): Prom
       Notifications.scheduleNotificationAsync({
         identifier: `${PREFIXE}${cleVoyage}|${r.cle}`,
         content: { title: r.titre, body: r.corps },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: r.instant, channelId: CANAL },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: r.instant,
+          channelId: CANAL,
+          delivery: livraisonDe(r.type) === "alarme" ? "alarmClock" : "bestEffort",
+        },
       }),
     ),
   );

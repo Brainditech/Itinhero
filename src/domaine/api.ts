@@ -105,7 +105,22 @@ export const schemaEtape = z.object({
   arrets: z.array(schemaPoint.extend({ nom: z.string(), passage: HEURE.nullable() })).nullable().default(null),
   // Spec 17 (D87) : identifiant de la course, pour `GET /v1/course`. Absent d'un serveur plus ancien ⇒ null.
   course: z.string().nullable().default(null),
+  // Spec 41 (D122) : numéro à appeler (taxi, réservation), toujours avec sa source (invariant 16) ; sinon null.
+  contact: z
+    .object({
+      nom: z.string().min(1),
+      numero: z.string().regex(/^\+?[0-9 ]{6,20}$/),
+      source: z.enum(["gtfs", "fiche", "page"]),
+      url: z.string().nullable(),
+      lu_le: z.iso.date().nullable(),
+      // Faux pour un numéro lu sur une page publique (D49) : « non vérifié » à côté.
+      verifie: z.boolean(),
+      delai: z.string().nullable(),
+    })
+    .nullable()
+    .default(null),
 });
+export type Contact = NonNullable<z.infer<typeof schemaEtape>["contact"]>;
 export type Etape = z.infer<typeof schemaEtape>;
 
 // `GET /v1/course` (spec 17, D87) : tous les arrêts d'une course, dans l'ordre de passage.
@@ -150,8 +165,15 @@ export type ReponseSens = z.infer<typeof schemaReponseSens>;
 
 export const schemaReponseItineraires = schemaReponseSens.and(
   // Retour à partir de la fin du rendez-vous (spec 19, D94) ; null sans fin de rendez-vous.
-  z.object({ retour: schemaReponseSens.nullish() }),
+  z.object({
+    retour: schemaReponseSens.nullish(),
+    // Issue 0025 : réseaux dont les horaires s'arrêtent avant le jour demandé (absent d'un serveur plus ancien).
+    horaires_a_venir: z
+      .object({ nombre: z.number().int().positive(), reseaux: z.array(z.string()), des_le: z.iso.date() })
+      .nullish(),
+  }),
 );
+export type HorairesAVenir = NonNullable<z.infer<typeof schemaReponseItineraires>["horaires_a_venir"]>;
 export type ReponseItineraires = z.infer<typeof schemaReponseItineraires>;
 
 export type RequeteItineraires = {

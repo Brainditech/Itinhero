@@ -10,6 +10,7 @@ import {
   libelleCorrespondances,
   possibiliteDuVerdict,
 } from "./resultat";
+import { appelsAVenir } from "./rappels";
 import { TRIS, trier, type Tri } from "./tri";
 
 // Voyage enregistré (spec 22, D98) : la demande, ses deux lieux et la réponse entière du serveur, gardés sur le
@@ -192,6 +193,8 @@ export type ResumeVoyage = {
   libelle: string;
   horaires: ResumeSens;
   enregistre: string;
+  /** Spec 40 : « 2 appels à passer », ou null. */
+  appels: string | null;
   /** Ce que TalkBack lit du rectangle, d'un bloc. */
   phrase: string;
 };
@@ -229,17 +232,21 @@ function resumeSens(r: ReponseSens, date: string, tri: Tri | undefined): { resum
  * Rectangle de Mes trajets (spec 24, D100, D101) : jour, lieux, une ligne d'horaires (heures, durée, changements).
  * Tout vient de la réponse enregistrée : aucune heure recalculée (invariant 3), l'horaire est dit prévu (invariant 12).
  */
-export function resumeVoyage(v: Voyage): ResumeVoyage {
+export function resumeVoyage(v: Voyage, maintenant: Date = new Date()): ResumeVoyage {
   const jour = jourCourt(v.demande.date);
   const enregistre = `Enregistré ${quandEnregistre(v.enregistre_le)}`;
   const libelle = v.trajet === "retour" ? "Retour" : "Aller";
   const horaires = resumeSens(v.reponse, v.demande.date, v.tri);
+  const montree = possibiliteMontree(v.reponse, v.tri);
+  const n = montree ? appelsAVenir(montree, v.arrivee.nom, maintenant) : 0;
+  const appels = n === 0 ? null : n === 1 ? "1 appel à passer" : `${n} appels à passer`;
   const phrase = [
     `${jour}, ${libelle.toLowerCase()}, ${v.depart.nom} vers ${v.arrivee.nom} : ${horaires.phrase}.`,
+    ...(appels ? [`${appels}.`] : []),
     "Horaire prévu, sans suivi en direct.",
     `${enregistre}.`,
   ].join(" ");
-  return { jour, titre: `${v.depart.nom} → ${v.arrivee.nom}`, libelle, horaires: horaires.resume, enregistre, phrase };
+  return { jour, titre: `${v.depart.nom} → ${v.arrivee.nom}`, libelle, horaires: horaires.resume, enregistre, appels, phrase };
 }
 
 /** Un bout du voyage pour le formulaire : Domicile et Ma position restent tels quels ; un texte déjà trouvé devient ce lieu. */

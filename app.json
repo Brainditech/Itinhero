@@ -19,6 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"],
+      "permissions": ["android.permission.USE_EXACT_ALARM", "android.permission.SCHEDULE_EXACT_ALARM"],
       "package": "com.anonymous.Itinhero"
     },
     "web": {
@@ -52,7 +53,16 @@
         {
           "defaultChannel": "rappels"
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Itinhero ouvre vos photos seulement quand vous joignez une image à l'Assistant.",
+          "cameraPermission": "Itinhero utilise l'appareil photo seulement quand vous photographiez un document pour l'Assistant.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-document-picker"
     ],
     "experiments": {
       "typedRoutes": true,

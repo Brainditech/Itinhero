@@ -8,7 +8,7 @@ import { raccourcirCorrespondances } from "../itineraires/correspondances.js";
 import { normaliser, taxisUtiles } from "../itineraires/normaliser.js";
 import { retenir, retenirPartir, verdict } from "../itineraires/verdict.js";
 import type { AdresseInverse } from "../lieux/ign-geocode.js";
-import { hhmm, instantParis } from "../temps.js";
+import { heureParis, hhmm, instantParis } from "../temps.js";
 import { appelMoteur, refuserEntree } from "./erreurs.js";
 import { dansZoneCouverte } from "../zone/zone.js";
 
@@ -88,6 +88,8 @@ export type OptionsItineraires = {
   horaires?: IndexHoraires;
   /** Adresse postale du point d'arrivée (issue 0010, C). */
   adresse?: AdresseInverse;
+  /** Jour de Paris d'aujourd'hui (issue 0025) ; l'horloge par défaut, fixé dans les tests. */
+  aujourdhui?: () => string;
 };
 
 /** Une adresse introuvable ne fait jamais échouer la recherche. */
@@ -164,6 +166,33 @@ async function chercherSens(
   };
 }
 
+/** Au plus 3 réseaux nommés, les plus gros d'abord (SNCF, Île-de-France Mobilités…). */
+export const MAX_RESEAUX_NOMMES = 3;
+
+/**
+ * Issue 0025 : réseaux dont les horaires s'arrêtent avant le jour demandé. Sans eux, « Impossible » peut
+ * venir de là (les trains ou métros d'après ne sont pas encore publiés) : l'app le dit. null si aucun.
+ */
+export function horairesAVenir(
+  horaires: IndexHoraires | undefined,
+  manifest: Manifest,
+  date: string,
+  aujourdhui: string,
+): { nombre: number; reseaux: string[]; des_le: string } | null {
+  const liste = horaires?.nonPublies(date, aujourdhui) ?? [];
+  if (liste.length === 0) return null;
+  const tailles = new Map(manifest.fichiers.map((f) => [f.jeu, f.taille]));
+  const noms = [...liste]
+    .sort((a, b) => (tailles.get(b.jeu) ?? 0) - (tailles.get(a.jeu) ?? 0))
+    .flatMap((j) => (j.nom ? [j.nom] : []));
+  const reseaux = [...new Set(noms)].slice(0, MAX_RESEAUX_NOMMES);
+  const fin = liste.map((j) => j.fin).sort()[0]!;
+  // Le premier jour sans horaires : le lendemain de la fin la plus proche.
+  const [a, m, j] = fin.split("-").map(Number) as [number, number, number];
+  const des_le = new Date(Date.UTC(a, m - 1, j + 1)).toISOString().slice(0, 10);
+  return { nombre: liste.length, reseaux, des_le };
+}
+
 export function routeItineraires(
   app: FastifyInstance,
   moteur: Moteur,
@@ -190,6 +219,12 @@ export function routeItineraires(
     );
     if (sens === undefined) return reponse;
     const [resultatAller, retour] = sens;
-    return { ...resultatAller, retour };
+    const horaires_a_venir = horairesAVenir(
+      options.horaires,
+      manifest,
+      aller.date,
+      options.aujourdhui?.() ?? heureParis(new Date()).jour,
+    );
+    return { ...resultatAller, retour, horaires_a_venir };
   });
 }

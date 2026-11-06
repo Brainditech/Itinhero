@@ -19,6 +19,8 @@ export type HorairesJeu = {
   fin_validite: string | null;
   /** trip_id ⇒ arrêts où monter (`m:`) ou descendre (`d:`) demande une réservation. */
   reservations: Record<string, string[]>;
+  /** Issue 0025 : nom du réseau (producteur dans `jeux.json`), pour dire lequel n'a pas encore publié. */
+  nom?: string;
 };
 
 export type FichierHoraires = { version: 1; jeux: Record<string, HorairesJeu> };
@@ -30,6 +32,7 @@ const schemaFichier = z.object({
     z.object({
       fin_validite: z.iso.date().nullable(),
       reservations: z.record(z.string(), z.array(z.string().regex(/^[md]:/))),
+      nom: z.string().min(1).max(120).optional(),
     }),
   ),
 });
@@ -95,10 +98,12 @@ export type ReservationEtape = "appel" | null;
 export class IndexHoraires {
   private readonly reservations = new Map<string, Map<string, Set<string>>>();
   private readonly fins = new Map<string, string | null>();
+  private readonly noms = new Map<string, string>();
 
   constructor(fichier: FichierHoraires) {
     for (const [jeu, h] of Object.entries(fichier.jeux)) {
       this.fins.set(jeu, h.fin_validite);
+      if (h.nom) this.noms.set(jeu, h.nom);
       this.reservations.set(jeu, new Map(Object.entries(h.reservations).map(([t, l]) => [t, new Set(l)])));
     }
   }
@@ -110,6 +115,18 @@ export class IndexHoraires {
 
   finValidite(jeu: string): string | null {
     return this.fins.get(jeu) ?? null;
+  }
+
+  /**
+   * Issue 0025 : jeux encore valables aujourd'hui mais dont les horaires s'arrêtent avant `date` (leur suite
+   * n'est pas encore publiée). Un jeu déjà fini aujourd'hui est un jeu mort, pas un jeu « à venir » : écarté.
+   */
+  nonPublies(date: string, aujourdhui: string): { jeu: string; nom: string | null; fin: string }[] {
+    const liste: { jeu: string; nom: string | null; fin: string }[] = [];
+    for (const [jeu, fin] of this.fins) {
+      if (fin !== null && fin >= aujourdhui && fin < date) liste.push({ jeu, nom: this.noms.get(jeu) ?? null, fin });
+    }
+    return liste;
   }
 
   /** « appel » si monter à `de` ou descendre à `a` demande de réserver ce passage. */

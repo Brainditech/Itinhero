@@ -7,6 +7,7 @@ import { SymbolView } from "expo-symbols";
 import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
+import { AFaire } from "@/composants/AFaire";
 import { BandeauInfo, CarteFlottante, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
 import { BoutonRepli } from "@/composants/Repli";
@@ -15,9 +16,19 @@ import { VotreTrajet } from "@/composants/VotreTrajet";
 import type { ReponseSens } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
 import { maintenantAParis } from "@/domaine/demande";
-import { adresseArrivee, bandeauLointain, finHoraires, horairesDu, ligneHoraires, phraseVerdict } from "@/domaine/resultat";
+import {
+  adresseArrivee,
+  bandeauLointain,
+  finHoraires,
+  horairesDu,
+  ligneHoraires,
+  montrerHorairesAVenir,
+  phraseHorairesAVenir,
+  phraseVerdict,
+} from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
-import { bandeauVoyage, champsDepuisRecherche, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
+import { actionsDuTrajet, rappelVeille } from "@/domaine/rappels";
+import { bandeauVoyage, champsDepuisRecherche, possibiliteMontree, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
 import { useModifierVoyage, useOuvrirFormulaire, useRecherche, type Recherche } from "@/recherche";
 import { enregistrerVoyage, supprimerVoyage } from "@/stockage/voyages";
 import { annulerRappels, programmerRappels } from "@/rappels";
@@ -60,7 +71,13 @@ export default function Resultat() {
   const du = horairesDu(toutes);
   const horaires = ligneHoraires(du, finHoraires(toutes));
   // Spec 32 : un trajet rouvert garde la date d'aujourd'hui pour le calcul (les horaires enregistrés ne changent pas).
-  const lointain = bandeauLointain(demande.date, maintenantAParis(new Date()).date, du);
+  const aujourdhui = maintenantAParis(new Date()).date;
+  const lointain = bandeauLointain(demande.date, aujourdhui, du);
+  // Issue 0025 : des réseaux n'ont pas encore publié leurs horaires pour ce jour.
+  const aVenir = reponse.horaires_a_venir ?? null;
+  const impossible = reponse.verdict === "impossible" || reponse.retour?.verdict === "impossible";
+  const bandeauAVenir =
+    aVenir && montrerHorairesAVenir(impossible, demande.date, aujourdhui) ? phraseHorairesAVenir(aVenir) : null;
   // Spec 34 (§3.5) : le formulaire de l'onglet Accueil reprend la recherche, même s'il a été fermé entre-temps.
   const modifier = () =>
     ouvrirFormulaire({
@@ -76,7 +93,9 @@ export default function Resultat() {
   return (
     <Ecran ref={defilement}>
       {rouvert ? <BandeauInfo texte={bandeauVoyage(rouvert.voyage.enregistre_le)} /> : null}
+      {rouvert ? <AFaireDuVoyage voyage={rouvert.voyage} /> : null}
       {lointain ? <BandeauInfo texte={lointain} /> : null}
+      {bandeauAVenir ? <BandeauInfo texte={bandeauAVenir} /> : null}
       <VotreTrajet
         demande={demande}
         depart={{ nom: depart.nom, adresse: depart.adresse }}
@@ -92,6 +111,7 @@ export default function Resultat() {
         tri={tris.aller}
         onChoisir={(t) => choisirTri("aller", t)}
         enregistrement={rouvert ? null : enregistrement}
+        horairesIncomplets={aVenir !== null}
       />
 
       {reponse.retour ? (
@@ -109,6 +129,7 @@ export default function Resultat() {
             tri={tris.retour}
             onChoisir={(t) => choisirTri("retour", t)}
             enregistrement={rouvert ? null : enregistrement}
+            horairesIncomplets={aVenir !== null}
           />
         </>
       ) : null}
@@ -123,6 +144,13 @@ export default function Resultat() {
       )}
     </Ecran>
   );
+}
+
+/** Spec 40 (D121) : « À faire » du trajet rouvert, tiré de la possibilité qu'il montre. */
+function AFaireDuVoyage({ voyage }: { voyage: Voyage }) {
+  const p = possibiliteMontree(voyage.reponse, voyage.tri);
+  if (!p) return null;
+  return <AFaire actions={actionsDuTrajet(p, voyage.arrivee.nom, new Date())} veille={rappelVeille(p, voyage.arrivee.nom)} />;
 }
 
 type Enregistre = { cle: string; voyage: Voyage; index: number; jeton: number };
@@ -247,6 +275,7 @@ function Sens({
   tri,
   onChoisir,
   enregistrement,
+  horairesIncomplets,
 }: {
   reponse: ReponseSens;
   trajet: Trajet;
@@ -256,12 +285,13 @@ function Sens({
   tri: Tri;
   onChoisir: (t: Tri) => void;
   enregistrement: Enregistrement | null;
+  horairesIncomplets: boolean;
 }) {
   const rangees = trier(reponse.possibilites, tri);
   const etat = enregistrement?.sens[trajet];
   return (
     <>
-      <BlocVerdict reponse={reponse} trajet={trajet} />
+      <BlocVerdict reponse={reponse} trajet={trajet} horairesIncomplets={horairesIncomplets} />
       {reponse.possibilites.length >= 2 ? <PucesTri tri={tri} onChoisir={onChoisir} /> : null}
       {rangees.length === 0 && reponse.possibilites.length > 0 ? (
         <Text className="font-inter text-corps text-texte">Aucun trajet sans réservation ce jour-là.</Text>
@@ -308,8 +338,16 @@ function PucesTri({ tri, onChoisir }: { tri: Tri; onChoisir: (t: Tri) => void })
   );
 }
 
-function BlocVerdict({ reponse, trajet }: { reponse: ReponseSens; trajet: Trajet }) {
-  const verdict = phraseVerdict(reponse, trajet);
+function BlocVerdict({
+  reponse,
+  trajet,
+  horairesIncomplets,
+}: {
+  reponse: ReponseSens;
+  trajet: Trajet;
+  horairesIncomplets: boolean;
+}) {
+  const verdict = phraseVerdict(reponse, trajet, horairesIncomplets);
   // Replié au départ (spec 14), sauf « Impossible » : aucune carte dessous ne dit pourquoi (issue 0021).
   const [verdictOuvert, setVerdictOuvert] = useState(() => verdict.etat === "impossible");
   // Vert seulement pour « Possible » ; une nuit dehors est en orange avec le triangle (spec 15, D79).
