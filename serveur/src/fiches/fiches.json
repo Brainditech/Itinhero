@@ -1,4 +1,350 @@
 {
   "note": "Spec 41 (D122). Fiches de taxis et de transport à la demande. « valide_le » : date où Brainditech a validé la fiche (affichée telle quelle) ; null : fiche candidate, affichée « non vérifié » seulement si le serveur retrouve le numéro sur sa page (D49).",
-  "fiches": []
+  "fiches": [
+    {
+      "id": "tad-mobigo-tad-856-arces-dilo-migennes-a",
+      "type": "tad",
+      "nom": "Mobigo TAD 856 Arces-Dilo <> Migennes",
+      "numero": "03 80 11 29 29",
+      "communes": [
+        "Arces-Dilo",
+        "Champlost",
+        "Bellechaume",
+        "Mercy",
+        "Brienon-sur-Armançon",
+        "Esnon",
+        "Migennes"
+      ],
+      "centre": {
+        "lat": 47.99,
+        "lon": 3.617
+      },
+      "rayon_km": 15,
+      "delai": "Au plus tard la veille du déplacement : du lundi au vendredi, la veille avant 17 h, sauf jours fériés ; pour le…",
+      "url": "https://www.viamobigo.fr/ftp/document/fh-tad856-valide.pdf",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "tad-mobigo-lr803-saint-florentin-auxerre",
+      "type": "tad",
+      "nom": "Mobigo LR803 Saint-Florentin <> Auxerre",
+      "numero": "03 80 11 29 29",
+      "communes": [
+        "Brienon-sur-Armançon",
+        "Saint-Florentin",
+        "Ligny-le-Châtel",
+        "Pontigny",
+        "Auxerre"
+      ],
+      "centre": {
+        "lat": 47.999,
+        "lon": 3.727
+      },
+      "rayon_km": 30,
+      "delai": "Lundi au vendredi la veille avant 17 h, sauf jours fériés ; pour le lundi, réservation le vendredi (lu sur la fiche…",
+      "url": "https://www.ville-brienon.fr/mon-quotidien/transports/",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "tad-mobigo-tad-864-toucy-joigny-toucy",
+      "type": "tad",
+      "nom": "Mobigo TAD 864 Toucy <> Joigny",
+      "numero": "03 80 11 29 29",
+      "communes": [
+        "Toucy",
+        "Villiers-Saint-Benoît",
+        "Grandchamp",
+        "Saint-Martin-sur-Ouanne",
+        "Charny",
+        "Prunoy",
+        "Villefranche",
+        "Joigny"
+      ],
+      "centre": {
+        "lat": 47.86,
+        "lon": 3.34
+      },
+      "rayon_km": 20,
+      "delai": "Au plus tard la veille du déplacement : du lundi au vendredi, la veille avant 17 h, sauf jours fériés ; pour le…",
+      "url": "https://www.viamobigo.fr/ftp/document/2-fh-tad864.pdf",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "tad-train-mobigo-taxi-a-la-demande-brien",
+      "type": "tad",
+      "nom": "TRAIN Mobigo - Taxi à la demande",
+      "numero": "03.80.11.29.29",
+      "communes": [
+        "Brienon-sur-Armançon"
+      ],
+      "centre": {
+        "lat": 47.99,
+        "lon": 3.617
+      },
+      "rayon_km": 10,
+      "delai": "Au plus tard la veille du voyage, réservation du lundi au vendredi de 7h00 à 18h00 (touche 3)",
+      "url": "https://www.ter.sncf.com/bourgogne-franche-comte/services-contacts/ter-taxi/taxi-a-la-demande",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "tad-nemus-transport-a-la-demande-de-fler",
+      "type": "tad",
+      "nom": "Némus - Transport à la demande de Flers Agglo",
+      "numero": "02 33 65 80 80",
+      "communes": [
+        "Flers",
+        "42 communes de Flers Agglo"
+      ],
+      "centre": {
+        "lat": 48.749,
+        "lon": -0.57
+      },
+      "rayon_km": 15,
+      "delai": "Jusqu'à 7 jours à l'avance et au plus tard la veille du déplacement souhaité ; centrale du lundi au vendredi de 8h30…",
+      "url": "https://nemus.flers-agglo.fr/se-deplacer/transport-a-la-demande",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "tad-tinchebray-bocage-tibus-tad-orne-rel",
+      "type": "tad",
+      "nom": "Tinchebray Bocage - Tibus (TAD de l'Orne relayé par Nomad)",
+      "numero": "06 22 94 29 52",
+      "communes": [
+        "Tinchebray-Bocage"
+      ],
+      "centre": {
+        "lat": 48.764,
+        "lon": -0.733
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://nomad.normandie.fr/transport-a-la-demande",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-groupement-taxi-auxerre-et-alentour",
+      "type": "taxi",
+      "nom": "Groupement Taxi Auxerre et Alentours",
+      "numero": "03 73 53 03 53",
+      "communes": [
+        "Auxerre",
+        "Perrigny",
+        "Saint-Georges-sur-Baulche",
+        "Appoigny",
+        "Monéteau"
+      ],
+      "centre": {
+        "lat": 47.798,
+        "lon": 3.567
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.burgundy-tourism.com/sit/groupement-taxi-auxerre-et-alentours",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-vehicules-voyages-auxerre",
+      "type": "taxi",
+      "nom": "Véhicules Voyages",
+      "numero": "07 67 64 79 33",
+      "communes": [
+        "Auxerre"
+      ],
+      "centre": {
+        "lat": 47.798,
+        "lon": 3.567
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.ot-auxerre.fr/app/uploads/auxerrois/2026/03/OT_Guide-Touristique-2026-web.pdf",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-taxi-azur-abba-saint-florentin",
+      "type": "taxi",
+      "nom": "Taxi Azur-Abba",
+      "numero": "03 86 43 46 95",
+      "communes": [
+        "Saint-Florentin",
+        "Brienon-sur-Armançon",
+        "Ormoy",
+        "Neuvy-Sautour",
+        "Venoy",
+        "Héry",
+        "Saint-Aubin-sur-Yonne",
+        "Tonnerre",
+        "Appoigny",
+        "Quenne",
+        "Germigny"
+      ],
+      "centre": {
+        "lat": 47.999,
+        "lon": 3.727
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/saint-florentin-89/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-taxi-entreprise-individuelle-31-rue",
+      "type": "taxi",
+      "nom": "Taxi de Brienon-sur-Armançon (entreprise individuelle)",
+      "numero": "06 09 05 05 69",
+      "communes": [
+        "Brienon-sur-Armançon"
+      ],
+      "centre": {
+        "lat": 47.99,
+        "lon": 3.617
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/brienon-sur-armancon-89/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-abeille-nath-taxis-migennes",
+      "type": "taxi",
+      "nom": "Abeille Nath'Taxis",
+      "numero": "06 09 02 12 48",
+      "communes": [
+        "Migennes"
+      ],
+      "centre": {
+        "lat": 47.965,
+        "lon": 3.518
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/migennes-89/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-lenoble-taxis-joigny",
+      "type": "taxi",
+      "nom": "LENOBLE TAXIS",
+      "numero": "03 86 91 49 87",
+      "communes": [
+        "Joigny",
+        "Migennes"
+      ],
+      "centre": {
+        "lat": 47.973,
+        "lon": 3.458
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-a-h-taxi-joigny",
+      "type": "taxi",
+      "nom": "A&H (taxi)",
+      "numero": "06 87 34 96 01",
+      "communes": [
+        "Joigny",
+        "Migennes"
+      ],
+      "centre": {
+        "lat": 47.982,
+        "lon": 3.397
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-taxi-ks-joigny",
+      "type": "taxi",
+      "nom": "Taxi KS",
+      "numero": "06 50 64 25 30",
+      "communes": [
+        "Joigny"
+      ],
+      "centre": {
+        "lat": 47.982,
+        "lon": 3.397
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-centrale-taxis-du-bocage-flers",
+      "type": "taxi",
+      "nom": "Centrale Taxis du Bocage",
+      "numero": "02 33 96 70 37",
+      "communes": [
+        "Flers",
+        "Bellou-en-Houlme",
+        "Messei",
+        "Domfront-en-Poiraie",
+        "Chanu"
+      ],
+      "centre": {
+        "lat": 48.749,
+        "lon": -0.57
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/flers-61/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-taxi-enseigne-au-nom-du-chauffeur-1",
+      "type": "taxi",
+      "nom": "Taxi de Flers (enseigne au nom du chauffeur)",
+      "numero": "02 33 64 12 96",
+      "communes": [
+        "Flers"
+      ],
+      "centre": {
+        "lat": 48.749,
+        "lon": -0.57
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/flers-61/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    },
+    {
+      "id": "taxi-abdi-taxi-flers",
+      "type": "taxi",
+      "nom": "Abdi Taxi",
+      "numero": "02 33 66 35 06",
+      "communes": [
+        "Flers",
+        "Bagnoles-de-l'Orne Normandie"
+      ],
+      "centre": {
+        "lat": 48.749,
+        "lon": -0.57
+      },
+      "rayon_km": 10,
+      "delai": null,
+      "url": "https://www.pagesjaunes.fr/annuaire/flers-61/taxis",
+      "lu_le": "2026-11-06",
+      "valide_le": null
+    }
+  ]
 }

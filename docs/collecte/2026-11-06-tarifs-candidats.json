@@ -1,0 +1,132 @@
+[
+  {
+    "reseau": "Mobigo (cars régionaux Bourgogne-Franche-Comté)",
+    "produit": "Ticket unitaire car",
+    "montant_eur": 2.00,
+    "reductions": [
+      { "nom": "Gratuité enfants", "pourcentage": 100, "conditions": "Enfants de moins de 4 ans, sur justificatif, accompagnés d'un adulte" },
+      { "nom": "Gratuité accompagnant PMR", "pourcentage": 100, "conditions": "Accompagnant d'une personne à mobilité réduite, sur présentation de la carte mobilité inclusion invalidité de la personne" },
+      { "nom": "Carte Avantages Jeunes", "pourcentage": 100, "conditions": "Aller seulement (retour payant), sur présentation de la carte Avantages Jeunes (sous condition) et du coupon « Avantages » rempli" }
+    ],
+    "canal_vente": "À bord par carte bancaire sans contact (titre unitaire seulement, flash de la CB à la montée) ; m-ticket sur l'application Mobigo (QR code) ; carte rechargeable anonyme (5 €) chez les dépositaires",
+    "url": "https://www.viamobigo.fr/ftp/document/grille-tarifaire-routier-bfc-totalite-maj-12-03-2026.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Grille « Tarifs valables à partir du 1er janvier 2026 », règles applicables sur tous les départements sauf Territoire de Belfort. « Valable sur un trajet hors correspondance avec une autre ligne de cars Mobigo ». Lien depuis https://www.viamobigo.fr/fr/car-mobigo/71. Aucun tarif solidaire car n'apparaît dans cette grille. Les fiches TAD 856/864 disent « Ticket en vente à bord » et renvoient à cette rubrique sans donner de prix propre au TAD : on suppose le même ticket, à confirmer."
+  },
+  {
+    "reseau": "Mobigo (cars régionaux Bourgogne-Franche-Comté)",
+    "produit": "Carnet 10 voyages car",
+    "montant_eur": 18.00,
+    "reductions": [],
+    "canal_vente": "Application Mobigo (m-ticket) ; carte rechargeable chez les dépositaires",
+    "url": "https://www.viamobigo.fr/ftp/document/grille-tarifaire-routier-bfc-totalite-maj-12-03-2026.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Valable sur les lignes de cars Mobigo, à valider à chaque montée. Même grille : abonnement mensuel 50 € (une ligne ou groupement de lignes)."
+  },
+  {
+    "reseau": "TRAIN Mobigo (TER Bourgogne-Franche-Comté)",
+    "produit": "Billet TER tarif plein",
+    "montant_eur": null,
+    "reductions": [
+      { "nom": "Tarif Jeune -26 ans", "pourcentage": 50, "conditions": "Moins de 26 ans, toute l'année, sans carte ; en Bourgogne-Franche-Comté, vers Paris et au-delà" },
+      { "nom": "Tarif recherche-emploi", "pourcentage": 75, "conditions": "Sur l'aller-retour en TER, trajets en Bourgogne-Franche-Comté, vers ou depuis Paris (conditions détaillées sur une sous-page non lue)" },
+      { "nom": "Tarif groupe", "pourcentage": 75, "conditions": "À partir de 10 personnes, en Bourgogne-Franche-Comté, vers ou depuis Paris" },
+      { "nom": "Carte TRAIN Mobigo solidaire", "pourcentage": 75, "conditions": "Voir l'entrée dédiée" }
+    ],
+    "canal_vente": "En ligne sur ter.sncf.com (« Acheter un billet »), distributeurs automatiques et guichets",
+    "url": "https://www.ter.sncf.com/bourgogne-franche-comte/tarifs-cartes/tarifs-regionaux",
+    "lu_le": "2026-11-06",
+    "remarque": "TARIF PLEIN NON PUBLIÉ : aucun barème kilométrique sur la page, le prix n'apparaît qu'à la recherche d'un trajet. La page publie : « Bons plans TRAIN Mobigo » à partir de 3 € (« billets à 3€, 6€ ou 13€ maxi », sans carte) et un « Tarif enfant » unique de 2 € pour les 4 à moins de 12 ans. Page lue dans le navigateur (le site refuse les robots)."
+  },
+  {
+    "reseau": "TRAIN Mobigo (TER Bourgogne-Franche-Comté)",
+    "produit": "Carte TRAIN Mobigo solidaire (carte de réduction)",
+    "montant_eur": 0,
+    "reductions": [
+      { "nom": "Carte TRAIN Mobigo solidaire", "pourcentage": 75, "conditions": "Bénéficiaires de la complémentaire santé solidaire (CSS), jeunes en PACEA, bénéficiaires du contrat Engagement Jeune (CEJ). Valable sur les trajets TRAIN Mobigo en Bourgogne-Franche-Comté et vers Paris (via Laroche-Migennes). Carte gratuite valable jusqu'à 1 an selon la validité des justificatifs" }
+    ],
+    "canal_vente": "Demande de carte en ligne (« Commander une carte »), par courrier (formulaire) ou aux guichets ; billets ensuite en ligne avec le tarif « Carte TRAIN Mobigo solidaire » ou aux distributeurs automatiques",
+    "url": "https://www.ter.sncf.com/bourgogne-franche-comte/tarifs-cartes/cartes-reduction/carte-solidaire",
+    "lu_le": "2026-11-06",
+    "remarque": "Train seulement : la page ne dit pas que la réduction s'applique aux cars Mobigo. Le montant 0 est le prix de la carte (« Carte gratuite »), pas celui d'un trajet. Page lue dans le navigateur."
+  },
+  {
+    "reseau": "TRAIN Mobigo (TER Bourgogne-Franche-Comté)",
+    "produit": "Taxi à la demande (rabattement vers la gare)",
+    "montant_eur": 3.50,
+    "reductions": [
+      { "nom": "Enfants de moins de 4 ans", "pourcentage": 100, "conditions": "Course gratuite" },
+      { "nom": "Enfants de moins de 12 ans", "pourcentage": 50, "conditions": "Demi-tarif" },
+      { "nom": "Parcours inclus dans le billet de train", "pourcentage": 100, "conditions": "Rien à régler si le parcours taxi est compris dans le trajet indiqué sur le billet de train" }
+    ],
+    "canal_vente": "Réglé au chauffeur ; réservation au 03.80.11.29.29 touche 3",
+    "url": "https://www.ter.sncf.com/bourgogne-franche-comte/services-contacts/ter-taxi/taxi-a-la-demande",
+    "lu_le": "2026-11-06",
+    "remarque": "3,50 €/personne si le parcours taxi n'est pas compris dans le billet. Réservé aux voyageurs en correspondance avec un TRAIN Mobigo (Brienon-sur-Armançon fait partie des communes desservies)."
+  },
+  {
+    "reseau": "Nomad Car (cars régionaux Normandie)",
+    "produit": "Billet unité - 1 zone traversée",
+    "montant_eur": 2,
+    "reductions": [
+      { "nom": "Gratuité enfant", "pourcentage": 100, "conditions": "Enfant de moins de 4 ans accompagné" },
+      { "nom": "Gratuité accompagnateur", "pourcentage": 100, "conditions": "Accompagnateur des titulaires d'une carte invalidité à 80 % avec la mention « besoin d'accompagnement » et des non-voyants munis d'un titre de transport" }
+    ],
+    "canal_vente": "Dans les cars auprès du conducteur (espèces, carte bancaire, chèque sous réserve) ; application Atoumod (obligatoire pour les trajets en correspondance Nomad Car / Nomad Car) ; points de vente partenaires (à Flers : Agence Némus, 6 place Charles de Gaulle, et Café de la gare, 37 rue Nationale) ; application FAIRTIQ (post-paiement) ; SNCF Connect au forfait 2,90 € pour un trajet train + car",
+    "url": "https://nomad.normandie.fr/sites/default/files/2026-07/2026%20-%20Grille%20tarifaires%20lignes%20commerciales%20et%20TAD.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Grille applicable à compter du 5 juillet 2026, « toutes les lignes NOMAD Car et services TAD sauf lignes express 122 et 216 ». Prix par zones traversées : 2 € (1 zone), 3 € (2 zones), 4 € (3 zones), 5 € (4 zones et plus). Le tarif solidaire ne concerne que les abonnements (mensuel solidaire 21/31/41/51 € selon les zones ; QF CAF/MSA ≤ 500 et autres cas, texte partiellement illisible à l'extraction). Pass journée individuel : 3 (symbole € perdu à l'extraction). Les trajets internes à une agglomération (ex. Flers) ont leur propre tarif. PDF lu dans le navigateur (site protégé contre les robots), lien depuis https://nomad.normandie.fr/tarifs-et-achats, qui pointe désormais vers une copie suffixée _0.pdf."
+  },
+  {
+    "reseau": "Nomad Car (cars régionaux Normandie)",
+    "produit": "Billet unité - 2 zones traversées",
+    "montant_eur": 3,
+    "reductions": [],
+    "canal_vente": "Comme le billet 1 zone",
+    "url": "https://nomad.normandie.fr/sites/default/files/2026-07/2026%20-%20Grille%20tarifaires%20lignes%20commerciales%20et%20TAD.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Mêmes gratuités que le billet 1 zone. Correspondance possible pendant 1h30 après la 1re validation."
+  },
+  {
+    "reseau": "Nomad Car (cars régionaux Normandie)",
+    "produit": "Billet unité - 3 zones traversées",
+    "montant_eur": 4,
+    "reductions": [],
+    "canal_vente": "Comme le billet 1 zone",
+    "url": "https://nomad.normandie.fr/sites/default/files/2026-07/2026%20-%20Grille%20tarifaires%20lignes%20commerciales%20et%20TAD.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Mêmes gratuités que le billet 1 zone."
+  },
+  {
+    "reseau": "Nomad Car (cars régionaux Normandie)",
+    "produit": "Billet unité - 4 zones et plus",
+    "montant_eur": 5,
+    "reductions": [],
+    "canal_vente": "Comme le billet 1 zone",
+    "url": "https://nomad.normandie.fr/sites/default/files/2026-07/2026%20-%20Grille%20tarifaires%20lignes%20commerciales%20et%20TAD.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Mêmes gratuités que le billet 1 zone. Carte 10 trajets : 16 / 24 / 32 / 39 € selon 1 / 2 / 3 / 4+ zones."
+  },
+  {
+    "reseau": "Némus (réseau urbain de Flers Agglo)",
+    "produit": "Ticket à l'unité (bus et TAD de Flers Agglo)",
+    "montant_eur": 1.10,
+    "reductions": [],
+    "canal_vente": null,
+    "url": "https://nemus.flers-agglo.fr/se-deplacer/transport-a-la-demande",
+    "lu_le": "2026-11-06",
+    "remarque": "Lu sur la page TAD : « ticket à l'unité : 1,10 €, carte 10 voyages : 8 € et abonnement sauf Campus ». Le canal de vente n'est pas indiqué sur cette page (l'agence Némus est au 6 place Charles de Gaulle, Flers, d'après la page Nomad). Ajouté parce que Flers est le second cas réel."
+  },
+  {
+    "reseau": "Île-de-France Mobilités",
+    "produit": "Ticket Métro-Train-RER",
+    "montant_eur": 2.55,
+    "reductions": [
+      { "nom": "Tarif réduit (1,30 €)", "pourcentage": 50, "conditions": "Bénéficiaires de la Tarification Solidarité Transport ; enfants de 4 ans à moins de 10 ans (gratuit pour les moins de 4 ans) ; titulaires d'une carte « Familles nombreuses » ; personnes invalides et leur accompagnant sous conditions. IDFM le présente comme un demi-tarif (1,30 € au lieu de 2,55 €)" }
+    ],
+    "canal_vente": "Sans contact uniquement : passe Navigo Easy (points de vente, agents, automates des transporteurs, applications mobiles) ou téléphone via les applications proposant le service d'achat",
+    "url": "https://tzen4.iledefrance-mobilites.fr/en/tarifs-titre-de-transport-en-commun-2026",
+    "lu_le": "2026-11-06",
+    "remarque": "Tarifs IDFM 2026 en vigueur au 1er janvier 2026 (page publiée le 10 décembre 2025), lus sur ce miroir officiel en anglais : le site principal https://www.iledefrance-mobilites.fr/tarifs-titre-de-transport-en-commun-2026 refuse les robots. Ticket non valable vers les aéroports (billet Paris Région <> Aéroports 14 €). Correspondances métro, RER et train autorisées pendant 2 h. Navigo Liberté+ : 2,04 € par trajet (1,02 € tarif réduit). Bénéficiaires du tarif réduit et canaux de vente lus dans les CGVU de juin 2026 : https://www.iledefrance-mobilites.fr/medias/portail-idfm/aiqOlalQnVZVENIF_CGVU_ticketMT_juin2026.pdf"
+  }
+]

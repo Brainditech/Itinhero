@@ -1,0 +1,330 @@
+[
+  {
+    "type": "tad",
+    "nom": "Mobigo TAD 856 Arces-Dilo <> Migennes (dessert Brienon-sur-Armançon Mairie)",
+    "numero": "03 80 11 29 29",
+    "communes": [
+      "Arces-Dilo",
+      "Champlost",
+      "Bellechaume",
+      "Mercy",
+      "Brienon-sur-Armançon",
+      "Esnon",
+      "Migennes"
+    ],
+    "centre": {
+      "lat": 47.99,
+      "lon": 3.617
+    },
+    "rayon_km": 15,
+    "delai": "Au plus tard la veille du déplacement : du lundi au vendredi, la veille avant 17 h, sauf jours fériés ; pour le lundi, réservation le vendredi. Réservation possible jusqu'à 30 jours avant. Annulation au plus tard la veille avant 17h.",
+    "url": "https://www.viamobigo.fr/ftp/document/fh-tad856-valide.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Fiche horaire officielle Mobigo valable à partir du 1er septembre 2025 (texte extractible). Mardi et jeudi : aller Brienon Mairie 09:25 > Migennes Marché Couvert 09:45 ; retour Migennes 11:30 > Brienon 11:50. Fiche d'inscription à la première réservation. Réservation aussi sur viamobigo.fr (rubrique se déplacer / transport à la demande, site https://tad.viamobigo.fr/MOBIGO/fr-fr). Ticket en vente à bord ; tarif renvoyé à viamobigo.fr. Centre = centre de commune de Brienon-sur-Armançon (approximatif) ; rayon estimé pour couvrir la ligne. La page de la mairie https://www.ville-brienon.fr/mon-quotidien/transports/ cite aussi ce numéro."
+  },
+  {
+    "type": "tad",
+    "nom": "Mobigo LR803 Saint-Florentin <> Auxerre (courses sur réservation, dont arrêt Brienon/Armançon Mairie)",
+    "numero": "03 80 11 29 29",
+    "communes": [
+      "Brienon-sur-Armançon",
+      "Saint-Florentin",
+      "Ligny-le-Châtel",
+      "Pontigny",
+      "Auxerre"
+    ],
+    "centre": {
+      "lat": 47.999,
+      "lon": 3.727
+    },
+    "rayon_km": 30,
+    "delai": "Lundi au vendredi la veille avant 17 h, sauf jours fériés ; pour le lundi, réservation le vendredi (lu sur la fiche horaire, image)",
+    "url": "https://www.ville-brienon.fr/mon-quotidien/transports/",
+    "lu_le": "2026-11-06",
+    "remarque": "Le numéro et « Réservation obligatoire » figurent en texte sur la page de la mairie de Brienon. Le délai ne figure que dans l'image de la fiche horaire https://www.ville-brienon.fr/wp-content/uploads/2025/08/Horaires-LR803.pdf (PDF scanné, horaires valables à partir du 1er septembre 2025) : à vérifier à la main. Seules certaines courses sont « service à la demande ». Centre = centre de commune de Saint-Florentin (approximatif)."
+  },
+  {
+    "type": "tad",
+    "nom": "Mobigo TAD 864 Toucy <> Joigny",
+    "numero": "03 80 11 29 29",
+    "communes": [
+      "Toucy",
+      "Villiers-Saint-Benoît",
+      "Grandchamp",
+      "Saint-Martin-sur-Ouanne",
+      "Charny",
+      "Prunoy",
+      "Villefranche",
+      "Joigny"
+    ],
+    "centre": {
+      "lat": 47.86,
+      "lon": 3.34
+    },
+    "rayon_km": 20,
+    "delai": "Au plus tard la veille du déplacement : du lundi au vendredi, la veille avant 17 h, sauf jours fériés ; pour le lundi, réservation le vendredi. Réservation possible jusqu'à 30 jours avant.",
+    "url": "https://www.viamobigo.fr/ftp/document/2-fh-tad864.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Fiche officielle valable à partir du 1er mars 2026 (texte extractible). Dimanche Toucy 17:30 > Joigny 3 rue de la Gare 18:40 ; vendredi Joigny 20:00 > Toucy 21:05 (correspondance TRAIN Mobigo Paris-Bercy). Centre = point médian approximatif entre Toucy et Joigny (pas un centre de commune)."
+  },
+  {
+    "type": "tad",
+    "nom": "TRAIN Mobigo - Taxi à la demande (rabattement vers la gare la plus proche)",
+    "numero": "03.80.11.29.29",
+    "communes": [
+      "Brienon-sur-Armançon"
+    ],
+    "centre": {
+      "lat": 47.99,
+      "lon": 3.617
+    },
+    "rayon_km": 10,
+    "delai": "Au plus tard la veille du voyage, réservation du lundi au vendredi de 7h00 à 18h00 (touche 3)",
+    "url": "https://www.ter.sncf.com/bourgogne-franche-comte/services-contacts/ter-taxi/taxi-a-la-demande",
+    "lu_le": "2026-11-06",
+    "remarque": "Numéro écrit « 03.80.11.29.29 (prix d'un appel local), touche 3 ». Réservé aux voyageurs en correspondance avec un TRAIN Mobigo. Gratuit si le parcours taxi est inclus dans le billet de train, sinon 3,50 €/personne ; gratuit moins de 4 ans, demi-tarif moins de 12 ans. Autres communes de l'Yonne listées : Accolay, Aisy-sur-Armançon, Ancy-le-Franc, Annay-la-Côte, Arcy-sur-Cure, Cézy, Flogny-la-Chapelle, Gurgy, Lézinnes, Lucy-sur-Cure, Lucy-sur-Yonne, Mailly-le-Château, Prégilbert, Saint-Moré, Tanlay, Trucy-sur-Yonne, Vincelles, Voutenay… La page ne précise pas vers quelle gare Brienon est rabattu. Page lue dans le navigateur (le site refuse les robots). Centre = centre de commune de Brienon (approximatif)."
+  },
+  {
+    "type": "tad",
+    "nom": "Némus - Transport à la demande de Flers Agglo",
+    "numero": "02 33 65 80 80",
+    "communes": [
+      "Flers",
+      "42 communes de Flers Agglo"
+    ],
+    "centre": {
+      "lat": 48.749,
+      "lon": -0.57
+    },
+    "rayon_km": 15,
+    "delai": "Jusqu'à 7 jours à l'avance et au plus tard la veille du déplacement souhaité ; centrale du lundi au vendredi de 8h30 à 11h50 et de 13h30 à 17h20 (et le 1er samedi du mois 8h30-11h50)",
+    "url": "https://nemus.flers-agglo.fr/se-deplacer/transport-a-la-demande",
+    "lu_le": "2026-11-06",
+    "remarque": "Réseau urbain de Flers Agglo (pas Nomad). Trajet avec un titre Némus valide : ticket à l'unité 1,10 €, carte 10 voyages 8 €. Centre = centre de commune de Flers (approximatif) ; rayon estimé, la zone réelle est l'ensemble de l'agglomération."
+  },
+  {
+    "type": "tad",
+    "nom": "Tinchebray Bocage - Tibus (TAD orné relayé par Nomad)",
+    "numero": "06 22 94 29 52 ou 02 33 96 19 49",
+    "communes": [
+      "Tinchebray-Bocage"
+    ],
+    "centre": {
+      "lat": 48.764,
+      "lon": -0.733
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://nomad.normandie.fr/transport-a-la-demande",
+    "lu_le": "2026-11-06",
+    "remarque": "Nomad ne gère pas lui-même le TAD dans l'Orne : la page renvoie aux communautés de communes. Tinchebray Bocage est la plus proche de Flers (environ 15 km). Le délai de 'veille avant 16h00' de la page vaut pour Calvados, Manche et Seine-Maritime (centrale 02 22 55 00 10), pas pour l'Orne. Page lue dans le navigateur (le site refuse les robots). Centre = centre de commune de Tinchebray (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Groupement Taxi Auxerre et Alentours",
+    "numero": "03 73 53 03 53",
+    "communes": [
+      "Auxerre",
+      "Perrigny",
+      "Saint-Georges-sur-Baulche",
+      "Appoigny",
+      "Monéteau"
+    ],
+    "centre": {
+      "lat": 47.798,
+      "lon": 3.567
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.burgundy-tourism.com/sit/groupement-taxi-auxerre-et-alentours",
+    "lu_le": "2026-11-06",
+    "remarque": "Numéro vérifié dans le texte de la page (site du tourisme régional). 6 rue Paul Doumer, Auxerre ; 7j/7, 24h/24. Confirmé aussi dans le guide 2026 de l'office de tourisme de l'Auxerrois (https://www.ot-auxerre.fr/app/uploads/auxerrois/2026/03/OT_Guide-Touristique-2026-web.pdf, rubrique Taxis). Centre = centre de commune d'Auxerre (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Véhicules Voyages",
+    "numero": "07 67 64 79 33",
+    "communes": [
+      "Auxerre"
+    ],
+    "centre": {
+      "lat": 47.798,
+      "lon": 3.567
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.ot-auxerre.fr/app/uploads/auxerrois/2026/03/OT_Guide-Touristique-2026-web.pdf",
+    "lu_le": "2026-11-06",
+    "remarque": "Listé sous « Taxis » dans le guide touristique 2026 de l'office de tourisme de l'Auxerrois (texte extractible, PDF de 60 Mo). Peut être un VTC plutôt qu'un taxi : à vérifier. Centre = centre de commune d'Auxerre (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Taxi Azur-Abba",
+    "numero": "03 86 43 46 95",
+    "communes": [
+      "Saint-Florentin",
+      "Brienon-sur-Armançon",
+      "Ormoy",
+      "Neuvy-Sautour",
+      "Venoy",
+      "Héry",
+      "Saint-Aubin-sur-Yonne",
+      "Tonnerre",
+      "Appoigny",
+      "Quenne",
+      "Germigny"
+    ],
+    "centre": {
+      "lat": 47.999,
+      "lon": 3.727
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/saint-florentin-89/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours) : aucune page de mairie ou officielle trouvée. Numéro affiché en texte après le bouton « Afficher le N° ». Autres numéros listés : 03 86 43 72 84, 03 86 43 73 73. Adresse B 17 rue Faubourg Dilo, 89600 Saint-Florentin. Communes de stationnement déclarées : liste ci-contre (inclut Brienon). Centre = centre de commune de Saint-Florentin (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Taxi de Brienon-sur-Armançon (entreprise individuelle)",
+    "numero": "06 09 05 05 69",
+    "communes": [
+      "Brienon-sur-Armançon"
+    ],
+    "centre": {
+      "lat": 47.99,
+      "lon": 3.617
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/brienon-sur-armancon-89/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). L'enseigne est un nom de personne (non recopié ici, voir la page). La même entreprise apparaît deux fois, dont une fois marquée « Probablement fermé définitivement » : statut douteux, à appeler avant validation. Commune de stationnement : Brienon-sur-Armançon. Centre = centre de commune de Brienon (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Abeille Nath'Taxis",
+    "numero": "06 09 02 12 48",
+    "communes": [
+      "Migennes"
+    ],
+    "centre": {
+      "lat": 47.965,
+      "lon": 3.518
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/migennes-89/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). 152 Ter avenue Jean Jaurès, 89400 Migennes ; commune de stationnement : Migennes. La page « Taxis » du site de la mairie (https://www.ville-migennes.fr/index.php/Taxis?idpage=182) existe mais son contenu est vide. Centre = centre de commune de Migennes (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "LENOBLE TAXIS",
+    "numero": "03 86 91 49 87",
+    "communes": [
+      "Joigny",
+      "Migennes"
+    ],
+    "centre": {
+      "lat": 47.973,
+      "lon": 3.458
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). Autre numéro : 06 81 34 67 96. Adresse 1 rue Noues, 89400 Charmoy ; stationnement Joigny et Migennes. Le même 03 86 91 49 87 est attribué à « Taxis Alain Martiré », Joigny, sur un autre annuaire (koifaire.com) : probablement la même entreprise. Centre = point médian approximatif entre Joigny et Migennes (pas un centre de commune)."
+  },
+  {
+    "type": "taxi",
+    "nom": "A&H (taxi)",
+    "numero": "06 87 34 96 01",
+    "communes": [
+      "Joigny",
+      "Migennes"
+    ],
+    "centre": {
+      "lat": 47.982,
+      "lon": 3.397
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). 2 impasse Bas de Chaillot, 89300 Joigny ; stationnement Joigny et Migennes ; « 24h/24 », transport de malades assis. Aussi listé sur https://www.pagesjaunes.fr/annuaire/migennes-89/taxis. Centre = centre de commune de Joigny (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Taxi KS",
+    "numero": "06 50 64 25 30",
+    "communes": [
+      "Joigny"
+    ],
+    "centre": {
+      "lat": 47.982,
+      "lon": 3.397
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). 4 rue Victor Hugo, 89300 Joigny ; stationnement Joigny ; « taxi 24h sur 24, 7j sur 7 ». Centre = centre de commune de Joigny (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Centrale Taxis du Bocage",
+    "numero": "02 33 96 70 37",
+    "communes": [
+      "Flers",
+      "Bellou-en-Houlme",
+      "Messei",
+      "Domfront-en-Poiraie",
+      "Chanu"
+    ],
+    "centre": {
+      "lat": 48.749,
+      "lon": -0.57
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/flers-61/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours) : aucune liste de taxis sur flers.fr ni flers-agglo.fr. Autre numéro : 02 33 38 69 02. Siège à Bellou (61220), commune de stationnement incluant Flers. Centre = centre de commune de Flers (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Taxi de Flers (enseigne au nom du chauffeur)",
+    "numero": "02 33 64 12 96",
+    "communes": [
+      "Flers"
+    ],
+    "centre": {
+      "lat": 48.749,
+      "lon": -0.57
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/flers-61/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). L'enseigne est un nom de personne (non recopié ici, voir la page). Stationnement Flers. Le même numéro apparaît sous « Sofi-Taxi » sur un comparateur, sans adresse. Centre = centre de commune de Flers (approximatif)."
+  },
+  {
+    "type": "taxi",
+    "nom": "Abdi Taxi",
+    "numero": "02 33 66 35 06",
+    "communes": [
+      "Flers",
+      "Bagnoles-de-l'Orne Normandie"
+    ],
+    "centre": {
+      "lat": 48.749,
+      "lon": -0.57
+    },
+    "rayon_km": 10,
+    "delai": null,
+    "url": "https://www.pagesjaunes.fr/annuaire/flers-61/taxis",
+    "lu_le": "2026-11-06",
+    "remarque": "ANNUAIRE COMMERCIAL (dernier recours). Bât C, 2 rue Saint-Georges, 61100 Flers ; stationnement Flers et Bagnoles-de-l'Orne Normandie. Centre = centre de commune de Flers (approximatif)."
+  }
+]

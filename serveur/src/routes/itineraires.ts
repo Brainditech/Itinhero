@@ -190,14 +190,18 @@ export function horairesAVenir(
   manifest: Manifest,
   date: string,
   aujourdhui: string,
-): { nombre: number; reseaux: string[]; des_le: string } | null {
+): { nombre: number; reseaux: { nom: string; jusquau: string }[]; des_le: string } | null {
   const liste = horaires?.nonPublies(date, aujourdhui) ?? [];
   if (liste.length === 0) return null;
   const tailles = new Map(manifest.fichiers.map((f) => [f.jeu, f.taille]));
-  const noms = [...liste]
-    .sort((a, b) => (tailles.get(b.jeu) ?? 0) - (tailles.get(a.jeu) ?? 0))
-    .flatMap((j) => (j.nom ? [j.nom] : []));
-  const reseaux = [...new Set(noms)].slice(0, MAX_RESEAUX_NOMMES);
+  // Les plus gros réseaux d'abord, chacun avec le dernier jour couvert (le plus proche s'il a plusieurs jeux).
+  const reseaux: { nom: string; jusquau: string }[] = [];
+  for (const j of [...liste].sort((a, b) => (tailles.get(b.jeu) ?? 0) - (tailles.get(a.jeu) ?? 0))) {
+    if (!j.nom) continue;
+    const deja = reseaux.find((r) => r.nom === j.nom);
+    if (deja) deja.jusquau = j.fin < deja.jusquau ? j.fin : deja.jusquau;
+    else if (reseaux.length < MAX_RESEAUX_NOMMES) reseaux.push({ nom: j.nom, jusquau: j.fin });
+  }
   const fin = liste.map((j) => j.fin).sort()[0]!;
   // Le premier jour sans horaires : le lendemain de la fin la plus proche.
   const [a, m, j] = fin.split("-").map(Number) as [number, number, number];

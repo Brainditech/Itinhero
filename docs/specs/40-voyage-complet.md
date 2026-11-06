@@ -46,4 +46,5 @@ Aucune bibliothèque nouvelle (`expo-notifications` 58.1.8, déjà lue pour l'is
 
 ## 7. Constats
 
-À remplir.
+- 2026-11-06 : critères 1 et 2 verts (`npm test`, 411 tests).
+- 2026-11-06, par adb : Domicile → Gare de Joigny le 12/11, trajet « Taxi 12 min · TER K7 » enregistré par sa disquette ; Mes trajets ⇒ « 1 appel à passer » (`docs/screenshots/fin/c3-spec40-mes-trajets.png`) ; rouvert ⇒ « À faire » : « Appeler le taxi, prise en charge à 08:46, Domicile, rappel à 07:46, Aucun numéro connu », « Partir, départ de la porte à 08:46, rappel à 08:31 », « Et un rappel la veille à 19:00 » (`c4-spec40-a-faire.png`) ; même écran en mode avion (`c6-spec40-mode-avion.png`). Critère 3 rempli.

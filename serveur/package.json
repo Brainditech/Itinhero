@@ -17,6 +17,7 @@
     "cle:nouvelle": "npm run build && node dist/acces/cle-nouvelle.js",
     "donnees:lieux": "npm run build && node dist/donnees/lieux.js",
     "donnees:horaires": "npm run build && node dist/donnees/horaires.js",
+    "donnees:config": "npm run build && node dist/donnees/config.js",
     "audit:quais": "npm run build && node dist/audit/quais.js",
     "comprendre:jeu": "npm run build && node dist/comprendre/jeu.js",
     "discussion:jeu": "npm run build && node dist/assistant/jeu-discussion.js"

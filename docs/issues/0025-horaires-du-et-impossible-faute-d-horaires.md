@@ -36,4 +36,4 @@
 
 ## 6. Constat
 
-À constater par adb après reconstruction de l'API (même recherche Flers le 28/12).
+2026-11-06 par adb, API reconstruite : Domicile → Gare de Flers, lundi 28/12, arriver avant 15:00 ⇒ bandeau « Pour ce jour, les horaires de 39 réseaux ne sont pas encore publiés, dont Île-de-France Mobilités (publiés jusqu'au 02/12/2026), STAR (jusqu'au 14/12/2026) et SNCF (jusqu'au 02/12/2026)… », verdict « Aucun trajet trouvé ce jour-là pour arriver avant 14:50 : certains horaires de ce jour ne sont pas encore publiés. », et le taxi de bout en bout (10:28 → 14:50) : `docs/screenshots/fin/c2-0025-flers-libelle.png`. Un premier libellé (« à partir du 09/11/2026 », date d'un petit réseau) a été remplacé pendant l'essai par la date de chaque réseau nommé (`c1-0025-flers-28-12.png`, avant).

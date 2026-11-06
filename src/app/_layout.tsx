@@ -17,6 +17,7 @@ import { ConfigurationIncomplete } from "@/composants/ConfigurationIncomplete";
 import { lireEnvironnement } from "@/domaine/environnement";
 import { FournisseurSession } from "@/session";
 import { preparerNotifications } from "@/rappels";
+import { inscrireReleve } from "@/temps-reel";
 import { effacerCle, enregistrerCle, lireCle } from "@/stockage/cle";
 import { migrer, NOM_BASE } from "@/stockage/reglages";
 
@@ -41,6 +42,11 @@ export default function RootLayout() {
   useEffect(() => {
     lireCle().then(setCle, () => setCle(null));
   }, []);
+
+  // Spec 42 (D123) : relève de fond de l'état des trajets du moment, une fois la clé connue.
+  useEffect(() => {
+    if (cle) void inscrireReleve();
+  }, [cle]);
 
   const pret = (policesChargees || !!erreurPolices) && cle !== undefined;
   useEffect(() => {

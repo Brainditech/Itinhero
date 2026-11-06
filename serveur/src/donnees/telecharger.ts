@@ -13,6 +13,8 @@ import { schemaManifest, sha256Fichier } from "../manifest.js";
 import { controlerGtfs } from "./controle.js";
 import { choisirRessources, schemaListeJeux, type Ressource } from "./selection.js";
 
+import { configMotis } from "./config-motis.js";
+
 const API = "https://transport.data.gouv.fr/api/datasets";
 const OSM_URL = "https://download.geofabrik.de/europe/";
 const DOSSIER = path.resolve(process.env.DOSSIER_DONNEES ?? "../donnees");
@@ -76,29 +78,6 @@ async function parLots<T>(elements: T[], n: number, f: (e: T) => Promise<void>):
       }
     }),
   );
-}
-
-function configMotis(charges: Charge[], osm: string): string {
-  const jeux = charges
-    .map((c) => `    ${c.etiquette}:  # ${c.jeu.slice(0, 60)}\n      path: /donnees/gtfs/${c.etiquette}.zip`)
-    .join("\n");
-  return `# Configuration MOTIS v2.11.4 nationale, générée par serveur/src/donnees/telecharger.ts (spec 08).
-# Ne pas modifier à la main : relancer le script.
-server:
-  port: 8080
-osm: /donnees/osm/${osm}
-timetable:
-  first_day: TODAY
-  num_days: 90
-  max_footpath_length: 50      # D42
-  merge_dupes_intra_src: true
-  merge_dupes_inter_src: true
-  datasets:
-${jeux}
-street_routing: true
-osr_footpath: true
-geocoding: true
-`;
 }
 
 async function principal(): Promise<void> {

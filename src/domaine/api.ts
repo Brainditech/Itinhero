@@ -181,7 +181,11 @@ export const schemaReponseItineraires = schemaReponseSens.and(
     retour: schemaReponseSens.nullish(),
     // Issue 0025 : réseaux dont les horaires s'arrêtent avant le jour demandé (absent d'un serveur plus ancien).
     horaires_a_venir: z
-      .object({ nombre: z.number().int().positive(), reseaux: z.array(z.string()), des_le: z.iso.date() })
+      .object({
+        nombre: z.number().int().positive(),
+        reseaux: z.array(z.object({ nom: z.string(), jusquau: z.iso.date() })),
+        des_le: z.iso.date(),
+      })
       .nullish(),
   }),
 );
@@ -355,6 +359,14 @@ export function clientApi({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ courses }),
+      });
+    },
+    /** Spec 42 (D123) : alerte poussée pour une course (jeton Expo) ; le serveur la garde jusqu'à J+1 (D107). */
+    abonner(course: string, dateService: string, jeton: string): Promise<ResultatApi<{ id: string }>> {
+      return appeler("/v1/abonnements", z.object({ id: z.string() }), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trip_id: course, date_service: dateService, jeton_push: jeton }),
       });
     },
     /** Phrase de l'Accueil ⇒ champs compris par le serveur (spec 28). Tout échec ⇒ le formulaire de repli. */

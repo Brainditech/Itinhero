@@ -9,6 +9,9 @@ import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { AFaire } from "@/composants/AFaire";
 import { CarteTaxiDirect } from "@/composants/CarteTaxiDirect";
+import { EnDirect } from "@/composants/EnDirect";
+import { abonnerTrajet } from "@/temps-reel";
+import { useClient } from "@/session";
 import { BandeauInfo, CarteFlottante, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
 import { BoutonRepli } from "@/composants/Repli";
@@ -94,9 +97,10 @@ export default function Resultat() {
   return (
     <Ecran ref={defilement}>
       {rouvert ? <BandeauInfo texte={bandeauVoyage(rouvert.voyage.enregistre_le)} /> : null}
+      {rouvert ? <EnDirect cle={rouvert.cle} voyage={rouvert.voyage} recherche={recherche} /> : null}
       {rouvert ? <AFaireDuVoyage voyage={rouvert.voyage} /> : null}
-      {lointain ? <BandeauInfo texte={lointain} /> : null}
-      {bandeauAVenir ? <BandeauInfo texte={bandeauAVenir} /> : null}
+      {/* Issue 0025 : le bandeau des horaires pas encore publiés dit déjà de revérifier ; un seul des deux. */}
+      {bandeauAVenir ? <BandeauInfo texte={bandeauAVenir} /> : lointain ? <BandeauInfo texte={lointain} /> : null}
       <VotreTrajet
         demande={demande}
         depart={{ nom: depart.nom, adresse: depart.adresse }}
@@ -174,6 +178,7 @@ type EtatDisquettes = { pour: unknown; sens: Partial<Record<Trajet, EtatSens>> }
  */
 function useEnregistrement(recherche: Recherche | null) {
   const db = useSQLiteContext();
+  const client = useClient();
   const [etat, setEtat] = useState<EtatDisquettes | null>(null);
   const courant: EtatDisquettes["sens"] = etat && etat.pour === recherche?.reponse ? etat.sens : {};
 
@@ -197,6 +202,8 @@ function useEnregistrement(recherche: Recherche | null) {
       }
       // Spec 30 : rappels locaux du trajet ; un refus ou un échec n'empêche jamais l'enregistrement.
       await programmerRappels(cle, voyage).catch(() => 0);
+      // Spec 42 : alertes poussées quand un projet Expo est configuré ; sinon rien (la relève locale suffit).
+      void abonnerTrajet(client, voyage).catch(() => 0);
       poser({ etat: "fait", cle, voyage, index, jeton: Date.now() });
       AccessibilityInfo.announceForAccessibility("Trajet enregistré dans Mes trajets");
     } catch {

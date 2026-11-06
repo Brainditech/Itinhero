@@ -45,4 +45,7 @@ Un débutant qui doit appeler un taxi ou réserver un car à la demande doit avo
 
 ## 6. Constats
 
-À remplir.
+- 2026-11-06 : critères 1 à 5 verts (serveur 441 tests, app 411).
+- 17 fiches candidates relevées le 2026-11-06 (`docs/collecte/2026-11-06-fiches-candidates.json`) mises dans `fiches.json` sans validation ; au démarrage, le serveur en retrouve 4 sur leur page (les pages PagesJaunes et ter.sncf.com refusent les robots : ces numéros restent cachés tant que Brainditech ne les a pas validés).
+- 2026-11-06 par adb : Brienon → tribunal administratif de Dijon, samedi 14/11 ⇒ étape « Bus 803 », « Mobigo LR803 Saint-Florentin <> Auxerre · 03 80 11 29 29 », « Non vérifié : lu sur www.ville-brienon.fr le 06/11/2026 » (`docs/screenshots/fin/c5-spec41-numero-803.png`) ; taxi de bout en bout Domicile → Gare de Flers, « 4 h 22 de route estimée, hors attente · 457 km », « Prix non publié. », « Commander un Uber » (`c2-0025-flers-libelle.png`).
+- Reste : au moins une fiche **validée** par Brainditech (case de la phase 4) ; l'écran Étape d'une marche de plus de 15 min à capturer.

@@ -76,7 +76,9 @@ export async function lireHorairesJeu(cheminZip: string): Promise<HorairesJeu> {
   }
   // Spec 41 : téléphones des exploitants, gardés seulement s'ils ressemblent à un numéro.
   const agences: Record<string, string> = {};
-  for (const a of (await lireTableFacultative(cheminZip, "agency.txt")) ?? []) {
+  // Un `agency.txt` mal formé (r83511, constaté le 2026-11-06) ne fait perdre ni les réservations ni la fin de validité.
+  const lignesAgences = await lireTableFacultative(cheminZip, "agency.txt").catch(() => null);
+  for (const a of lignesAgences ?? []) {
     const nom = a.agency_name?.trim();
     const tel = a.agency_phone?.trim();
     if (nom && tel && /^\+?[0-9 .()-]{6,25}$/.test(tel) && tel.replace(/[^0-9]/g, "").length >= 9) agences[nom] = tel;

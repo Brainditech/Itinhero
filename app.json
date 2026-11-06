@@ -18,8 +18,13 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "blockedPermissions": ["android.permission.ACTIVITY_RECOGNITION"],
-      "permissions": ["android.permission.USE_EXACT_ALARM", "android.permission.SCHEDULE_EXACT_ALARM"],
+      "blockedPermissions": [
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
+      "permissions": [
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "package": "com.anonymous.Itinhero"
     },
     "web": {
@@ -62,7 +67,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-document-picker"
+      "expo-document-picker",
+      "expo-background-task"
     ],
     "experiments": {
       "typedRoutes": true,

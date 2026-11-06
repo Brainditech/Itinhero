@@ -46,6 +46,8 @@ services:
       CLAUDE_PLAFOND_MENSUEL_EUR: ${CLAUDE_PLAFOND_MENSUEL_EUR:-}
       # Spec 29 (D107) : la seule table persistante, sur son volume (A20).
       ABONNEMENTS_SQLITE: /var/lib/itinhero/abonnements.sqlite
+      # Spec 42 (D123) : jeton Expo Push, facultatif (vide ⇒ envoi sans jeton d'accès).
+      EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
     depends_on:
       motis:
         condition: service_healthy

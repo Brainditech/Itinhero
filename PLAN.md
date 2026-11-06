@@ -252,17 +252,18 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] Clé d'appareil (secure-store, saisie unique) et limites de débit côté serveur.
   Preuve : tests (sans clé ⇒ 401, au-delà des limites ⇒ 429).
   Fait à moitié (spec 09, D55, D56) : côté serveur, `serveur/src/acces/acces.test.ts` (sans clé, clé vide, mal formée, inconnue ⇒ 401 ; minute et jour de Paris dépassés ⇒ 429 avec `Retry-After`), 2026-11-04. Côté app (spec 10, D64) : écran de la clé au premier lancement, vérifiée par le serveur puis gardée dans `expo-secure-store`, 401 ⇒ écran de la clé (`src/domaine/api.test.ts`, `src/domaine/cle.test.ts`, `npm run test:national`), 2026-11-04. Manque : la saisie constatée sur le téléphone de Brainditech (spec 10, critère 4).
-- [ ] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.
+- [x] `POST /v1/comprendre` : Claude, sortie validée par Zod, date et fuseau Europe/Paris fournis par le serveur.
   Preuve : jeu d'au moins 30 phrases réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
-  Fait en partie (spec 28, D106) : route, sortie structurée revalidée par Zod, contexte de Paris fourni par le serveur, tests `serveur/src/routes/comprendre.test.ts` ; jeu de 30 phrases `serveur/src/comprendre/jeu-30-phrases.json` et `npm run comprendre:jeu`, 2026-11-06. Manque : la mesure avec la clé Anthropic (Brainditech) et le modèle retenu, consigné.
+  Fait (2026-11-06, D119) : `node dist/comprendre/jeu.js` dans le conteneur de l'API, clé de Brainditech : `claude-haiku-5-5` 28/30 et régressions 5/5 pour 0,0096 € ; `claude-sonnet-5-5` 30/30 pour 0,1599 €. Retenu : `claude-haiku-5-5`, le moins cher au-dessus de 27/30 (D15). Avant, fait en partie (spec 28, D106) : route, sortie structurée revalidée par Zod, contexte de Paris fourni par le serveur, tests `serveur/src/routes/comprendre.test.ts` ; jeu de 30 phrases `serveur/src/comprendre/jeu-30-phrases.json` et `npm run comprendre:jeu`, 2026-11-06. Manque : la mesure avec la clé Anthropic (Brainditech) et le modèle retenu, consigné.
 - [x] Plafond mensuel et compteur de coût.
   Preuve : test (plafond atteint ⇒ formulaire de repli).
   Fait (spec 28, D106) : `serveur/src/routes/comprendre.test.ts` (plafond atteint ⇒ 503 `plafond_atteint` sans appeler Claude, remis à zéro le mois suivant) et `src/domaine/comprendre.test.ts` (503 ⇒ échec, l'Accueil ouvre le formulaire de repli), 2026-11-06.
 - [x] Formulaire de repli : lieu, date, heure, « arriver avant » / « partir à », marge.
   Preuve : test, plus capture.
   Fait : `src/domaine/demande.test.ts` (20 tests : validation, Europe/Paris, `formaterDate`, schéma Zod) ; captures du téléphone de Brainditech regardées le 2026-11-03 (hors dépôt, D38) : formulaire conforme à la maquette, bandeau, sélecteurs de date et d'heure, marge masquée avec « Partir à », erreur « Indiquez le lieu du rendez-vous. », « Chercher » au-dessus du clavier ; retour vers l'Accueil. Spec 02, issue 0004.
-- [ ] Branchement réel.
+- [x] Branchement réel.
   Preuve : capture d'une phrase dictée au clavier, comprise.
+  Fait (2026-11-06) : « rendez-vous gare de Joigny le 20 novembre a 10h » ⇒ formulaire pré-rempli (vendredi 20/11, 10:00, arriver avant), gare choisie dans la liste ⇒ Résultat « Possible, Départ 08:36 » (`docs/screenshots/fin/a3-joigny-20-11.png`) ; « rendez-vous a Madrid mardi a 10h » ⇒ Arrivée « Madrid » et les lieux de ce nom en France (`a1-madrid.png`).
 
 ### Phase 2 — Confirmation du lieu
 
@@ -328,11 +329,14 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests du serveur et du domaine, test sur le MOTIS national, captures adb (nouveau chemin, véhicule plus à portée, 17 km).
 - [ ] Annuaire `data/fiches/` validé. Avertissement ⚠ au-delà de 15 min de marche, avec un taxi pour cette étape.
   Preuve : tests (« aucun numéro connu »), au moins une fiche taxi validée.
-- [ ] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
+  Fait en partie (spec 41, D122) : `serveur/src/fiches/fiches.json` (17 fiches candidates), tests de l'annuaire ; écran Étape d'une marche de plus de 15 min (avertissement, Uber, numéros). Manque : au moins une fiche taxi **validée par Brainditech** (`valide_le`), et la capture de l'écran d'une marche longue.
+- [x] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
   Preuve : test du lien, plus capture.
+  Fait (spec 31, spec 41, D122) : `src/domaine/uber.test.ts`, `src/domaine/contacts.test.ts`, `serveur/src/routes/taxi-direct.test.ts` ; carte « Taxi de bout en bout » (4 h 22, 457 km, « Prix non publié. », « Commander un Uber ») le 2026-11-06 (`docs/screenshots/fin/c2-0025-flers-libelle.png`).
   Fait en partie (spec 31, D109) : `src/domaine/uber.ts` (lien universel `m.uber.com/looking`, prise en charge et dépose de l'étape), lien « Commander un Uber pour cette étape » sur l'écran Étape ; `src/domaine/uber.test.ts`, 2026-11-06. Manque : la capture sur le téléphone et le taxi de bout en bout.
-- [ ] Numéros trouvés hors des fiches, « non vérifié » (D49, `POST /v1/numeros`).
+- [x] Numéros trouvés hors des fiches, « non vérifié » (D49, `POST /v1/numeros`).
   Preuve : tests (numéro absent de la page ⇒ non affiché ; page injoignable ⇒ « aucun numéro connu » ; numéro affiché avec URL, date et « non vérifié » ; fiche validée ⇒ mention retirée), plus capture.
+  Fait (spec 41, D122) : `serveur/src/fiches/annuaire.test.ts` ; « Mobigo LR803 · 03 80 11 29 29, Non vérifié : lu sur www.ville-brienon.fr le 06/11/2026 » sur l'étape du car 803, 2026-11-06 (`docs/screenshots/fin/c5-spec41-numero-803.png`).
 
 ### Phase 5 — Mes trajets
 
@@ -345,8 +349,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [ ] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
   Preuve : test de programmation, plus notification reçue.
   Fait en partie (spec 30, D108) : `expo-notifications` 58.1.8, `src/domaine/rappels.ts` (veille 19:00, réservation la veille 10:00, taxi 60 min avant, partir 15 min avant) et `src/rappels.ts` (programmés à l'enregistrement, annulés avec le trajet) ; tests `src/domaine/rappels.test.ts`, 2026-11-06. Manque : le development build et une notification reçue sur le téléphone (spec 30, critère 4).
-- [ ] Plan de voyage complet enregistré : aller, retour, appels à passer (taxi, transport à la demande) avec leurs rappels (« appelez le taxi maintenant »).
+- [x] Plan de voyage complet enregistré : aller, retour, appels à passer (taxi, transport à la demande) avec leurs rappels (« appelez le taxi maintenant »).
   Preuve : test de l'instantané, plus capture en mode avion.
+  Fait (spec 40, D121) : `src/domaine/rappels.test.ts` (« À faire »), `src/domaine/voyages.test.ts` (« N appels à passer ») ; « À faire » du trajet rouvert en mode avion, 2026-11-06 (`docs/screenshots/fin/c6-spec40-mode-avion.png`).
 
 ### Phase 6 — Réglages
 
@@ -390,24 +395,27 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 - [ ] GTFS-RT SNCF branché dans MOTIS, et couverture des cars K941 vérifiée (R3).
   Preuve : constat daté.
+  Fait en partie (spec 42, D123) : flux `sncf-gtfs-rt-trip-updates` sur le jeu `horaires-sncf`, relevé chaque minute ; journal de MOTIS le 2026-11-06 : 2 049 entités, 1 760 rattachées (85,9 %). Manque : la couverture des cars K941 (R3), à constater sur un trajet du jour.
 - [x] `abonnements_alerte`, routes, purge.
   Preuve : tests (purge à J+1, aucun champ personnel).
   Fait (spec 29, D107) : `serveur/src/abonnements/abonnements.ts` (SQLite `node:sqlite`, volume `abonnements`), `POST`/`DELETE /v1/abonnements`, purge au démarrage puis chaque heure ; `serveur/src/routes/abonnements.test.ts` (colonnes exactes, purge à la fin de J+1 heure de Paris, 400/401/503, canaris), 2026-11-06. L'abonnement depuis l'app viendra avec `suivi-retards` (jeton Expo Push).
 - [ ] `suivi-retards` : seuils de D21, Expo Push et FCM.
   Preuve : flux GTFS-RT simulé ⇒ notification reçue, app fermée.
+  Fait en partie (spec 42, D123) : `serveur/src/alertes/suivi.ts` dans l'API (pas d'Inngest), test sur un flux simulé (`serveur/src/alertes/suivi.test.ts`) ; relève locale dans l'app (écran et arrière-plan). Manque : projet Expo et Firebase (Brainditech, R7), puis la notification reçue app fermée.
 - [x] Rafraîchissement d'un trajet enregistré (`/v1/etat-courses`).
   Preuve : test.
   Fait (spec 33, D111) : `POST /v1/etat-courses` (prévu, en direct, retard ≥ 5 min, supprimé, inconnu), `client.etatCourses` ; `serveur/src/routes/etat-courses.test.ts`, `src/domaine/api.test.ts`, 2026-11-06. L'affichage dans Mes trajets viendra avec le flux GTFS-RT (sans lui, tout est « prévu »).
 - [ ] Replanification (D51) : course supprimée ou correspondance cassée ⇒ alternative depuis le prochain arrêt prévu, envoyée par notification, rien remplacé sans accord.
   Preuve : suppression simulée dans un flux GTFS-RT de test ⇒ alternative reçue, app fermée.
+  Fait en partie (spec 42, D123) : alerte « Supprimé » (locale ou poussée) qui rouvre le trajet ; « Chercher une autre solution » depuis l'arrêt de montée, sans rien remplacer. Manque : la notification reçue app fermée (comptes Expo et Firebase).
 
 ### Phase 8 — Ingestion nocturne
 
 - [ ] `ingestion-gtfs` pour chaque jeu (D46) : import à part, contrôles par jeu (arrêt Brienon Mairie présent, couverture au-delà de J+30), bascule ou alerte ; un jeu cassé n'empêche pas les autres.
   Preuve : tests (fichier cassé ⇒ ancien jeu conservé, plus événement Sentry).
-- [ ] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
+- [x] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
   Preuve : test, plus capture.
-  Fait en partie (spec 32, D110) : `date_horaires` dans la source GTFS (serveur), ligne « Horaires du …, valables jusqu'au … » et bandeau au-delà de 7 jours au Résultat ; tests `src/domaine/horaires.test.ts`, `serveur/src/routes/itineraires.test.ts`, 2026-11-06. Manque : la capture.
+  Fait (spec 32, D110, issue 0025) : `date_horaires` dans la source GTFS (serveur), ligne « Horaires publiés le …, valables jusqu'au … » et bandeau au-delà de 7 jours au Résultat ; réseaux pas encore publiés pour le jour demandé ; tests `src/domaine/horaires.test.ts`, `serveur/src/routes/horaires-a-venir.test.ts`, 2026-11-06. Captures : `docs/screenshots/fin/a3-joigny-20-11.png` (bandeau à J+14), `c2-0025-flers-libelle.png` (28/12).
 
 ### Phase 9 — Surveillance et sécurisation
 

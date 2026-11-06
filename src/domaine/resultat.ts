@@ -502,16 +502,18 @@ const dateFr = (iso: string) => {
 };
 
 /**
- * « Les horaires de 3 réseaux, dont Île-de-France Mobilités et SNCF, ne sont pas encore publiés à partir du
- * 03/12/2026 : les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date. »
+ * « Pour ce jour, les horaires de 39 réseaux ne sont pas encore publiés, dont Île-de-France Mobilités (publiés
+ * jusqu'au 02/12/2026) et SNCF (jusqu'au 12/12/2026). Les trajets qui les empruntent n'apparaissent pas.
+ * Revérifiez plus près de la date. »
  */
-export function phraseHorairesAVenir(h: { nombre: number; reseaux: string[]; des_le: string }): string {
+export function phraseHorairesAVenir(h: { nombre: number; reseaux: { nom: string; jusquau: string }[] }): string {
   const qui = h.nombre === 1 ? "d'un réseau" : `de ${h.nombre} réseaux`;
-  const noms = h.reseaux.length === 0 ? "" : h.reseaux.length === 1 ? h.reseaux[0]! : `${h.reseaux.slice(0, -1).join(", ")} et ${h.reseaux.at(-1)!}`;
-  const dont = noms === "" ? "" : h.nombre === 1 ? ` (${noms})` : `, dont ${noms},`;
+  const noms = h.reseaux.map((r, i) => `${r.nom} (${i === 0 ? "publiés " : ""}jusqu'au ${dateFr(r.jusquau)})`);
+  const liste = noms.length <= 1 ? (noms[0] ?? "") : `${noms.slice(0, -1).join(", ")} et ${noms.at(-1)!}`;
+  const dont = liste === "" ? "" : h.nombre === 1 ? ` : ${liste}` : `, dont ${liste}`;
   return (
-    `Les horaires ${qui}${dont} ne sont pas encore publiés à partir du ${dateFr(h.des_le)} : ` +
-    "les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date."
+    `Pour ce jour, les horaires ${qui} ne sont pas encore publiés${dont}. ` +
+    "Les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date."
   );
 }
 

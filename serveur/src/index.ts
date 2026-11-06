@@ -11,6 +11,7 @@ import { appelClaude } from "./comprendre/comprendre.js";
 import { CompteurCout } from "./comprendre/cout.js";
 import { Abonnements } from "./abonnements/abonnements.js";
 import { chargerAnnuaire } from "./fiches/charger.js";
+import { envoyerExpo, SuiviRetards } from "./alertes/suivi.js";
 import { heureParis } from "./temps.js";
 
 const CHEMIN_MANIFEST = process.env.FIXTURES_MANIFEST ?? "/fixtures/manifest.json";
@@ -46,6 +47,15 @@ async function demarrer(): Promise<void> {
   if (!env.ABONNEMENTS_SQLITE) console.warn("ABONNEMENTS_SQLITE absente : abonnements d'alerte en mémoire, perdus au redémarrage.");
   abonnements.purger(new Date());
   setInterval(() => abonnements.purger(new Date()), 60 * 60 * 1000).unref();
+  // Spec 42 (D123) : suivi des retards chaque minute, dans le processus de l'API (pas d'Inngest).
+  const moteurSuivi = moteurMotis(env.MOTIS_URL);
+  if (moteurSuivi.course) {
+    const lireCourse = moteurSuivi.course;
+    const suivi = new SuiviRetards(abonnements, (id) => lireCourse(id), envoyerExpo(env.EXPO_ACCESS_TOKEN));
+    setInterval(() => {
+      suivi.tour(new Date()).catch((e: unknown) => console.warn(`suivi-retards : ${(e as Error).name}`));
+    }, 60 * 1000).unref();
+  }
   // Spec 41 (D122, D49) : les pages des fiches candidates sont relues au démarrage puis chaque jour.
   const annuaire = chargerAnnuaire();
   const verifier = () =>

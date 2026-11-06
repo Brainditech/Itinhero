@@ -25,7 +25,10 @@ export function AFaire({ actions, veille }: { actions: Action[]; veille: string 
           className="flex-row gap-3"
           style={{ opacity: a.passe ? 0.55 : 1 }}
           accessible
-          accessibilityLabel={[a.titre, a.detail, a.delai, a.passe ? `${a.rappel}, passé` : a.rappel].filter(Boolean).join(". ")}
+          accessibilityLabel={[a.titre, a.detail, a.delai, a.passe ? `${a.rappel}, passé` : a.rappel]
+            .filter((x): x is string => !!x)
+            .map((x) => x.replace(/\.$/, ""))
+            .join(". ")}
         >
           <SymbolView name={{ android: ICONES[a.type], web: ICONES[a.type] }} size={24} tintColor={couleurs.primaire} />
           <View className="flex-1 gap-1">
@@ -50,11 +53,11 @@ export function Numero({ contact }: { contact: Contact | null }) {
         accessibilityRole="button"
         accessibilityLabel={`Appeler ${contact.nom}, ${contact.numero}`}
         onPress={() => void Linking.openURL(lienTel(contact.numero)).catch(() => undefined)}
-        className="flex-row items-center gap-2 self-start rounded-full bg-primaire-doux px-4 active:opacity-70"
-        style={{ minHeight: 48 }}
+        className="flex-row items-center gap-2 self-start rounded-bouton bg-primaire-doux px-4 py-2 active:opacity-70"
+        style={{ minHeight: 48, maxWidth: "100%" }}
       >
         <SymbolView name={{ android: "call", web: "call" }} size={20} tintColor={couleurs.primaire} />
-        <Text className="font-inter-semibold text-corps text-primaire">{`${contact.nom} · ${contact.numero}`}</Text>
+        <Text className="font-inter-semibold text-corps text-primaire" style={{ flexShrink: 1 }}>{`${contact.nom} · ${contact.numero}`}</Text>
       </Pressable>
       <Text className={`font-inter text-badge ${contact.verifie ? "text-texte-secondaire" : "text-avertissement"}`}>{texteSource(contact)}</Text>
     </View>

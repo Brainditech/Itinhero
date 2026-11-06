@@ -32,6 +32,8 @@ const schemaEnv = z
     CLAUDE_PLAFOND_MENSUEL_EUR: z.coerce.number().positive().max(1000).optional(),
     // Spec 29 (D107) : fichier SQLite de `abonnements_alerte`, sur un volume. Absente ⇒ table en mémoire.
     ABONNEMENTS_SQLITE: z.string().min(1).optional(),
+    // Spec 42 (D123) : jeton d'accès Expo Push, facultatif (sécurité renforcée des envois activée dans le compte Expo).
+    EXPO_ACCESS_TOKEN: z.string().min(10).optional(),
   })
   .refine((e) => e.LIMITE_REQ_JOUR >= e.LIMITE_REQ_MINUTE, {
     path: ["LIMITE_REQ_JOUR"],

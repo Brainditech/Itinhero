@@ -39,13 +39,23 @@ describe("bandeau au-delà de 7 jours (spec 32, critère 3)", () => {
 });
 
 describe("Horaires pas encore publiés (issue 0025)", () => {
-  it("phrase : nombre, réseaux nommés, premier jour sans horaires", () => {
-    expect(phraseHorairesAVenir({ nombre: 140, reseaux: ["Île-de-France Mobilités", "SNCF"], des_le: "2026-12-03" })).toBe(
-      "Les horaires de 140 réseaux, dont Île-de-France Mobilités et SNCF, ne sont pas encore publiés à partir du 03/12/2026 : " +
-        "les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date.",
+  it("phrase : nombre, réseaux nommés avec leur dernier jour publié", () => {
+    expect(
+      phraseHorairesAVenir({
+        nombre: 39,
+        reseaux: [
+          { nom: "Île-de-France Mobilités", jusquau: "2026-12-02" },
+          { nom: "SNCF", jusquau: "2026-12-12" },
+        ],
+      }),
+    ).toBe(
+      "Pour ce jour, les horaires de 39 réseaux ne sont pas encore publiés, dont Île-de-France Mobilités (publiés jusqu'au 02/12/2026) " +
+        "et SNCF (jusqu'au 12/12/2026). Les trajets qui les empruntent n'apparaissent pas. Revérifiez plus près de la date.",
     );
-    expect(phraseHorairesAVenir({ nombre: 1, reseaux: ["SNCF"], des_le: "2026-12-13" })).toContain("Les horaires d'un réseau (SNCF) ne sont");
-    expect(phraseHorairesAVenir({ nombre: 2, reseaux: [], des_le: "2026-12-13" })).toContain("Les horaires de 2 réseaux ne sont");
+    expect(phraseHorairesAVenir({ nombre: 1, reseaux: [{ nom: "SNCF", jusquau: "2026-12-12" }] })).toContain(
+      "Pour ce jour, les horaires d'un réseau ne sont pas encore publiés : SNCF",
+    );
+    expect(phraseHorairesAVenir({ nombre: 2, reseaux: [] })).toContain("les horaires de 2 réseaux ne sont pas encore publiés. Les");
   });
 
   it("montré si un sens est impossible ou au-delà de 7 jours, pas sinon", () => {
