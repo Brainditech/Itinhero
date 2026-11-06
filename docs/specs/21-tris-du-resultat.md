@@ -1,7 +1,7 @@
 # Spec 21 — Tris du Résultat : arrivée la plus tôt, moins de marche, sans réservation
 
 - **Date** : 2026-11-05
-- **État** : **proposée**, à approuver par Brainditech. Règle : D97 (proposée).
+- **État** : **approuvée** par Brainditech le 2026-11-06 (« j'approuve vas y implémente »). Règle : D97. **Appliquée** sur `phase-3/tris` ; critère 3 (téléphone) à constater.
 - **Branche** : `phase-3/tris` (spec, puis code sur la même branche après approbation).
 - **Case de PLAN.md** : phase 3, « Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21) » ; « Moins cher » passe dans la case de `data/tarifs.json` (§3).
 - **Invariants** : 3 par extension (l'app ne calcule aucune heure : elle range les possibilités du serveur avec leurs valeurs), 4 (aucune étape ne perd sa source), 5 (aucun prix), 13 (le verdict ne change pas de jour), 20 (jetons du design system seulement).
@@ -56,7 +56,7 @@ Aucun service nouveau n'est branché : le tri se fait sur la réponse déjà re�
    - « Moins de marche » : 48 min de marche (Saint-Florentin) contre 9 min ⇒ 9 min d'abord ; même marche ⇒ arrivée la plus tôt ; un trajet en taxi sans marche passe devant ;
    - « Sans réservation » : un passage « appel » ou un taxi ⇒ trajet retiré ; tous à réserver ⇒ liste vide ;
    - chaque élément garde son `index` dans la réponse ; `trier` ne modifie pas la liste reçue.
-2. **Test de la carte** : `etapeAReserver` donne la même étape que l'ancienne règle de la carte sur `src/domaine/__exemples__/possibilite-brienon-dijon.json` (aucune étape à réserver), et sur cette possibilité avec un passage « appel » puis avec un taxi.
+2. **Test de la carte** : `etapeAReserver` donne la même étape que l'ancienne règle de la carte sur `src/domaine/__exemples__/possibilite-brienon-dijon.json` (le bus 803 y est sur réservation), sur cette possibilité sans aucun passage « appel », puis avec le TER K7 sur réservation ou en taxi.
 3. **Téléphone** (adb, MOTIS national) :
    - Brienon → France Travail Joigny, jeudi 12/11, arriver avant 10:00 : trois puces, « Arrivée la plus tôt » choisie ; « Moins de marche » met la voie de Saint-Florentin (longue marche) après les autres ;
    - après un tri, déplier la 1re carte, toucher une étape puis « Démarrer le guidage » ouvre bien ce trajet-là (mêmes heures) ;
@@ -68,7 +68,17 @@ Aucun service nouveau n'est branché : le tri se fait sur la réponse déjà re�
 
 ## 6. Constats
 
-(À remplir au code et à l'essai.)
+### 6.1 Code (2026-11-06)
+
+- **Doc lue** : types de React Native 0.88.1 installé (`node_modules/react-native/types_generated`) : `AccessibilityRole` contient `radiogroup` et `radio` ; `AccessibilityInfo.announceForAccessibility(announcement: string)` ; `ScrollView` `horizontal`, `showsHorizontalScrollIndicator`. La puce existante (`Puce`, `src/composants/elements.tsx`) a déjà le rôle `radio`, `accessibilityState.checked` et 48 dp de haut : elle est réutilisée telle quelle.
+- **Correction de la spec** (critère 2) : l'exemple Brienon → Dijon n'est pas « sans étape à réserver » : le bus 803 y est sur réservation (`reservation: "appel"`). Le test le dit, et un second cas part de cette possibilité sans aucun passage « appel ».
+- `src/domaine/tri.test.ts` rouge avant `tri.ts` (module absent), puis 15 tests verts. App : 280 tests, `npx expo lint` et `npx tsc --noEmit` verts ; `npx expo export --platform android` réussi.
+- Le choix du tri est gardé avec la réponse à laquelle il s'applique : une autre réponse (« Modifier la recherche », « Recalculer depuis ici ») repart d'« Arrivée la plus tôt » sans effet ni clé à changer.
+- La phrase « Aucun trajet sans réservation ce jour-là. » n'apparaît qu'avec « Sans réservation » : les deux autres tris gardent toutes les possibilités.
+
+### 6.2 Téléphone
+
+(Critère 3, à constater par adb.)
 
 ## 7. Ce qui n'est pas fait ici
 

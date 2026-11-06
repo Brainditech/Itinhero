@@ -1,23 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { Text, View, type ScrollViewInstance } from "react-native";
+import { AccessibilityInfo, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
 import { Redirect, router } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
 import { Ecran } from "@/composants/Ecran";
-import { Lien } from "@/composants/elements";
+import { Lien, Puce } from "@/composants/elements";
 import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
 import { VotreTrajet } from "@/composants/VotreTrajet";
 import type { ReponseSens } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
 import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
+import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
 import { useRecherche } from "@/recherche";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /**
- * Résultat (phase 3, maquettes 04 et 04b, spec 10 §4.2, spec 14) : « Votre trajet », verdict, puis une carte
- * par possibilité dans l'ordre du serveur.
- * Pas de tris, de taxi, de prix ni de « Voir le trajet » ici (spec 10, §9) ; toucher une carte déplie ses étapes.
+ * Résultat (phase 3, maquettes 04 et 04b, spec 10 §4.2, spec 14) : « Votre trajet », verdict, les puces de tri
+ * (spec 21, D97), puis une carte par possibilité dans l'ordre choisi.
+ * Pas de « Moins cher », de prix ni de « Voir le trajet » ici ; toucher une carte déplie ses étapes.
  * Chaque bloc a un chevron qui le replie (spec 14 §11).
  * Avec une fin de rendez-vous (spec 19, D94) : l'aller, puis « Retour », son verdict et ses possibilités.
  */
@@ -68,7 +69,11 @@ export default function Resultat() {
   );
 }
 
-/** Un sens du voyage : son verdict, puis une carte par possibilité dans l'ordre du serveur. */
+/**
+ * Un sens du voyage : son verdict, ses puces de tri, puis une carte par possibilité dans l'ordre choisi (D97).
+ * Le verdict ne bouge pas avec le tri. Chaque carte garde son rang dans la réponse : l'Étape et le Guidage
+ * retrouvent la possibilité par lui.
+ */
 function Sens({
   reponse,
   trajet,
@@ -82,10 +87,22 @@ function Sens({
   date: string;
   adresse: string | null;
 }) {
+  // Le choix vaut pour cette réponse seulement : une nouvelle réponse repart d'« Arrivée la plus tôt » (D97).
+  const [choix, setChoix] = useState<{ pour: ReponseSens; tri: Tri }>({ pour: reponse, tri: "arrivee" });
+  const tri = choix.pour === reponse ? choix.tri : "arrivee";
+  const rangees = trier(reponse.possibilites, tri);
+  const choisir = (t: Tri) => {
+    setChoix({ pour: reponse, tri: t });
+    AccessibilityInfo.announceForAccessibility(`Trajets classés : ${LIBELLES_TRIS[t].toLowerCase()}`);
+  };
   return (
     <>
       <BlocVerdict reponse={reponse} trajet={trajet} />
-      {reponse.possibilites.map((p, i) => (
+      {reponse.possibilites.length >= 2 ? <PucesTri tri={tri} onChoisir={choisir} /> : null}
+      {rangees.length === 0 && reponse.possibilites.length > 0 ? (
+        <Text className="font-inter text-corps text-texte">Aucun trajet sans réservation ce jour-là.</Text>
+      ) : null}
+      {rangees.map(({ possibilite: p, index: i }) => (
         <CartePossibilite
           key={`${trajet}-${p.depart_utc}-${p.arrivee_utc}-${i}`}
           possibilite={p}
@@ -97,6 +114,27 @@ function Sens({
         />
       ))}
     </>
+  );
+}
+
+/**
+ * Rangée de puces (maquette 04, D97) : défile de côté jusqu'aux bords de l'écran, la dernière coupée par le bord.
+ * TalkBack la lit comme un groupe de boutons radio.
+ */
+function PucesTri({ tri, onChoisir }: { tri: Tri; onChoisir: (t: Tri) => void }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Classer les trajets"
+      className="-mx-4"
+      contentContainerClassName="gap-2 px-4"
+    >
+      {TRIS.map((t) => (
+        <Puce key={t} libelle={LIBELLES_TRIS[t]} active={t === tri} onPress={() => onChoisir(t)} />
+      ))}
+    </ScrollView>
   );
 }
 

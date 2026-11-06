@@ -23,6 +23,7 @@ import {
   phraseTaxi,
   resumePossibilite,
 } from "@/domaine/resultat";
+import { etapeAReserver } from "@/domaine/tri";
 import { iconeMode } from "@/composants/icones-mode";
 import { Chevron } from "@/composants/Repli";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -205,8 +206,8 @@ export function CartePossibilite({
   const p = possibilite;
   const premiereMontee = p.etapes.findIndex((e) => e.mode !== "marche");
   const montee = phraseMontee(p);
-  // Un taxi se réserve toujours (spec 16, D48).
-  const aReserver = p.etapes.find((e) => e.reservation === "appel" || e.mode === "taxi");
+  // Un taxi se réserve toujours (spec 16, D48) ; même règle que le tri « Sans réservation » (spec 21, D97).
+  const aReserver = etapeAReserver(p);
   const nuit = nuitDehors(p);
   const plus = joursEnPlus(p);
   const jourArrivee = plus > 0 ? jourApres(date, plus) : null;
