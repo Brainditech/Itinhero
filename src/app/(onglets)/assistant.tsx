@@ -24,6 +24,9 @@ import { choisirPdf, choisirPhoto, piecesJointesDisponibles, type IssuePiece, ty
 import { useClient, useSession } from "@/session";
 import { couleurs, rayons } from "@/theme/jetons";
 
+// Spec 46 : le champ grandit jusqu'à 5 lignes (interligne mesuré sur le téléphone, ~22 px) plus ses marges, puis défile.
+const HAUTEUR_CHAMP_MAX = 5 * 22 + 24;
+
 // Jeton `rayon-bulle` (design system) en style : la classe `rounded-bulle` n'était pas appliquée sur le téléphone.
 const RAYON_BULLE = parseInt(rayons.bulle, 10);
 
@@ -282,7 +285,8 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
             </Pressable>
           </View>
         ) : null}
-        <View className="min-h-14 flex-row items-center gap-2 rounded-full border border-bordure-carte bg-fond pl-2 pr-2">
+        {/* Spec 46 (D127) : zone de texte sur plusieurs lignes ; les boutons restent en bas, à côté de la dernière ligne. */}
+        <View className="min-h-14 flex-row items-end gap-2 rounded-carte border border-bordure-carte bg-fond p-1 pl-2">
           {piecesJointesDisponibles() ? (
             <Pressable
               accessibilityRole="button"
@@ -302,10 +306,11 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
             placeholderTextColor={couleurs["texte-secondaire"]}
             value={texte}
             onChangeText={setTexte}
-            onSubmitEditing={() => envoyer()}
-            returnKeyType="send"
+            multiline
+            textAlignVertical="top"
             maxLength={TEXTE_MAX}
             className="flex-1 py-3 font-inter text-corps text-texte"
+            style={{ maxHeight: HAUTEUR_CHAMP_MAX }}
             cursorColor={couleurs.primaire}
             selectionColor={couleurs["primaire-doux"]}
           />
