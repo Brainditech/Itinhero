@@ -75,7 +75,7 @@ Tu ne donnes jamais d'horaire de transport, d'arrêt, de ligne, de prix, de num�
  */
 const JOURS_DITS: readonly RegExp[] = [
   /\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/,
-  /\b(apres-?demain|demain|aujourd'?hui|lendemain|ce soir|ce matin|ce midi|cet apres-?midi|cette nuit|prochaine?|semaine)\b/,
+  /\b(apres-?demain|demain|aujourd'?hui|lendemain|veille|ce soir|ce matin|ce midi|cet apres-?midi|cette nuit|prochaine?|semaine)\b/,
   /\b(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/,
   // « le 20 à 11h », « le 1er » ; pas « le 12 rue de la gare ».
   /\ble (1er|[1-9]|[12]\d|3[01])\b(?! ?(rue|avenue|av|bd|boulevard|place|route|chemin|allee|impasse|quai))/,

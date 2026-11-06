@@ -86,7 +86,7 @@ export default function Formulaire() {
   const defilement = useRef<ScrollViewInstance>(null);
   const margeActive = useRef(false);
   // « Modifier » dans Mes trajets (spec 24, D100) : le formulaire reprend le voyage, et retient celui à remplacer.
-  const { modification, setModification } = useRecherche();
+  const { modification } = useRecherche();
   const [champs, setChamps] = useState<ChampsFormulaire>(() => modification?.champs ?? valeursInitiales(departParam));
   const [remplace, setRemplace] = useState<{ cle: string; titre: string } | null>(() => modification?.remplace ?? null);
   // Spec 28 : ouvert avec la phrase comprise de l'Accueil ⇒ bandeau « Vérifiez » jusqu'au prochain changement.
@@ -148,10 +148,9 @@ export default function Formulaire() {
     setErreurRecherche(undefined);
     setAChoisir(modification.aChoisir ?? {});
   }
-  // Lue une fois : une recherche ouverte plus tard depuis l'Accueil part des valeurs habituelles.
-  useEffect(() => {
-    if (modification) setModification(null);
-  }, [modification, setModification]);
+  // Issue 0024 : la modification n'est plus effacée ici. Le formulaire encore ouvert dans la pile la lisait et l'effaçait
+  // avant d'être fermé, et le nouveau s'ouvrait vide. Un formulaire ouvert sans modification depuis l'Accueil la remet
+  // à zéro lui-même (`ouvrirFormulaireVierge`, index de l'Accueil).
 
   // La marge est en bas de la carte : quand le clavier s'ouvre pour elle, on la fait remonter.
   useEffect(() => {

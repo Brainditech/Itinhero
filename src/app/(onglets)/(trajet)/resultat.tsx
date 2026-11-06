@@ -19,7 +19,7 @@ import { maintenantAParis } from "@/domaine/demande";
 import { adresseArrivee, bandeauLointain, finHoraires, horairesDu, ligneHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
 import { bandeauVoyage, champsDepuisRecherche, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
-import { useModifierVoyage, useRecherche, type Recherche } from "@/recherche";
+import { useModifierVoyage, useOuvrirFormulaire, useRecherche, type Recherche } from "@/recherche";
 import { enregistrerVoyage, supprimerVoyage } from "@/stockage/voyages";
 import { annulerRappels, programmerRappels } from "@/rappels";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -34,7 +34,8 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
  * Un trajet rouvert depuis Mes trajets porte un bandeau et le crayon, sans disquette ni « Modifier la recherche ».
  */
 export default function Resultat() {
-  const { recherche, setModification } = useRecherche();
+  const { recherche } = useRecherche();
+  const ouvrirFormulaire = useOuvrirFormulaire();
   const modifierVoyage = useModifierVoyage();
   // Issue 0018 : après « Recalculer depuis ici », le Résultat déjà monté reçoit une nouvelle réponse et garde
   // son défilement ; si la page raccourcit (cartes remontées repliées), Android le laisse sous la fin du
@@ -44,8 +45,9 @@ export default function Resultat() {
   useEffect(() => {
     defilement.current?.scrollTo({ y: 0, animated: false });
   }, [reponseCourante]);
-  // Le tri de chaque sens vaut pour cette réponse seulement (D97) ; un trajet rouvert part du tri gardé (D101).
-  const triDepart: TrisVoyage = { aller: recherche?.rouvert?.voyage.tri ?? "arrivee", retour: "arrivee" };
+  // Le tri de chaque sens vaut pour cette réponse seulement (D97) ; un trajet rouvert part du tri gardé (D101) ;
+  // l'Assistant (spec 37) peut en demander un, avec une copie de la réponse pour que le choix précédent s'efface.
+  const triDepart: TrisVoyage = { aller: recherche?.tri ?? recherche?.rouvert?.voyage.tri ?? "arrivee", retour: "arrivee" };
   const [choixTris, setChoixTris] = useState<{ pour: unknown; tris: TrisVoyage }>({ pour: reponseCourante, tris: triDepart });
   const tris = choixTris.pour === reponseCourante ? choixTris.tris : triDepart;
   const enregistrement = useEnregistrement(recherche);
@@ -61,15 +63,12 @@ export default function Resultat() {
   // Spec 32 : un trajet rouvert garde la date d'aujourd'hui pour le calcul (les horaires enregistrés ne changent pas).
   const lointain = bandeauLointain(demande.date, maintenantAParis(new Date()).date, du);
   // Spec 34 (§3.5) : le formulaire de l'onglet Accueil reprend la recherche, même s'il a été fermé entre-temps.
-  const modifier = () => {
-    setModification({
+  const modifier = () =>
+    ouvrirFormulaire({
       remplace: null,
       champs: champsDepuisRecherche(demande, depart, arrivee, maintenantAParis(new Date()).date),
-      jeton: Date.now(),
       reprise: true,
     });
-    allerALAccueil(() => router.push("/formulaire"));
-  };
   const choisirTri = (trajet: Trajet, tri: Tri) => {
     setChoixTris({ pour: reponse, tris: { ...tris, [trajet]: tri } });
     AccessibilityInfo.announceForAccessibility(`Trajets classés : ${LIBELLES_TRIS[tri].toLowerCase()}`);

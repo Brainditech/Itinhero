@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import type { AppelAssistant } from "../assistant/assistant.js";
 import { phraseDitUnJour, schemaComprehension, type AppelClaude, type Contexte } from "../comprendre/comprendre.js";
 import { coutEur, type CompteurCout, type ModeleClaude } from "../comprendre/cout.js";
 import { heureParis } from "../temps.js";
 import { refuserEntree } from "./erreurs.js";
 
-export type Claude = { appel: AppelClaude; modele: ModeleClaude; compteur: CompteurCout };
+/** Claude (spec 28) ; `assistant` : l'appel de `/v1/assistant` (spec 37), même modèle et même compteur. */
+export type Claude = { appel: AppelClaude; modele: ModeleClaude; compteur: CompteurCout; assistant?: AppelAssistant };
 
 const schemaRequete = z.object({ phrase: z.string().trim().min(3).max(300) }).strict();
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { schemaReponseAssistant, type Reglages, type ReponseAssistant } from "./assistant";
 
 // Client des routes de l'API Itinhero (spec 09 §4.4, §4.5 ; spec 10 §4.1).
 // `fetch` est injecté : aucun réseau dans les tests. Chaque réponse est validée par Zod (invariant 9) :
@@ -308,6 +309,14 @@ export function clientApi({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ phrase }),
+      });
+    },
+    /** Demande à l'Assistant (spec 37, D31) : la phrase et les réglages en cours, sans coordonnées ni historique. */
+    assistant(phrase: string, reglages: Reglages): Promise<ResultatApi<ReponseAssistant>> {
+      return appeler("/v1/assistant", schemaReponseAssistant.transform((r) => r.reponse), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ phrase, reglages }),
       });
     },
     /** Chemin à pied de `de` (la position) à `a` (la fin de la marche en cours), parti maintenant (spec 20). */

@@ -19,6 +19,7 @@ import {
 } from "@/domaine/demande";
 import { adresseBout, nomBout, type SourceAdresse } from "@/domaine/resultat";
 import { boutDuCandidat, candidatDuBout, MESSAGES_SUGGESTIONS, SUGGESTION_MIN } from "@/domaine/suggestions";
+import type { Tri } from "@/domaine/tri";
 import { champsDepuisVoyage, resumeVoyage, type Voyage } from "@/domaine/voyages";
 import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
@@ -42,6 +43,8 @@ export type Recherche = {
   rouvert?: { cle: string; voyage: Voyage };
   /** Recherche lancée par « Modifier » (spec 24, D100, D101) : clé du trajet que la disquette remplace. */
   remplace?: string;
+  /** Tri demandé à l'Assistant (spec 37) : le Résultat s'ouvre dessus, sans nouvelle recherche. */
+  tri?: Tri;
 };
 
 /**
@@ -167,17 +170,28 @@ export function useOuvrirVoyage() {
  * le trajet ; le trajet trouvé ensuite remplace celui-ci à l'enregistrement.
  */
 export function useModifierVoyage() {
-  const { setModification } = useRecherche();
+  const ouvrirFormulaire = useOuvrirFormulaire();
   return (cle: string, v: Voyage) => {
     const r = resumeVoyage(v);
-    setModification({
+    ouvrirFormulaire({
       remplace: { cle, titre: `${r.jour} · ${r.titre}` },
       champs: champsDepuisVoyage(v, maintenantAParis(new Date()).date),
-      jeton: Date.now(),
     });
-    // Le formulaire de l'onglet Accueil (spec 34) : sa pile revient à la première page, puis le formulaire s'ouvre.
-    allerALAccueil(() => router.push("/formulaire"));
   };
+}
+
+/**
+ * Ouvre le formulaire de l'onglet Accueil pré-rempli (spec 34) : sa pile revient à la première page, puis le
+ * formulaire s'ouvre. Issue 0024 : la modification n'est posée qu'une fois la pile vidée. Posée avant, le formulaire
+ * resté ouvert dans la pile la lisait et l'effaçait, et le nouveau s'ouvrait sur les valeurs par défaut.
+ */
+export function useOuvrirFormulaire() {
+  const { setModification } = useRecherche();
+  return (m: Omit<Modification, "jeton">) =>
+    allerALAccueil(() => {
+      setModification({ ...m, jeton: Date.now() });
+      router.push("/formulaire");
+    });
 }
 
 /**

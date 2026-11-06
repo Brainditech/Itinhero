@@ -18,7 +18,8 @@
     "donnees:lieux": "npm run build && node dist/donnees/lieux.js",
     "donnees:horaires": "npm run build && node dist/donnees/horaires.js",
     "audit:quais": "npm run build && node dist/audit/quais.js",
-    "comprendre:jeu": "npm run build && node dist/comprendre/jeu.js"
+    "comprendre:jeu": "npm run build && node dist/comprendre/jeu.js",
+    "assistant:jeu": "npm run build && node dist/assistant/jeu.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
