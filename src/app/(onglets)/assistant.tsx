@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
 import { SymbolView } from "expo-symbols";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,10 +19,12 @@ import {
   TEXTE_MAX,
   type MessageFil,
 } from "@/domaine/discussion";
+import { dateDiscussion, discussionAGarder, filDeDiscussion, type DiscussionGardee } from "@/domaine/historique";
 import { jourCourt, possibiliteDuVerdict } from "@/domaine/resultat";
 import { useRecherche, type Recherche } from "@/recherche";
 import { choisirPdf, choisirPhoto, piecesJointesDisponibles, type IssuePiece, type PieceChoisie } from "@/pieces-jointes";
 import { useClient, useSession } from "@/session";
+import { enregistrerDiscussion, lireDiscussions, supprimerDiscussion } from "@/stockage/discussions";
 import { couleurs, rayons } from "@/theme/jetons";
 
 // Spec 46 : le champ grandit jusqu'à 5 lignes (interligne mesuré sur le téléphone, ~22 px) plus ses marges, puis défile.
@@ -33,7 +36,8 @@ const RAYON_BULLE = parseInt(rayons.bulle, 10);
 /**
  * Assistant en discussion (spec 39, D117 ; maquette design/assistant/09-assistant.png). Chaque message part à
  * `POST /v1/assistant/discussion` avec la discussion et le résumé de la recherche en cours (sans coordonnées) ; la
- * réponse s'écrit à mesure qu'elle arrive. La discussion ne vit que tant que l'app est ouverte : rien n'est enregistré.
+ * réponse s'écrit à mesure qu'elle arrive. Spec 48 (D129) : chaque discussion est gardée dans le téléphone
+ * (Historique) et « Nouvelle discussion » repart d'une page vide ; les deux boutons sont en haut à droite.
  */
 export default function Assistant() {
   const insets = useSafeAreaInsets();
@@ -48,13 +52,6 @@ export default function Assistant() {
   return (
     <View className="flex-1 bg-surface">
       <Animated.View className="flex-1" style={[{ paddingTop: insets.top + 16 }, styleBas]}>
-        <View className="gap-2 px-4 pb-2">
-          <MotItinhero />
-          <Text accessibilityRole="header" className="mt-2 font-inter-bold text-titre-ecran text-texte">
-            Assistant
-          </Text>
-          <Text className="font-inter text-secondaire text-texte-secondaire">{MESSAGES_DISCUSSION.sousTitre}</Text>
-        </View>
         <Discussion recherche={enCours} />
       </Animated.View>
     </View>
@@ -76,6 +73,19 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
   const controle = useRef<AbortController | null>(null);
   const prochainId = useRef(0);
   const defilement = useRef<ScrollViewInstance>(null);
+  // Spec 48 (D129) : la discussion à l'écran a un identifiant dès sa première question ; gardée après chaque réponse finie.
+  const db = useSQLiteContext();
+  const idDiscussion = useRef<string | null>(null);
+  const [reponsesFinies, setReponsesFinies] = useState(0);
+  const [historique, setHistorique] = useState<DiscussionGardee[] | null>(null);
+
+  useEffect(() => {
+    if (reponsesFinies === 0 || !idDiscussion.current) return;
+    const d = discussionAGarder(idDiscussion.current, fil, new Date());
+    if (d) void enregistrerDiscussion(db, d).catch(() => undefined);
+    // Seule une réponse finie enregistre : rouvrir une discussion ne la date pas à nouveau.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reponsesFinies]);
 
   // L'écran quitte la mémoire (app fermée) : la réponse en cours est coupée.
   useEffect(() => () => controle.current?.abort(), []);
@@ -91,6 +101,7 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
 
   /** Envoie la discussion `avant` (qui finit par la question) et écrit la réponse à mesure qu'elle arrive. */
   async function repondre(avant: MessageFil[]) {
+    idDiscussion.current ??= `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const id = prochainId.current++;
     setFil([...avant, { id, role: "assistant", texte: "", etat: "ecrit" }]);
     const c = new AbortController();
@@ -132,7 +143,10 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     const echec = messageIssue(issue, recu !== "");
     if (issue.etat === "arretee" && recu === "") return changerReponse(id, () => null);
     // Revue : la réponse finie, les pièces envoyées ne gardent que leur nom.
-    if (issue.etat === "complete" || issue.etat === "arretee") setFil((f) => allegerPieces(f));
+    if (issue.etat === "complete" || issue.etat === "arretee") {
+      setFil((f) => allegerPieces(f));
+      setReponsesFinies((n) => n + 1);
+    }
     // Spec 45 : Claude n'a fait que proposer la recherche ⇒ pas de bulle vide au-dessus de la carte.
     if (issue.etat === "complete" && recu.trim() === "" && rechercheRecue) return changerReponse(id, () => null);
     changerReponse(id, (m) => (echec ? { ...m, etat: "echec", ...echec } : { ...m, etat: issue.etat === "arretee" ? "arretee" : "complete" }));
@@ -157,6 +171,7 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     // Revue : nouvelle discussion ⇒ ni pièce en attente ni texte tapé de l'ancienne.
     setPiece(null);
     setTexte("");
+    idDiscussion.current = null;
     void repondre([{ id: prochainId.current++, role: "personne", texte: QUESTION_TRAJET }]);
     // `repondre` change à chaque rendu ; seul le jeton compte.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,12 +207,47 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     controle.current = null;
     setEcrit(false);
     setFil([]);
+    setPiece(null);
+    setTexte("");
+    idDiscussion.current = null;
+  }
+
+  async function ouvrirHistorique() {
+    setHistorique([]);
+    setHistorique(await lireDiscussions(db).catch(() => []));
+  }
+
+  /** Spec 48 : la discussion rouverte remplace celle de l'écran ; on peut la continuer. */
+  function rouvrir(d: DiscussionGardee) {
+    nouvelleDiscussion();
+    const f = filDeDiscussion(d, prochainId.current);
+    prochainId.current += f.length;
+    idDiscussion.current = d.id;
+    setFil(f);
+    setHistorique(null);
+  }
+
+  async function supprimer(id: string) {
+    await supprimerDiscussion(db, id).catch(() => undefined);
+    setHistorique((h) => h?.filter((d) => d.id !== id) ?? null);
   }
 
   const dernier = fil.at(-1);
 
   return (
     <>
+      <View className="gap-2 px-4 pb-2">
+        <MotItinhero />
+        <View className="mt-2 flex-row items-center gap-1">
+          <Text accessibilityRole="header" className="flex-1 font-inter-bold text-titre-ecran text-texte">
+            Assistant
+          </Text>
+          <BoutonEntete icone="history" libelle="Historique" onPress={() => void ouvrirHistorique()} />
+          <BoutonEntete icone="add_comment" libelle={MESSAGES_DISCUSSION.nouvelle} onPress={nouvelleDiscussion} desactive={fil.length === 0} />
+        </View>
+        <Text className="font-inter text-secondaire text-texte-secondaire">{MESSAGES_DISCUSSION.sousTitre}</Text>
+      </View>
+      <Historique discussions={historique} onFermer={() => setHistorique(null)} onOuvrir={rouvrir} onSupprimer={(id) => void supprimer(id)} />
       <ScrollView
         ref={defilement}
         className="flex-1"
@@ -212,12 +262,6 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
             <Text className="flex-1 font-inter text-secondaire text-texte">
               {`Trajet suivi : ${suivi} · ${recherche.depart.lieu!.nom} → ${recherche.arrivee.lieu!.nom}`}
             </Text>
-          </View>
-        ) : null}
-
-        {fil.length > 0 ? (
-          <View className="items-end">
-            <Lien libelle={MESSAGES_DISCUSSION.nouvelle} onPress={nouvelleDiscussion} />
           </View>
         ) : null}
 
@@ -337,6 +381,87 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
         </View>
       </View>
     </>
+  );
+}
+
+/** Spec 48 : bouton rond de l'en-tête, icône seule, nom lu par TalkBack. */
+function BoutonEntete({
+  icone,
+  libelle,
+  onPress,
+  desactive,
+}: {
+  icone: "history" | "add_comment";
+  libelle: string;
+  onPress: () => void;
+  desactive?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={libelle}
+      accessibilityState={{ disabled: !!desactive }}
+      disabled={desactive}
+      onPress={onPress}
+      className="h-12 w-12 items-center justify-center rounded-full active:bg-primaire-doux"
+    >
+      <SymbolView name={{ android: icone, web: icone }} size={26} tintColor={desactive ? couleurs["texte-secondaire"] : couleurs.primaire} />
+    </Pressable>
+  );
+}
+
+/** Spec 48 §2.3 : la liste des discussions gardées, plein écran ; `discussions` nul ⇒ fermée. */
+function Historique({
+  discussions,
+  onFermer,
+  onOuvrir,
+  onSupprimer,
+}: {
+  discussions: DiscussionGardee[] | null;
+  onFermer: () => void;
+  onOuvrir: (d: DiscussionGardee) => void;
+  onSupprimer: (id: string) => void;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={discussions !== null} animationType="slide" onRequestClose={onFermer} statusBarTranslucent navigationBarTranslucent>
+      <View className="flex-1 bg-surface" style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }}>
+        <View className="flex-row items-center px-4 pb-2">
+          <Text accessibilityRole="header" className="flex-1 font-inter-bold text-titre-ecran text-texte">
+            Historique
+          </Text>
+          <Lien libelle="Fermer" onPress={onFermer} />
+        </View>
+        <ScrollView contentContainerClassName="gap-3 px-4 pb-4">
+          {discussions?.length === 0 ? (
+            <Text className="font-inter text-corps text-texte-secondaire">Aucune discussion gardée pour l&apos;instant.</Text>
+          ) : null}
+          {discussions?.map((d) => (
+            <View key={d.id} className="flex-row items-center gap-2 rounded-bouton border border-bordure-carte bg-fond pl-4">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Rouvrir : ${d.titre}, ${dateDiscussion(d.mise_a_jour)}`}
+                onPress={() => onOuvrir(d)}
+                className="min-h-16 flex-1 justify-center gap-1 py-3"
+              >
+                <Text numberOfLines={2} className="font-inter-semibold text-corps text-texte">
+                  {d.titre}
+                </Text>
+                <Text className="font-inter text-badge text-texte-secondaire">{dateDiscussion(d.mise_a_jour)}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Supprimer : ${d.titre}`}
+                onPress={() => onSupprimer(d.id)}
+                className="h-12 w-12 items-center justify-center rounded-full active:bg-surface"
+              >
+                <SymbolView name={{ android: "delete", web: "delete" }} size={24} tintColor={couleurs["texte-secondaire"]} />
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 

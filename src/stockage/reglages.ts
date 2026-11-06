@@ -6,7 +6,7 @@ import { lireDomicile, type Domicile } from "@/domaine/domicile";
 // (doc expo-sqlite du SDK 58, `SQLiteProvider` et `onInit`).
 
 export const NOM_BASE = "itinhero.db";
-const VERSION = 2;
+const VERSION = 3;
 
 export async function migrer(db: SQLiteDatabase): Promise<void> {
   const ligne = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
@@ -25,6 +25,13 @@ CREATE TABLE IF NOT EXISTS reglages (cle TEXT PRIMARY KEY NOT NULL, valeur TEXT 
 CREATE TABLE IF NOT EXISTS voyages (cle TEXT PRIMARY KEY NOT NULL, enregistre_le TEXT NOT NULL, contenu TEXT NOT NULL);
 `);
     version = 2;
+  }
+  if (version === 2) {
+    // Historique de l'Assistant (spec 48, D129) : `contenu` est la discussion en JSON, relue par `lireDiscussion`.
+    await db.execAsync(`
+CREATE TABLE IF NOT EXISTS discussions (id TEXT PRIMARY KEY NOT NULL, mise_a_jour TEXT NOT NULL, contenu TEXT NOT NULL);
+`);
+    version = 3;
   }
   await db.execAsync(`PRAGMA user_version = ${VERSION}`);
 }
