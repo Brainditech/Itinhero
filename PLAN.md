@@ -332,7 +332,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [ ] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] Instantané expo-sqlite, ouvert en mode avion (D98, spec 22).
+- [x] Instantané expo-sqlite, ouvert en mode avion (D98, spec 22).
   Preuve : vidéo ou capture en mode avion.
 - [ ] Pack de carte de la zone du trajet.
   Preuve : carte affichée en mode avion.

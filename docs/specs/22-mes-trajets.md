@@ -1,7 +1,7 @@
 # Spec 22 — Mes trajets : un voyage enregistré, rouvert sans réseau
 
 - **Date** : 2026-11-06
-- **État** : **approuvée par délégation** de Brainditech (« implemente les prochaines phases », 2026-11-06), comme la spec 19. Règle : D98. **Appliquée** sur `phase-5/mes-trajets` ; critère 2 constaté par adb (§6.2) sans serveur ; mode avion à faire.
+- **État** : **approuvée par délégation** de Brainditech (« implemente les prochaines phases », 2026-11-06), comme la spec 19. Règle : D98. **Appliquée** sur `phase-5/mes-trajets` ; critère 2 constaté par adb (§6.2), sans serveur puis en vrai mode avion (§6.3). **Case cochée** le 2026-11-06.
 - **Branche** : `phase-5/mes-trajets`.
 - **Case de PLAN.md** : phase 5, « Instantané expo-sqlite, ouvert en mode avion ». La capture côte à côte avec la maquette 06 sert aussi à la case « Écran en valeurs en dur, comparé à sa maquette » (l'écran est branché d'emblée, comme depuis D54).
 - **Invariants** : 3 par extension (l'app ne recalcule aucune heure : elle relit la réponse du serveur telle quelle), 4 (chaque étape garde sa source), 6 (le voyage, ses lieux et le domicile restent sur le téléphone), 9 (ce qui est relu de la base passe par un schéma Zod), 12 (aucun « en direct » : l'horaire enregistré est dit prévu), 20 (jetons du design system seulement).
@@ -96,7 +96,21 @@ Captures `docs/screenshots/spec-22/01` à `11` (non versionnées, D93 : elles mo
 | Sans serveur (`adb reverse` du port 3000 retiré) et app rechargée (mémoire vidée) | La carte est là ; « Ouvrir le trajet » ⇒ Résultat avec le bandeau « Voyage enregistré le 06/11 à 02:38. Horaires prévus, sans suivi en direct. », sans crayon, aller, puces et retour (06) ; Étape « Bus K941 n° 43281 » (07) ; « Voir tous les arrêts » ⇒ « Arrêts indisponibles. Le serveur ne répond pas. » (08) ; « Me guider » ⇒ guidage « Attendez le bus K941 direction Gare de Troyes, passage prévu à 06:27 » (09) |
 | « Supprimer » | « Supprimer ce trajet ? », « Jeudi 12/11 · Domicile → Agence France travail », « Annuler » / « Supprimer » ; puis la liste vide (10, 11) |
 
-- **Reste à faire** : le vrai **mode avion**, app fermée puis rouverte. Couper l'API par adb prouve que rien ne vient du serveur, mais le mode avion est un réglage du téléphone, pas touché sans l'accord de Brainditech. **Case non cochée** jusque-là.
+### 6.3 Mode avion (2026-11-06, adb, accord de Brainditech : « fait les vérifications et teste »)
+
+Captures `docs/screenshots/spec-22/2026-11-06-avion-00` à `09` (non versionnées, D93).
+
+| Étape | Constaté |
+|---|---|
+| Domicile → Joigny (89300), jeudi 12/11, arriver avant 10:00, fin 11:00 | « Possible · Départ 06:18 », retour « Possible · Départ 11:42 » ; « Enregistrer ce voyage » ⇒ « Enregistré dans Mes trajets » (02) |
+| Mode avion (`cmd connectivity airplane-mode enable`) | `airplane_mode_on` = 1, « Wi-Fi is disabled », `ping 8.8.8.8` ⇒ « Network is unreachable » ; icône d'avion dans la barre d'état |
+| App fermée (`am force-stop`, processus absent) puis rouverte depuis son icône | Le development build charge le JavaScript par le câble (`http://localhost:8081`, `adb reverse`) : aucun réseau en jeu. Accueil affiché (04) |
+| Mes trajets | « Jeudi 12/11 », « Départ 06:18 », « Domicile → Joigny », « Disponible sans réseau », « Retour : départ 11:42 », « Enregistré le 06/11 à 02:57 » (05) |
+| « Ouvrir le trajet » | Bandeau « Voyage enregistré le 06/11 à 02:57. Horaires prévus, sans suivi en direct. », aller et « Retour vers Domicile » (06) ; étapes dépliées (07) ; Étape « Bus K941 n° 43281 vers Gare de Troyes, 06:27 → 06:37 » (08) |
+| Guidage | « Bus le 12/11 à 06:27 · Attendez le bus K941 direction Gare de Troyes · Passage prévu à 06:27 », « Arrivée 08:04 » (09) |
+| Mode avion coupé ensuite | `airplane_mode_on` = 0, « Wi-Fi is enabled » |
+
+- Les tuiles de la carte s'affichent en mode avion parce que ces zones ont déjà été vues (cache de MapLibre) : ce n'est pas encore le pack de carte (spec 23).
 
 ## 7. Ce qui n'est pas fait ici
 
