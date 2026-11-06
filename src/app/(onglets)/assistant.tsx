@@ -5,7 +5,7 @@ import { SymbolView } from "expo-symbols";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { allerALAccueil, HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
+import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
 import { BoutonPrincipal, CarteErreur, CarteFlottante, Lien, MotItinhero, Puce } from "@/composants/elements";
 import { messageEchec } from "@/domaine/api";
 import {
@@ -57,9 +57,6 @@ export default function Assistant() {
           <View className="px-4 pt-2">
             <CarteFlottante>
               <Text className="font-inter text-corps text-texte">{MESSAGES_ASSISTANT.aucuneRecherche}</Text>
-              <View className="mt-4">
-                <BoutonPrincipal libelle="Aller à l'Accueil" onPress={() => allerALAccueil()} />
-              </View>
             </CarteFlottante>
           </View>
         )}

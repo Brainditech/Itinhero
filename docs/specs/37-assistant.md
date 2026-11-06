@@ -30,7 +30,7 @@ D31 : dans l'onglet Assistant, la personne modifie la recherche en cours en lang
 ## 4. App : onglet Assistant
 
 1. En-tête « Assistant », « Je relance les recherches pour vous. Je n'invente aucun horaire. »
-2. Sans recherche en cours : « Aucune recherche en cours. Faites d'abord une recherche depuis l'Accueil. » et « Aller à l'Accueil ».
+2. Sans recherche en cours : « Aucune recherche en cours. Faites d'abord une recherche depuis l'Accueil. » et « Aller à l'Accueil » (bouton retiré par la spec 38, D116).
 3. Carte « Trajet suivi » : jour, départ du premier trajet de la liste, départ → arrivée.
 4. La demande s'écrit dans « Écrivez votre demande » (bouton ➤), ou par les puces « Changer l'heure », « Moins de marche », « Partir d'ailleurs » qui préremplissent le champ.
 5. Réponse :
