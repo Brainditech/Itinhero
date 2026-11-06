@@ -6,7 +6,7 @@ import { SymbolView } from "expo-symbols";
 
 import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
-import { Ecran } from "@/composants/Ecran";
+import { Ecran, TAILLE_FLOTTANT } from "@/composants/Ecran";
 import { useCartes } from "@/cartes";
 import { AFaire } from "@/composants/AFaire";
 import { CarteCovoiturage } from "@/composants/CarteCovoiturage";
@@ -105,7 +105,21 @@ export default function Resultat() {
   };
 
   return (
-    <Ecran ref={defilement}>
+    <Ecran
+      ref={defilement}
+      flottant={
+        // Spec 49 (D130) : le petit bot flottant en bas à droite ouvre l'Assistant sur ce trajet (spec 45).
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Discuter de ce trajet avec l'Assistant"
+          onPress={() => router.navigate({ pathname: "/assistant", params: { sujet: "trajet", jeton: String(Date.now()) } })}
+          className="items-center justify-center rounded-full bg-primaire active:bg-primaire-presse"
+          style={{ width: TAILLE_FLOTTANT, height: TAILLE_FLOTTANT, boxShadow: ombreFlottante }}
+        >
+          <SymbolView name={{ android: "smart_toy", web: "smart_toy" }} size={28} tintColor={couleurs.fond} />
+        </Pressable>
+      }
+    >
       {rouvert ? <BandeauInfo texte={bandeauVoyage(rouvert.voyage.enregistre_le)} /> : null}
       {rouvert ? <EnDirect cle={rouvert.cle} voyage={rouvert.voyage} recherche={recherche} /> : null}
       {rouvert ? <AFaireDuVoyage voyage={rouvert.voyage} /> : null}
@@ -167,16 +181,6 @@ export default function Resultat() {
           <Lien libelle="Modifier la recherche" onPress={modifier} />
         </View>
       )}
-      {/* Spec 45 (D126) : le petit bot de l'onglet Trajet ouvre l'Assistant sur ce trajet. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Discuter de ce trajet avec l'Assistant"
-        onPress={() => router.navigate({ pathname: "/assistant", params: { sujet: "trajet", jeton: String(Date.now()) } })}
-        className="min-h-12 flex-row items-center justify-center gap-2 self-center rounded-full border border-bordure-carte bg-fond px-5 active:bg-surface"
-      >
-        <SymbolView name={{ android: "smart_toy", web: "smart_toy" }} size={22} tintColor={couleurs.primaire} />
-        <Text className="font-inter-medium text-corps text-primaire">Discuter de ce trajet</Text>
-      </Pressable>
     </Ecran>
   );
 }
