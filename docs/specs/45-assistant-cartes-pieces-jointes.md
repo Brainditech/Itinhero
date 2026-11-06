@@ -35,4 +35,6 @@ Demande de Brainditech (D117) : l'Assistant interroge la base et montre les traj
 ## 6. Constats
 
 - 2026-11-06 : critères 1 et 2 verts (serveur 460, app 420 tests).
-- Critère 3 : à constater (téléphone occupé à ce moment-là).
+- 2026-11-06, par adb (API reconstruite, `claude-haiku-5-5`) : « Je dois être à la gare de Joigny jeudi 12 novembre à 10h, je pars de chez moi » ⇒ carte « Jeudi 12/11 · arriver avant 10:00 », liste des lieux (`docs/screenshots/fin/e1-spec45-choisir.png`), gare choisie ⇒ « Possible · départ 08:46 » et trois trajets (Taxi · TER K7, Taxi · TER P25, Bus K941 · TER P5 · TER P31) (`e2-spec45-cartes.png`) ; même chose vers Auxerre, « Voir ces trajets » ⇒ Résultat « Possible, Départ 08:56 » ; « Discuter de ce trajet » ⇒ l'Assistant explique les trois trajets, sans heure (`e4-spec45-discuter.png`).
+- Corrigé pendant l'essai : bulle vide au-dessus de la carte quand Claude ne fait que proposer la recherche.
+- Reste : la photo d'une convocation (modules natifs du prochain development build).

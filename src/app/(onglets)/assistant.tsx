@@ -93,6 +93,7 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     controle.current = c;
     setEcrit(true);
     let recu = "";
+    let rechercheRecue = false;
     const resume = recherche
       ? resumeRecherche(
           recherche.demande,
@@ -110,7 +111,10 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
           changerReponse(id, (m) => ({ ...m, texte: m.texte + t }));
         },
         // Spec 45 : la recherche proposée s'affiche en cartes sous la réponse.
-        surRecherche: (proposition) => setFil((f) => [...f, { id: prochainId.current++, role: "recherche", proposition }]),
+        surRecherche: (proposition) => {
+          rechercheRecue = true;
+          setFil((f) => [...f, { id: prochainId.current++, role: "recherche", proposition }]);
+        },
       },
     );
     if (controle.current === c) {
@@ -123,6 +127,8 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
     }
     const echec = messageIssue(issue, recu !== "");
     if (issue.etat === "arretee" && recu === "") return changerReponse(id, () => null);
+    // Spec 45 : Claude n'a fait que proposer la recherche ⇒ pas de bulle vide au-dessus de la carte.
+    if (issue.etat === "complete" && recu.trim() === "" && rechercheRecue) return changerReponse(id, () => null);
     changerReponse(id, (m) => (echec ? { ...m, etat: "echec", ...echec } : { ...m, etat: issue.etat === "arretee" ? "arretee" : "complete" }));
   }
 

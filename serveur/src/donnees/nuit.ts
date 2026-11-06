@@ -186,8 +186,9 @@ async function principal(): Promise<void> {
         jeu: r.etiquette,
         type: "gtfs",
         chemin: `gtfs/${r.etiquette}.zip`,
-        url_source: r.url,
-        licence: r.licence,
+        // Un jeu gardé reprend l'URL et la licence du manifeste en service (jeux.json ne les a pas).
+        url_source: source === "ancien" ? (parEtiquette.get(r.etiquette)?.url_source ?? r.url) : r.url,
+        licence: source === "ancien" ? (parEtiquette.get(r.etiquette)?.licence ?? r.licence) : r.licence,
         date_telechargement: date,
         feed_version: null,
         date_fichiers: source === "ancien" ? (parEtiquette.get(r.etiquette)?.date_fichiers ?? r.miseAJour) : r.miseAJour,
