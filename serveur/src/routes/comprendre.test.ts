@@ -12,6 +12,8 @@ const SORTIE = {
   sens: "arriver",
   marge: null,
   fin_rdv: "11:30",
+  lieu_zone: null,
+  depart_zone: null,
 };
 const JETONS = { input_tokens: 1000, output_tokens: 100 };
 
@@ -40,6 +42,16 @@ describe("POST /v1/comprendre (spec 28)", () => {
     expect(r.statusCode).toBe(200);
     expect(r.json()).toEqual({ comprehension: SORTIE });
     expect(vu.phrase).toBe("jeudi 10h RDV France Travail Joigny jusqu'à 11h30");
+  });
+
+  it("spec 35 (critère 2) : zones transmises ; date rendue pour une phrase sans jour ⇒ null", async () => {
+    const sortie = { ...SORTIE, lieu_texte: "Flers", lieu_zone: "Basse-Normandie", date: "2026-12-28", heure: null, sens: null, fin_rdv: null };
+    const app = appTest({ claude: claudeTest(async () => ({ sortie })) });
+    const r = await poster(app, { phrase: "je veux partir à flers basse normandie" });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ comprehension: { ...sortie, date: null } });
+    const datee = await poster(app, { phrase: "lundi je veux partir à flers basse normandie" });
+    expect(datee.json().comprehension.date).toBe("2026-12-28");
   });
 
   it.each([
@@ -129,6 +141,6 @@ describe("contexte et coût (spec 28)", () => {
     expect(coutEur("claude-haiku-5-5", { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 1_000_000, cache_read_input_tokens: 1_000_000 })).toBeCloseTo(0.225);
   });
   it("la forme demandée à Claude a tous ses champs obligatoires (sortie structurée)", () => {
-    expect(Object.keys(schemaSortieClaude.shape).sort()).toEqual(["date", "depart_texte", "fin_rdv", "heure", "lieu_texte", "marge", "sens"]);
+    expect(Object.keys(schemaSortieClaude.shape).sort()).toEqual(["date", "depart_texte", "depart_zone", "fin_rdv", "heure", "lieu_texte", "lieu_zone", "marge", "sens"]);
   });
 });

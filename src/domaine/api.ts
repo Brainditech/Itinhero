@@ -178,6 +178,9 @@ export const schemaComprehension = z.object({
   sens: z.enum(["arriver", "partir"]).nullable(),
   marge: z.number().int().min(0).max(120).nullable(),
   fin_rdv: z.string().regex(HEURE_HHMM).nullable(),
+  /** Spec 35 (D113) : région ou département dit pour préciser le lieu ; absent d'un serveur plus ancien. */
+  lieu_zone: z.string().min(2).max(60).nullable().optional(),
+  depart_zone: z.string().min(2).max(60).nullable().optional(),
 });
 export type Comprehension = z.infer<typeof schemaComprehension>;
 const schemaReponseComprendre = z.object({ comprehension: schemaComprehension });

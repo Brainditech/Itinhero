@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { schemaComprehension, type AppelClaude, type Contexte } from "../comprendre/comprendre.js";
+import { phraseDitUnJour, schemaComprehension, type AppelClaude, type Contexte } from "../comprendre/comprendre.js";
 import { coutEur, type CompteurCout, type ModeleClaude } from "../comprendre/cout.js";
 import { heureParis } from "../temps.js";
 import { refuserEntree } from "./erreurs.js";
@@ -47,6 +47,8 @@ export function routeComprendre(app: FastifyInstance, claude: Claude | undefined
       requete.log.warn({ erreur: r.refus ? "refus" : "sortie_hors_schema" }, "sortie de Claude refusée");
       return reponse.code(503).send({ erreur: "comprendre_indisponible" });
     }
-    return { comprehension: lu.data };
+    // Spec 35 (D113) : une date que la phrase ne dit pas est ignorée.
+    const comprehension = phraseDitUnJour(entree.data.phrase) ? lu.data : { ...lu.data, date: null };
+    return { comprehension };
   });
 }

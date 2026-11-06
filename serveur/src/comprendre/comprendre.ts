@@ -19,10 +19,14 @@ export const schemaSortieClaude = z.object({
   sens: z.enum(["arriver", "partir"]).nullable(),
   marge: z.number().int().nullable(),
   fin_rdv: z.string().nullable(),
+  lieu_zone: z.string().nullable(),
+  depart_zone: z.string().nullable(),
 });
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const texteLieu = z.string().trim().min(2).max(200).nullable();
+/** Région, département (nom ou numéro) ou pays dit pour préciser un lieu (spec 35, D113). */
+const texteZone = z.string().trim().min(2).max(60).nullable();
 
 /** Contrôle du serveur sur ce que Claude a rendu (invariant 9) : hors de ces bornes, la sortie entière est refusée. */
 export const schemaComprehension = z
@@ -34,6 +38,8 @@ export const schemaComprehension = z
     sens: z.enum(["arriver", "partir"]).nullable(),
     marge: z.number().int().min(0).max(120).nullable(),
     fin_rdv: z.string().regex(HEURE).nullable(),
+    lieu_zone: texteZone,
+    depart_zone: texteZone,
   })
   .strict();
 
@@ -50,8 +56,10 @@ export type AppelClaude = (phrase: string, contexte: Contexte) => Promise<Repons
 /** Invite fixe (aucune donnée variable : elle peut se mettre en cache). */
 export const INVITE_SYSTEME = `Tu lis une phrase en français où une personne dit où elle doit aller et quand. Tu rends seulement les champs demandés, sans rien inventer.
 
-- lieu_texte : le lieu où elle doit être, recopié tel qu'elle le dit (nom, adresse, commerce, ville), sans « à », « chez », « RDV ». null s'il n'est pas dit.
-- depart_texte : le lieu d'où elle part, seulement s'il est dit (« depuis », « en partant de »). null sinon (« de chez moi », « de la maison » ⇒ null).
+- lieu_texte : le lieu où elle doit être, recopié tel qu'elle le dit (nom, adresse, commerce, ville), sans « à », « chez », « RDV », « rendez-vous », et sans la région, l'ancienne région, le département ou le pays qu'elle ajoute pour le préciser (ceux-là vont dans lieu_zone). null s'il n'est pas dit.
+- lieu_zone : cette précision, telle qu'elle la dit (« je veux aller à Flers basse normandie » ⇒ lieu_texte « Flers », lieu_zone « basse normandie » ; « Saint-Denis 93 » ⇒ « Saint-Denis » et « 93 »). null si elle n'en dit pas. Tu n'en ajoutes jamais une toi-même.
+- depart_texte : le lieu d'où elle part, seulement s'il est dit (« depuis », « en partant de »), avec la même règle. null sinon (« de chez moi », « de la maison » ⇒ null).
+- depart_zone : la précision du lieu de départ, comme lieu_zone. null sinon.
 - date : AAAA-MM-JJ, calculée à partir d'aujourd'hui donné plus bas. « jeudi » = le prochain jeudi à venir (aujourd'hui si on est jeudi et que l'heure n'est pas passée). « demain », « après-demain », « le 12 » (le prochain 12). null si aucun jour n'est dit.
 - heure : HH:MM sur 24 h (« 10h » ⇒ 10:00, « 14h30 » ⇒ 14:30, « midi » ⇒ 12:00). null si aucune heure n'est dite.
 - sens : « arriver » si l'heure est celle du rendez-vous ou d'arrivée (« RDV à 10h », « être à », « avant »), « partir » si c'est une heure de départ (« partir à », « départ à »). null si aucune heure n'est dite.
@@ -59,6 +67,29 @@ export const INVITE_SYSTEME = `Tu lis une phrase en français où une personne d
 - fin_rdv : HH:MM de fin du rendez-vous si elle est dite (« jusqu'à 11h30 », « je finis à 16h ») ; c'est l'heure à partir de laquelle on cherchera le retour. null sinon.
 
 Tu ne donnes jamais d'horaire de transport, d'arrêt, de ligne, de prix, de numéro de téléphone ni de conseil.`;
+
+/**
+ * La phrase dit-elle un jour ? (spec 35, D113 ; invariant 9 : le serveur contrôle Claude.) Constaté le 2026-11-06 :
+ * « je veux partir à flers » a donné un trajet daté du lundi 28/12. Sans jour dans la phrase, la date de Claude est
+ * ignorée et le formulaire prend aujourd'hui (spec 28).
+ */
+const JOURS_DITS: readonly RegExp[] = [
+  /\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/,
+  /\b(apres-?demain|demain|aujourd'?hui|lendemain|ce soir|ce matin|ce midi|cet apres-?midi|cette nuit|prochaine?|semaine)\b/,
+  /\b(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/,
+  // « le 20 à 11h », « le 1er » ; pas « le 12 rue de la gare ».
+  /\ble (1er|[1-9]|[12]\d|3[01])\b(?! ?(rue|avenue|av|bd|boulevard|place|route|chemin|allee|impasse|quai))/,
+  /\b\d{1,2}\/\d{1,2}\b/,
+];
+
+export function phraseDitUnJour(phrase: string): boolean {
+  const simple = phrase
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[’]/g, "'");
+  return JOURS_DITS.some((motif) => motif.test(simple));
+}
 
 export function messageUtilisateur(phrase: string, c: Contexte): string {
   return `Aujourd'hui : ${c.jourSemaine} ${c.aujourdhui}, il est ${c.heure} (heure de Paris).\n\nPhrase : ${phrase}`;

@@ -132,6 +132,15 @@ describe("validerFormulaire", () => {
     expect(erreurs({ date: "2026-11-03", heure: "18:00" })).toEqual({});
   });
 
+  it("spec 35 (D113) : « Partir à » passé de 30 min au plus ⇒ on part maintenant ; au-delà, ou « Arriver avant » ⇒ erreur", () => {
+    // Phrase sans heure : le formulaire a mis l'heure de l'ouverture, passée de quelques minutes au « Chercher ».
+    const r = validerFormulaire({ ...MAQUETTE, date: "2026-11-03", heure: "17:42", sens: "partir_a" }, MAINTENANT);
+    expect(r.ok && r.demande.heure).toBe("18:00");
+    expect(erreurs({ date: "2026-11-03", heure: "17:30", sens: "partir_a" })).toEqual({});
+    expect(erreurs({ date: "2026-11-03", heure: "17:29", sens: "partir_a" }).heure).toBe(MESSAGES.heurePassee);
+    expect(erreurs({ date: "2026-11-03", heure: "17:59", sens: "arriver_avant" }).heure).toBe(MESSAGES.heurePassee);
+  });
+
   it("heure mal formée ⇒ erreur", () => {
     expect(erreurs({ heure: "24:00" }).heure).toBe(MESSAGES.heureInvalide);
     expect(erreurs({ heure: "9:00" }).heure).toBe(MESSAGES.heureInvalide);

@@ -151,6 +151,11 @@ function demandeRecalculRetour(demande: Demande, ici: { date: string; heure: str
   };
 }
 
+/** « Partir à » passé de ce nombre de minutes au plus : on part maintenant (spec 35, D113). */
+export const PARTIR_A_TOLERANCE_MIN = 30;
+
+const minutesDuJour = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
 /**
  * Valide le formulaire de repli (spec 02, décision 6). `maintenant` est passé en paramètre :
  * aucune horloge cachée, tests déterministes.
@@ -173,8 +178,15 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
   if (!dateValide) erreurs.date = MESSAGES.dateInvalide;
   else if (champs.date < ici.date) erreurs.date = MESSAGES.datePassee;
 
+  // Spec 35 (D113) : « Partir à » aujourd'hui, passé de 30 min au plus (heure mise à l'ouverture du formulaire, phrase
+  // sans heure) ⇒ on part maintenant. Au-delà, ou un rendez-vous (« Arriver avant ») ⇒ erreur.
+  let heure = champs.heure;
   if (!HEURE.test(champs.heure)) erreurs.heure = MESSAGES.heureInvalide;
-  else if (dateValide && champs.date === ici.date && champs.heure < ici.heure) erreurs.heure = MESSAGES.heurePassee;
+  else if (dateValide && champs.date === ici.date && champs.heure < ici.heure) {
+    const retard = minutesDuJour(ici.heure) - minutesDuJour(champs.heure);
+    if (champs.sens === "partir_a" && retard <= PARTIR_A_TOLERANCE_MIN) heure = ici.heure;
+    else erreurs.heure = MESSAGES.heurePassee;
+  }
 
   // « Partir à » : pas de rendez-vous, donc rien à retirer ; la marge est ignorée (décision 3).
   let marge = 0;
@@ -196,7 +208,7 @@ export function validerFormulaire(champs: ChampsFormulaire, maintenant: Date): R
     depart,
     arrivee,
     date: champs.date,
-    heure: champs.heure,
+    heure,
     sens: champs.sens,
     marge,
     retour: champs.retour,
