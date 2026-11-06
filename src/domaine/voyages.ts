@@ -243,7 +243,7 @@ export function resumeVoyage(v: Voyage): ResumeVoyage {
 }
 
 /** Un bout du voyage pour le formulaire : Domicile et Ma position restent tels quels ; un texte déjà trouvé devient ce lieu. */
-function boutDuVoyage(bout: Bout, lieu: LieuVoyage): Bout {
+function boutDuVoyage(bout: Bout, lieu: Pick<LieuVoyage, "nom" | "point">): Bout {
   if (bout.type !== "texte") return bout;
   return { type: "lieu", nom: lieu.nom, lat: lieu.point.lat, lon: lieu.point.lon, nature: "lieu", commune: null, code_postal: null };
 }
@@ -253,10 +253,22 @@ function boutDuVoyage(bout: Bout, lieu: LieuVoyage): Bout {
  * recherchés de nouveau ; une date passée devient aujourd'hui (le formulaire refuse une date passée).
  */
 export function champsDepuisVoyage(v: Voyage, aujourdhui: string): ChampsFormulaire {
-  const d = v.demande;
+  return champsDepuisRecherche(v.demande, v.depart, v.arrivee, aujourdhui);
+}
+
+/**
+ * « Modifier la recherche » du Résultat (spec 34, D112, §3.5) : le formulaire reprend la recherche en cours, ses lieux
+ * déjà trouvés compris, même s'il a été fermé par l'onglet Accueil. Mêmes règles que « Modifier » d'un voyage.
+ */
+export function champsDepuisRecherche(
+  d: Demande,
+  depart: Pick<LieuVoyage, "nom" | "point">,
+  arrivee: Pick<LieuVoyage, "nom" | "point">,
+  aujourdhui: string,
+): ChampsFormulaire {
   return {
-    depart: boutDuVoyage(d.depart, v.depart),
-    arrivee: boutDuVoyage(d.arrivee, v.arrivee),
+    depart: boutDuVoyage(d.depart, depart),
+    arrivee: boutDuVoyage(d.arrivee, arrivee),
     date: d.date < aujourdhui ? aujourdhui : d.date,
     heure: d.heure,
     sens: d.sens,

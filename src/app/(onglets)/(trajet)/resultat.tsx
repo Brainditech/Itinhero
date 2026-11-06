@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, ScrollView, Text, View, type ScrollViewInstance } from "react-native";
-import { Redirect, router } from "expo-router";
+import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SymbolView } from "expo-symbols";
 
 import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
-import { BandeauInfo, Lien, Puce } from "@/composants/elements";
+import { allerALAccueil } from "@/composants/BarreOnglets";
+import { BandeauInfo, BoutonPrincipal, CarteFlottante, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
 import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
@@ -17,7 +18,7 @@ import type { Trajet } from "@/domaine/demande";
 import { maintenantAParis } from "@/domaine/demande";
 import { adresseArrivee, bandeauLointain, finHoraires, horairesDu, ligneHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
-import { bandeauVoyage, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
+import { bandeauVoyage, champsDepuisRecherche, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
 import { useModifierVoyage, useRecherche, type Recherche } from "@/recherche";
 import { enregistrerVoyage, supprimerVoyage } from "@/stockage/voyages";
 import { annulerRappels, programmerRappels } from "@/rappels";
@@ -33,7 +34,7 @@ import { couleurs, ombreFlottante } from "@/theme/jetons";
  * Un trajet rouvert depuis Mes trajets porte un bandeau et le crayon, sans disquette ni « Modifier la recherche ».
  */
 export default function Resultat() {
-  const { recherche } = useRecherche();
+  const { recherche, setModification } = useRecherche();
   const modifierVoyage = useModifierVoyage();
   // Issue 0018 : après « Recalculer depuis ici », le Résultat déjà monté reçoit une nouvelle réponse et garde
   // son défilement ; si la page raccourcit (cartes remontées repliées), Android le laisse sous la fin du
@@ -51,14 +52,24 @@ export default function Resultat() {
 
   const depart = recherche?.depart.lieu;
   const arrivee = recherche?.arrivee.lieu;
-  if (!recherche?.reponse || !depart || !arrivee) return <Redirect href="/formulaire" />;
+  // Spec 34 (D112, §3.4) : onglet Trajet ouvert avant toute recherche.
+  if (!recherche?.reponse || !depart || !arrivee) return <AucunTrajet />;
   const { reponse, demande, rouvert } = recherche;
   const toutes = [...reponse.possibilites, ...(reponse.retour?.possibilites ?? [])];
   const du = horairesDu(toutes);
   const horaires = ligneHoraires(du, finHoraires(toutes));
   // Spec 32 : un trajet rouvert garde la date d'aujourd'hui pour le calcul (les horaires enregistrés ne changent pas).
   const lointain = bandeauLointain(demande.date, maintenantAParis(new Date()).date, du);
-  const modifier = () => router.dismissTo("/formulaire");
+  // Spec 34 (§3.5) : le formulaire de l'onglet Accueil reprend la recherche, même s'il a été fermé entre-temps.
+  const modifier = () => {
+    setModification({
+      remplace: null,
+      champs: champsDepuisRecherche(demande, depart, arrivee, maintenantAParis(new Date()).date),
+      jeton: Date.now(),
+      reprise: true,
+    });
+    allerALAccueil(() => router.push("/formulaire"));
+  };
   const choisirTri = (trajet: Trajet, tri: Tri) => {
     setChoixTris({ pour: reponse, tris: { ...tris, [trajet]: tri } });
     AccessibilityInfo.announceForAccessibility(`Trajets classés : ${LIBELLES_TRIS[tri].toLowerCase()}`);
@@ -346,5 +357,24 @@ function BlocVerdict({ reponse, trajet }: { reponse: ReponseSens; trajet: Trajet
         </View>
       </View>
     </View>
+  );
+}
+
+/** Onglet Trajet sans recherche en cours (spec 34, D112, §3.4). */
+function AucunTrajet() {
+  return (
+    <Ecran>
+      <CarteFlottante>
+        <Text accessibilityRole="header" className="font-inter-semibold text-titre-carte text-texte">
+          {"Aucun trajet pour l'instant."}
+        </Text>
+        <Text className="mt-2 font-inter text-corps text-texte-secondaire">
+          {"Écrivez sur l'Accueil où vous devez être, et quand."}
+        </Text>
+        <View className="mt-4">
+          <BoutonPrincipal libelle="Aller à l'Accueil" onPress={() => allerALAccueil()} />
+        </View>
+      </CarteFlottante>
+    </Ecran>
   );
 }

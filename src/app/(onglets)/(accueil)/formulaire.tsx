@@ -90,7 +90,9 @@ export default function Formulaire() {
   const [champs, setChamps] = useState<ChampsFormulaire>(() => modification?.champs ?? valeursInitiales(departParam));
   const [remplace, setRemplace] = useState<{ cle: string; titre: string } | null>(() => modification?.remplace ?? null);
   // Spec 28 : ouvert avec la phrase comprise de l'Accueil ⇒ bandeau « Vérifiez » jusqu'au prochain changement.
-  const [comprise, setComprise] = useState(() => modification !== null && modification.remplace === null);
+  // « Modifier la recherche » du Résultat (spec 34) : la recherche reprise, sans ce bandeau.
+  const estComprise = (m: typeof modification) => m !== null && m.remplace === null && !m.reprise;
+  const [comprise, setComprise] = useState(() => estComprise(modification));
   const [modificationVue, setModificationVue] = useState(modification?.jeton);
   const [erreurs, setErreurs] = useState<ErreursFormulaire>({});
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
@@ -138,8 +140,9 @@ export default function Formulaire() {
   if (modification && modification.jeton !== modificationVue) {
     setModificationVue(modification.jeton);
     setChamps(modification.champs);
-    setRemplace(modification.remplace);
-    setComprise(modification.remplace === null);
+    // Reprise de la recherche (spec 34) : le trajet à remplacer déjà retenu ici reste retenu.
+    if (!modification.reprise) setRemplace(modification.remplace);
+    setComprise(estComprise(modification));
     setErreurs({});
     setErreurRecherche(undefined);
     setAChoisir({});

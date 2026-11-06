@@ -2,6 +2,7 @@ import { createContext, use, useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 
+import { allerALAccueil } from "@/composants/BarreOnglets";
 import { messageEchec, type Candidat, type Point, type ReponseItineraires } from "@/domaine/api";
 import {
   demandeRecalcul,
@@ -21,7 +22,7 @@ import { useClient, useSession } from "@/session";
 import { MESSAGES_POSITION, MESSAGES_POSITION_GUIDAGE, lirePosition, lirePositionSiAccordee } from "@/stockage/position";
 import { lireDomicileEnBase } from "@/stockage/reglages";
 
-// Recherche en cours dans la pile de l'onglet Chercher : Formulaire ⇒ Résultat (plus de Confirmation, D91).
+// Recherche en cours : Formulaire (onglet Accueil) ⇒ Résultat (onglet Trajet, spec 34) ; plus de Confirmation (D91).
 // En mémoire seulement : rien n'est gardé ni envoyé ailleurs qu'à l'API (invariant 6).
 
 /** Un bout trouvé : son point, le nom envoyé à l'API et affiché, et son adresse connue sur le téléphone (spec 14). */
@@ -49,7 +50,13 @@ export type Recherche = {
  * Formulaire pré-rempli : par « Modifier » d'un trajet enregistré (`remplace`, spec 24) ou par la phrase
  * comprise de l'Accueil (`remplace` null, spec 28 : le formulaire demande de vérifier avant « Chercher »).
  */
-export type Modification = { remplace: { cle: string; titre: string } | null; champs: ChampsFormulaire; jeton: number };
+export type Modification = {
+  remplace: { cle: string; titre: string } | null;
+  champs: ChampsFormulaire;
+  jeton: number;
+  /** « Modifier la recherche » du Résultat (spec 34) : la recherche en cours reprise, sans bandeau « Vérifiez ». */
+  reprise?: true;
+};
 
 /**
  * Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null).
@@ -97,7 +104,7 @@ export function useRecherche(): ContexteValeur {
 
 /**
  * Toucher un trajet de Mes trajets (spec 22, D98) : le trajet enregistré devient la recherche en cours, sans
- * réseau, et le Résultat s'ouvre dans l'onglet Chercher, sur le tri gardé (D101).
+ * réseau, et le Résultat s'ouvre dans l'onglet Trajet (spec 34), sur le tri gardé (D101).
  */
 export function useOuvrirVoyage() {
   const { setRecherche } = useRecherche();
@@ -114,7 +121,7 @@ export function useOuvrirVoyage() {
 }
 
 /**
- * Crayon du trajet rouvert (spec 24, D100, §7.3) : le formulaire de l'onglet Chercher s'ouvre, pré-rempli avec
+ * Crayon du trajet rouvert (spec 24, D100, §7.3) : le formulaire de l'onglet Accueil s'ouvre, pré-rempli avec
  * le trajet ; le trajet trouvé ensuite remplace celui-ci à l'enregistrement.
  */
 export function useModifierVoyage() {
@@ -126,8 +133,8 @@ export function useModifierVoyage() {
       champs: champsDepuisVoyage(v, maintenantAParis(new Date()).date),
       jeton: Date.now(),
     });
-    // Le formulaire déjà dans la pile s'y retrouve ; sinon il prend la place du trajet rouvert.
-    router.dismissTo("/formulaire");
+    // Le formulaire de l'onglet Accueil (spec 34) : sa pile revient à la première page, puis le formulaire s'ouvre.
+    allerALAccueil(() => router.push("/formulaire"));
   };
 }
 
@@ -188,8 +195,10 @@ export function useDeroulerRecherche() {
     if (res.etat === "hors_zone") return { champ: res.points.length === 1 ? res.points[0]! : null, message: messageEchec(res) };
     if (res.etat !== "ok") return { champ: null, message: messageEchec(res) };
     setRecherche({ ...courante, reponse: res.donnees });
+    // Spec 34 : le Résultat de l'onglet Trajet ; déjà ouvert, on y revient (le guidage au-dessus se ferme)
+    // au lieu d'en empiler un second.
     if (ouvrir === "revenir") router.dismissTo("/resultat");
-    else router.push("/resultat");
+    else router.navigate("/resultat");
     return null;
   }
 
