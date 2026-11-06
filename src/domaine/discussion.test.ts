@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clientApi, type FetchFlux, type Possibilite } from "./api";
 import {
   alertesPossibilite,
+  demandeDeProposition,
   lireEvenements,
   messageIssue,
   messagesAEnvoyer,
@@ -238,5 +239,42 @@ describe("client.discussion (spec 39 §7)", () => {
   it("sans `fetchFlux` ⇒ indisponible", async () => {
     const c = clientApi({ urlApi: "http://api", cle: "cle", fetch: async () => new Response() });
     expect(await c.discussion(CORPS, { signal: new AbortController().signal, surTexte: () => {} })).toEqual({ etat: "indisponible" });
+  });
+});
+
+describe("Spec 45 (D126) : recherche proposée et pièce jointe", () => {
+  const PROPOSITION = { depart: "domicile", arrivee: "Gare de Joigny", date: "2026-11-12", heure: "10:00", sens: "arriver_avant" };
+
+  it("l'événement `recherche` est lu et revalidé ; hors schéma ⇒ ignoré", () => {
+    const flux = `event: recherche\ndata: ${JSON.stringify(PROPOSITION)}\n\nevent: recherche\ndata: {"arrivee":"x"}\n\nevent: fin\ndata: {}\n\n`;
+    expect(lireEvenements(flux).evenements).toEqual([{ type: "recherche", recherche: PROPOSITION }, { type: "fin" }]);
+  });
+
+  it("la proposition devient une demande ordinaire : domicile, position, texte ; marge par défaut 10 (D17)", () => {
+    expect(demandeDeProposition({ ...PROPOSITION, sens: "arriver_avant" })).toEqual({
+      depart: { type: "domicile" },
+      arrivee: { type: "texte", texte: "Gare de Joigny" },
+      date: "2026-11-12",
+      heure: "10:00",
+      sens: "arriver_avant",
+      marge: 10,
+      retour: null,
+    });
+    expect(demandeDeProposition({ ...PROPOSITION, sens: "partir_a", depart: "ici", marge: 20 })).toMatchObject({ depart: { type: "position" }, marge: 20 });
+  });
+
+  it("seule la pièce jointe du dernier message part ; les cartes de recherche ne partent pas", () => {
+    const image = { type: "image" as const, media_type: "image/jpeg" as const, donnees: "QUJD", nom: "convocation.jpg" };
+    const fil: MessageFil[] = [
+      { id: 1, role: "personne", texte: "Voici ma convocation", piece_jointe: image },
+      { id: 2, role: "assistant", texte: "Je cherche.", etat: "complete" },
+      { id: 3, role: "recherche", proposition: { ...PROPOSITION, sens: "arriver_avant" } },
+      { id: 4, role: "personne", texte: "Merci", piece_jointe: { ...image, nom: "billet.jpg" } },
+    ];
+    expect(messagesAEnvoyer(fil)).toEqual([
+      { role: "personne", texte: "Voici ma convocation" },
+      { role: "assistant", texte: "Je cherche." },
+      { role: "personne", texte: "Merci", piece_jointe: { type: "image", media_type: "image/jpeg", donnees: "QUJD" } },
+    ]);
   });
 });

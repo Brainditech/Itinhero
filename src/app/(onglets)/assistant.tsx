@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HAUTEUR_BARRE_ONGLETS } from "@/composants/BarreOnglets";
 import { Lien, MotItinhero, Puce } from "@/composants/elements";
+import { RechercheAssistant } from "@/composants/RechercheAssistant";
 import {
   MESSAGES_DISCUSSION,
   messageIssue,
@@ -17,6 +19,7 @@ import {
 } from "@/domaine/discussion";
 import { jourCourt, possibiliteDuVerdict } from "@/domaine/resultat";
 import { useRecherche, type Recherche } from "@/recherche";
+import { choisirPdf, choisirPhoto, piecesJointesDisponibles, type IssuePiece, type PieceChoisie } from "@/pieces-jointes";
 import { useClient, useSession } from "@/session";
 import { couleurs, rayons } from "@/theme/jetons";
 
@@ -54,11 +57,17 @@ export default function Assistant() {
   );
 }
 
+/** Spec 45 : question envoyée d'office quand on arrive de l'onglet Trajet (« Discuter de ce trajet »). */
+export const QUESTION_TRAJET = "Explique-moi ce trajet et dis-moi comment l'améliorer.";
+
 function Discussion({ recherche }: { recherche: Recherche | null }) {
   const client = useClient();
   const { oublierCle } = useSession();
   const [fil, setFil] = useState<MessageFil[]>([]);
   const [texte, setTexte] = useState("");
+  const [piece, setPiece] = useState<PieceChoisie | null>(null);
+  const params = useLocalSearchParams<{ sujet?: string; jeton?: string }>();
+  const sujetTraite = useRef<string | null>(null);
   const [ecrit, setEcrit] = useState(false);
   const controle = useRef<AbortController | null>(null);
   const prochainId = useRef(0);
@@ -100,6 +109,8 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
           recu += t;
           changerReponse(id, (m) => ({ ...m, texte: m.texte + t }));
         },
+        // Spec 45 : la recherche proposée s'affiche en cartes sous la réponse.
+        surRecherche: (proposition) => setFil((f) => [...f, { id: prochainId.current++, role: "recherche", proposition }]),
       },
     );
     if (controle.current === c) {
@@ -116,10 +127,39 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
   }
 
   function envoyer(question: string = texte) {
-    const q = question.trim().slice(0, TEXTE_MAX);
+    // Spec 45 : une pièce jointe seule part avec une question par défaut.
+    const q = (question.trim() || (piece ? "Que dois-je savoir de ce document pour mon voyage ?" : "")).slice(0, TEXTE_MAX);
     if (q === "" || controle.current) return;
     setTexte("");
-    void repondre([...fil, { id: prochainId.current++, role: "personne", texte: q }]);
+    const jointe = piece;
+    setPiece(null);
+    void repondre([...fil, { id: prochainId.current++, role: "personne", texte: q, ...(jointe ? { piece_jointe: jointe } : {}) }]);
+  }
+
+  // Spec 45 : « Discuter de ce trajet » depuis l'onglet Trajet ⇒ nouvelle discussion sur le trajet en cours.
+  useEffect(() => {
+    if (params.sujet !== "trajet" || !params.jeton || sujetTraite.current === params.jeton || !recherche) return;
+    sujetTraite.current = params.jeton;
+    controle.current?.abort();
+    controle.current = null;
+    void repondre([{ id: prochainId.current++, role: "personne", texte: QUESTION_TRAJET }]);
+    // `repondre` change à chaque rendu ; seul le jeton compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.sujet, params.jeton, recherche]);
+
+  async function joindre() {
+    const quoi = await new Promise<"galerie" | "appareil" | "pdf" | null>((resoudre) =>
+      Alert.alert("Joindre un document", "Une convocation, un billet, un courrier : l'Assistant le lit pour cette réponse seulement.", [
+        { text: "Photo de la galerie", onPress: () => resoudre("galerie") },
+        { text: "Prendre une photo", onPress: () => resoudre("appareil") },
+        { text: "PDF", onPress: () => resoudre("pdf") },
+      ], { cancelable: true, onDismiss: () => resoudre(null) }),
+    );
+    if (!quoi) return;
+    const issue: IssuePiece = quoi === "pdf" ? await choisirPdf() : await choisirPhoto(quoi);
+    if (issue.etat === "ok") setPiece(issue.piece);
+    else if (issue.etat === "trop_lourd") Alert.alert("Document trop lourd", "Une photo de 1,5 Mo ou un PDF de 2 Mo au plus.");
+    else if (issue.etat === "refuse") Alert.alert("Document indisponible", "Le document n'a pas pu être lu.");
   }
 
   /** « Réessayer » : la réponse en échec est retirée, la même discussion repart. */
@@ -167,9 +207,19 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
         ) : null}
 
         {fil.map((m) =>
-          m.role === "personne" ? (
+          m.role === "recherche" ? (
+            <RechercheAssistant key={m.id} proposition={m.proposition} />
+          ) : m.role === "personne" ? (
             <View key={m.id} className="items-end">
-              <View className="bg-primaire px-4 py-3" style={{ borderRadius: RAYON_BULLE, maxWidth: "85%" }}>
+              <View className="gap-2 bg-primaire px-4 py-3" style={{ borderRadius: RAYON_BULLE, maxWidth: "85%" }}>
+                {m.piece_jointe ? (
+                  <View className="flex-row items-center gap-2">
+                    <SymbolView name={{ android: m.piece_jointe.type === "pdf" ? "description" : "image", web: "image" }} size={18} tintColor={couleurs.fond} />
+                    <Text numberOfLines={1} className="flex-shrink font-inter text-badge text-fond">
+                      {m.piece_jointe.nom}
+                    </Text>
+                  </View>
+                ) : null}
                 <Text selectable className="font-inter-medium text-corps text-fond">
                   {m.texte}
                 </Text>
@@ -208,8 +258,32 @@ function Discussion({ recherche }: { recherche: Recherche | null }) {
         ) : null}
       </ScrollView>
 
-      <View className="px-4 pt-2">
-        <View className="min-h-14 flex-row items-center gap-2 rounded-full border border-bordure-carte bg-fond pl-5 pr-2">
+      <View className="gap-2 px-4 pt-2">
+        {piece ? (
+          <View className="flex-row items-center gap-2 self-start rounded-full bg-primaire-doux pl-3 pr-1">
+            <SymbolView name={{ android: piece.type === "pdf" ? "description" : "image", web: "image" }} size={18} tintColor={couleurs.primaire} />
+            <Text numberOfLines={1} className="max-w-56 font-inter-medium text-badge text-primaire">
+              {piece.nom}
+            </Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Retirer la pièce jointe" onPress={() => setPiece(null)} className="h-10 w-10 items-center justify-center">
+              <SymbolView name={{ android: "close", web: "close" }} size={18} tintColor={couleurs.primaire} />
+            </Pressable>
+          </View>
+        ) : null}
+        <View className="min-h-14 flex-row items-center gap-2 rounded-full border border-bordure-carte bg-fond pl-2 pr-2">
+          {piecesJointesDisponibles() ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Joindre une photo ou un PDF"
+              onPress={() => void joindre()}
+              disabled={ecrit}
+              className="h-12 w-12 items-center justify-center rounded-full active:bg-surface"
+            >
+              <SymbolView name={{ android: "attach_file", web: "attach_file" }} size={24} tintColor={couleurs.primaire} />
+            </Pressable>
+          ) : (
+            <View className="w-3" />
+          )}
           <TextInput
             accessibilityLabel={MESSAGES_DISCUSSION.champ}
             placeholder={MESSAGES_DISCUSSION.champ}

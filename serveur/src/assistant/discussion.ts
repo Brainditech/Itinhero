@@ -16,12 +16,31 @@ export const JETONS_REPONSE_MAX = 800;
 const COORDONNEES = /-?\d{1,3}\.\d{2,}\s*[,;]\s*-?\d{1,3}\.\d{2,}/;
 const sansCoordonnees = (s: string) => !COORDONNEES.test(s);
 
+/**
+ * Spec 45 (D126) : une pièce jointe (photo ou PDF : convocation, billet, plan), en base64, lue par Claude pour cette
+ * réponse seulement ; ni gardée ni journalisée (invariants 6 et 10). 1,5 Mo d'image, 2 Mo de PDF au plus.
+ */
+export const IMAGE_MAX_OCTETS = 1_500_000;
+export const PDF_MAX_OCTETS = 2_000_000;
+const base64 = (octets: number) =>
+  z
+    .string()
+    .max(Math.ceil((octets * 4) / 3) + 4)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/, "base64");
+const schemaPieceJointe = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("image"), media_type: z.enum(["image/jpeg", "image/png", "image/webp"]), donnees: base64(IMAGE_MAX_OCTETS) }).strict(),
+  z.object({ type: z.literal("pdf"), media_type: z.literal("application/pdf"), donnees: base64(PDF_MAX_OCTETS) }).strict(),
+]);
+export type PieceJointe = z.infer<typeof schemaPieceJointe>;
+
 const schemaMessage = z
   .object({
     role: z.enum(["personne", "assistant"]),
     texte: z.string().trim().min(1).max(TEXTE_MAX).refine(sansCoordonnees, "coordonnées"),
+    piece_jointe: schemaPieceJointe.optional(),
   })
-  .strict();
+  .strict()
+  .refine((m) => m.role === "personne" || m.piece_jointe === undefined, "pièce jointe de l'Assistant");
 
 const ALERTES = ["nuit_dehors", "taxi_a_reserver", "transport_a_reserver", "marche_longue", "sans_reservation"] as const;
 
@@ -57,7 +76,9 @@ export const schemaRequeteDiscussion = z
       .array(schemaMessage)
       .min(1)
       .max(MESSAGES_MAX)
-      .refine((m) => m.at(-1)?.role === "personne", "le dernier message est celui de la personne"),
+      .refine((m) => m.at(-1)?.role === "personne", "le dernier message est celui de la personne")
+      // Une seule pièce jointe par envoi : celle du dernier message (le coût reste borné).
+      .refine((m) => m.slice(0, -1).every((x) => x.piece_jointe === undefined), "pièce jointe sur un ancien message"),
     recherche: schemaRechercheResumee.optional(),
   })
   .strict();
@@ -91,6 +112,13 @@ Ce que tu sais :
 - Transport à la demande ou taxi « réservation obligatoire » : il ne passe que si on l'a réservé, souvent la veille. Dans le trajet, « Voir les étapes » donne le transporteur, et le numéro quand l'app le connaît. Réserver avant de partir.
 - Nuit dehors : un trajet marqué « Nuit dehors » fait attendre la nuit dans une gare ou à un arrêt. Essayer de partir plus tôt ou un autre jour (nouvelle recherche depuis l'Accueil), ou prévoir un hébergement près du lieu d'attente ou d'arrivée.
 - Marche longue : un trajet marqué « marche longue » a plus de 15 minutes à pied d'un coup. La marge est le temps d'avance voulu avant un rendez-vous ; on la règle à la recherche.
+
+Chercher un trajet (spec 45) :
+- Quand la personne veut aller quelque part à un moment précis (« je dois être à Joigny jeudi à 10 h », une convocation en photo), appelle l'outil proposer_recherche avec le départ, l'arrivée, le jour, l'heure et le sens. L'app fait la recherche avec le moteur et montre les trajets en cartes sous ta réponse : tu n'écris pas les horaires toi-même.
+- Départ : « domicile » si la personne part de chez elle ou ne dit rien, « position » si elle dit « d'ici », sinon le lieu tel qu'elle le dit. Arrivée : le lieu tel qu'il est écrit (adresse, nom de lieu, ville).
+- S'il manque le jour ou l'heure, demande-les au lieu d'appeler l'outil. N'appelle l'outil qu'une fois par réponse.
+
+Pièce jointe : la personne peut joindre une photo ou un PDF (convocation, billet, courrier). Lis-le pour l'aider (lieu, jour, heure du rendez-vous) ; ne recopie ni numéro de téléphone, ni numéro de dossier, ni adresse personnelle dans ta réponse.
 
 Ce que tu reçois : la discussion et, si la personne a une recherche en cours, son résumé (lieux, jour, heure demandée, sens, marge, et pour chaque trajet trouvé : modes, correspondances, minutes de marche, alertes). Tu t'appuies dessus pour expliquer le trajet, sans inventer ce qui n'y est pas.`;
 
@@ -134,20 +162,65 @@ export function contexteDiscussion(c: Contexte, r: RechercheResumee | undefined)
   return lignes.join("\n");
 }
 
-/** Messages pour l'API : rôles traduits, messages consécutifs d'un même rôle réunis, premier message de la personne. */
-export function messagesClaude(messages: MessageDiscussion[]): { role: "user" | "assistant"; content: string }[] {
-  const r: { role: "user" | "assistant"; content: string }[] = [];
+type BlocContenu =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: "image/jpeg" | "image/png" | "image/webp"; data: string } }
+  | { type: "document"; source: { type: "base64"; media_type: "application/pdf"; data: string } };
+
+const blocPiece = (p: PieceJointe): BlocContenu =>
+  p.type === "image"
+    ? { type: "image", source: { type: "base64", media_type: p.media_type, data: p.donnees } }
+    : { type: "document", source: { type: "base64", media_type: "application/pdf", data: p.donnees } };
+
+/**
+ * Messages pour l'API : rôles traduits, messages consécutifs d'un même rôle réunis, premier message de la personne ;
+ * la pièce jointe (spec 45) passe avant le texte de son message.
+ */
+export function messagesClaude(messages: MessageDiscussion[]): { role: "user" | "assistant"; content: BlocContenu[] }[] {
+  const r: { role: "user" | "assistant"; content: BlocContenu[] }[] = [];
   for (const m of messages) {
     const role = m.role === "personne" ? "user" : "assistant";
+    const blocs: BlocContenu[] = [...(m.piece_jointe ? [blocPiece(m.piece_jointe)] : []), { type: "text", text: m.texte }];
     const dernier = r.at(-1);
-    if (dernier && dernier.role === role) dernier.content += `\n\n${m.texte}`;
-    else if (r.length > 0 || role === "user") r.push({ role, content: m.texte });
+    if (dernier && dernier.role === role) dernier.content.push(...blocs);
+    else if (r.length > 0 || role === "user") r.push({ role, content: blocs });
   }
   return r;
 }
 
+/** Spec 45 (D126) : recherche proposée par Claude ; l'app la lance elle-même (lieux par `GET /v1/lieux`, puis le moteur). */
+export const schemaPropositionRecherche = z
+  .object({
+    depart: z.string().trim().min(1).max(200).refine(sansCoordonnees, "coordonnées"),
+    arrivee: z.string().trim().min(1).max(200).refine(sansCoordonnees, "coordonnées"),
+    date: z.iso.date(),
+    heure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    sens: z.enum(["arriver_avant", "partir_a"]),
+    marge: z.number().int().min(0).max(120).optional(),
+  })
+  .strict();
+export type PropositionRecherche = z.infer<typeof schemaPropositionRecherche>;
+
+export const OUTIL_RECHERCHE = {
+  name: "proposer_recherche",
+  description:
+    "Propose une recherche de trajet que l'app va lancer avec le moteur d'itinéraires ; les trajets trouvés s'affichent en cartes sous ta réponse.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      depart: { type: "string", description: "« domicile », « position », ou le lieu de départ tel que la personne le dit." },
+      arrivee: { type: "string", description: "Le lieu d'arrivée tel qu'il est écrit (adresse, lieu, ville)." },
+      date: { type: "string", description: "Jour, AAAA-MM-JJ, à partir d'aujourd'hui." },
+      heure: { type: "string", description: "Heure, HH:MM (24 h)." },
+      sens: { type: "string", enum: ["arriver_avant", "partir_a"], description: "arriver_avant pour un rendez-vous, partir_a pour un départ." },
+      marge: { type: "integer", description: "Minutes d'avance voulues avant le rendez-vous, si la personne le dit." },
+    },
+    required: ["depart", "arrivee", "date", "heure", "sens"],
+  },
+};
+
 /** Fin d'un appel : jetons consommés et refus éventuel de Claude. */
-export type FinDiscussion = { jetons: Jetons; refus: boolean };
+export type FinDiscussion = { jetons: Jetons; refus: boolean; recherches?: unknown[] };
 
 /**
  * Appel à Claude en flux, injecté (les tests n'appellent jamais l'API). `surTexte` reçoit chaque morceau brut ;
@@ -176,6 +249,8 @@ export function appelDiscussion(cle: string, modele: ModeleClaude): AppelDiscuss
           { type: "text", text: contexteDiscussion(contexte, entree.recherche) },
         ],
         messages: messagesClaude(entree.messages),
+        tools: [OUTIL_RECHERCHE],
+        tool_choice: { type: "auto" },
         output_config: { effort: "low" },
       },
       { signal },
@@ -183,7 +258,9 @@ export function appelDiscussion(cle: string, modele: ModeleClaude): AppelDiscuss
     flux.on("text", (morceau) => surTexte(morceau));
     try {
       const m = await flux.finalMessage();
-      return { jetons: m.usage, refus: m.stop_reason === "refusal" };
+      // Spec 45 : l'outil n'est pas exécuté ici ; sa demande part à l'app, qui fait la recherche elle-même.
+      const recherches = m.content.flatMap((b) => (b.type === "tool_use" && b.name === OUTIL_RECHERCHE.name ? [b.input] : []));
+      return { jetons: m.usage, refus: m.stop_reason === "refusal", recherches };
     } catch (e) {
       // Coupé par l'app : les jetons déjà lus et écrits comptent quand même au plafond.
       const partiel = flux.currentMessage?.usage;

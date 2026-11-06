@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { lireEvenements, type IssueDiscussion, type MessageEnvoye, type RechercheResumee } from "./discussion";
+import { lireEvenements, type IssueDiscussion, type MessageEnvoye, type PropositionRecherche, type RechercheResumee } from "./discussion";
 
 // Client des routes de l'API Itinhero (spec 09 §4.4, §4.5 ; spec 10 §4.1).
 // `fetch` est injecté : aucun réseau dans les tests. Chaque réponse est validée par Zod (invariant 9) :
@@ -429,7 +429,11 @@ export function clientApi({
      */
     async discussion(
       corps: { messages: MessageEnvoye[]; recherche?: RechercheResumee },
-      { signal, surTexte }: { signal: AbortSignal; surTexte: (texte: string) => void },
+      {
+        signal,
+        surTexte,
+        surRecherche,
+      }: { signal: AbortSignal; surTexte: (texte: string) => void; surRecherche?: (r: PropositionRecherche) => void },
     ): Promise<IssueDiscussion> {
       if (!fetchFlux) return { etat: "indisponible" };
       const controle = new AbortController();
@@ -467,6 +471,7 @@ export function clientApi({
             tampon = lu.reste;
             for (const e of lu.evenements) {
               if (e.type === "texte") surTexte(e.texte);
+              else if (e.type === "recherche") surRecherche?.(e.recherche);
               else if (e.type === "fin") return { etat: "complete" };
               else return { etat: "indisponible" };
             }

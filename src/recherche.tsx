@@ -215,7 +215,7 @@ export function useDeroulerRecherche() {
    */
   async function avancer(
     r: Recherche,
-    ouvrir: "pousser" | "revenir" = "pousser",
+    ouvrir: "pousser" | "revenir" | ((trouvee: Recherche) => void) = "pousser",
     surLieuRetenu?: SurLieuRetenu,
   ): Promise<EchecRecherche | null> {
     let courante = r;
@@ -250,6 +250,11 @@ export function useDeroulerRecherche() {
     // Spec 27 : un seul point hors zone ⇒ le message va sous son champ.
     if (res.etat === "hors_zone") return { champ: res.points.length === 1 ? res.points[0]! : null, message: messageEchec(res) };
     if (res.etat !== "ok") return { champ: null, message: messageEchec(res) };
+    // Spec 45 : recherche de l'Assistant ⇒ rendue à la discussion, sans toucher à la recherche en cours.
+    if (typeof ouvrir === "function") {
+      ouvrir({ ...courante, reponse: res.donnees });
+      return null;
+    }
     setRecherche({ ...courante, reponse: res.donnees });
     // Spec 34 : le Résultat de l'onglet Trajet ; déjà ouvert, on y revient (le guidage au-dessus se ferme)
     // au lieu d'en empiler un second.
@@ -274,14 +279,19 @@ export function useDeroulerRecherche() {
   }
 
   /** `remplace` : la recherche vient de « Modifier » (spec 24) ; le voyage de cette clé sera remplacé. */
-  async function demarrer(demande: Demande, surLieuRetenu?: SurLieuRetenu, remplace?: string): Promise<EchecRecherche | null> {
+  async function demarrer(
+    demande: Demande,
+    surLieuRetenu?: SurLieuRetenu,
+    remplace?: string,
+    surTrouvee?: (trouvee: Recherche) => void,
+  ): Promise<EchecRecherche | null> {
     const r: Recherche = { demande, depart: { lieu: null }, arrivee: { lieu: null }, reponse: null, ...(remplace ? { remplace } : {}) };
     for (const cote of COTES) {
       const fixe = await lieuFixe(cote, demande[cote]);
       if (fixe && "message" in fixe) return fixe;
       r[cote] = { lieu: fixe };
     }
-    return avancer(r, "pousser", surLieuRetenu);
+    return avancer(r, surTrouvee ?? "pousser", surLieuRetenu);
   }
 
   /**

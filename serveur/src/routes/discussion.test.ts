@@ -198,3 +198,46 @@ describe("POST /v1/assistant/discussion (spec 39)", () => {
     expect(compteur.depense()).toBeGreaterThan(0);
   });
 });
+
+describe("Spec 45 (D126) : recherche proposée et pièce jointe", () => {
+  const claudeAvecRecherche = (recherches: unknown[]): Claude => {
+    const discussion: AppelDiscussion = async (_e, _c, surTexte) => {
+      surTexte("Je lance la recherche.");
+      return { jetons: JETONS, refus: false, recherches };
+    };
+    return { appel: async () => ({ sortie: null, jetons: JETONS, refus: false }), discussion, modele: "claude-haiku-5-5", compteur: new CompteurCout(10) };
+  };
+  const PROPOSITION = { depart: "domicile", arrivee: "19 route de Chamvres, Joigny", date: "2099-11-12", heure: "10:00", sens: "arriver_avant" };
+
+  it("la recherche proposée part en événement `recherche`, revalidée ; jour passé ou hors schéma : rien", async () => {
+    const r = await poster(appTest({ claude: claudeAvecRecherche([PROPOSITION]) }), QUESTION);
+    const ev = evenements(r.body);
+    expect(ev.map((e) => e.evenement)).toEqual(["texte", "recherche", "fin"]);
+    expect(ev[1]!.donnees).toEqual(PROPOSITION);
+    const passe = await poster(appTest({ claude: claudeAvecRecherche([{ ...PROPOSITION, date: "2020-01-01" }]) }), QUESTION);
+    expect(evenements(passe.body).map((e) => e.evenement)).toEqual(["texte", "fin"]);
+    const faux = await poster(appTest({ claude: claudeAvecRecherche([{ ...PROPOSITION, arrivee: "47.98, 3.39", lat: 1 }]) }), QUESTION);
+    expect(evenements(faux.body).map((e) => e.evenement)).toEqual(["texte", "fin"]);
+  });
+
+  it("pièce jointe : image reçue sur le dernier message ; sur un ancien message, ou pas en base64 ⇒ 400 ; jamais au journal", async () => {
+    const vu: Vu = { appels: 0 };
+    const lignes: string[] = [];
+    const app = appTest({ claude: claudeTest(["Lu."], { vu }), fluxJournal: { write: (l: string) => void lignes.push(l) } });
+    const image = { type: "image", media_type: "image/jpeg", donnees: "Q0FOQVJJLUlNQUdF" };
+    const ok = await poster(app, { messages: [{ role: "personne", texte: "Ma convocation", piece_jointe: image }] });
+    expect(ok.statusCode).toBe(200);
+    expect(JSON.stringify(vu.entree)).toContain("Q0FOQVJJLUlNQUdF");
+    expect(lignes.join("")).not.toContain("Q0FOQVJJLUlNQUdF");
+    const ancien = await poster(app, {
+      messages: [
+        { role: "personne", texte: "Ma convocation", piece_jointe: image },
+        { role: "assistant", texte: "Lu." },
+        { role: "personne", texte: "Et ensuite ?" },
+      ],
+    });
+    expect(ancien.statusCode).toBe(400);
+    const pasBase64 = await poster(app, { messages: [{ role: "personne", texte: "x", piece_jointe: { ...image, donnees: "pas du base64 !" } }] });
+    expect(pasBase64.statusCode).toBe(400);
+  });
+});

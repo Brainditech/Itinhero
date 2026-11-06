@@ -156,6 +156,16 @@ export default function Resultat() {
           <Lien libelle="Modifier la recherche" onPress={modifier} />
         </View>
       )}
+      {/* Spec 45 (D126) : le petit bot de l'onglet Trajet ouvre l'Assistant sur ce trajet. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Discuter de ce trajet avec l'Assistant"
+        onPress={() => router.navigate({ pathname: "/assistant", params: { sujet: "trajet", jeton: String(Date.now()) } })}
+        className="min-h-12 flex-row items-center justify-center gap-2 self-center rounded-full border border-bordure-carte bg-fond px-5 active:bg-surface"
+      >
+        <SymbolView name={{ android: "smart_toy", web: "smart_toy" }} size={22} tintColor={couleurs.primaire} />
+        <Text className="font-inter-medium text-corps text-primaire">Discuter de ce trajet</Text>
+      </Pressable>
     </Ecran>
   );
 }
