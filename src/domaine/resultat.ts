@@ -133,15 +133,18 @@ export function formaterDistance(metres: number): string {
 export type EtatVerdict = "possible" | "nuit" | "impossible";
 export type PhraseVerdict = { possible: boolean; etat: EtatVerdict; titre: string; heureDepart: string | null; detail: string };
 
+/** D80 : la possibilité du verdict : sans nuit et sans taxi d'abord, puis sans nuit avec taxi, puis la première. */
+export function possibiliteDuVerdict(r: ReponseSens): Possibilite | undefined {
+  return r.possibilites.find((p) => !nuitDehors(p) && !avecTaxi(p)) ?? r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
+}
+
 /**
  * Verdict dit en mots (spec 10 §4.2, spec 15) : il s'appuie sur la première possibilité sans nuit dehors,
  * sinon sur la première. Une nuit dehors n'est jamais « Possible » en vert (D79) ; une arrivée le lendemain
  * est toujours dite.
  */
 export function phraseVerdict(r: ReponseSens, trajet: Trajet = "aller"): PhraseVerdict {
-  // D80 : un trajet sans nuit et sans taxi d'abord, puis sans nuit avec taxi, puis le premier.
-  const choisie =
-    r.possibilites.find((p) => !nuitDehors(p) && !avecTaxi(p)) ?? r.possibilites.find((p) => !nuitDehors(p)) ?? r.possibilites[0];
+  const choisie = possibiliteDuVerdict(r);
   if (r.verdict === "impossible" || !choisie) {
     if (trajet === "retour") {
       return {

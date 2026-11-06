@@ -4,6 +4,7 @@ import { Redirect, router } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { SymbolView } from "expo-symbols";
 
+import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { BandeauInfo, BoutonPrincipal, Lien, Puce } from "@/composants/elements";
@@ -17,7 +18,7 @@ import { adresseArrivee, finHoraires, phraseVerdict } from "@/domaine/resultat";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
 import { bandeauVoyage, peutEnregistrer, voyageDepuisRecherche, type Voyage } from "@/domaine/voyages";
 import { useRecherche, type Recherche } from "@/recherche";
-import { enregistrerVoyage } from "@/stockage/voyages";
+import { enregistrerVoyage, supprimerVoyage } from "@/stockage/voyages";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 /**
@@ -102,6 +103,14 @@ function EnregistrerVoyage({ recherche }: { recherche: Recherche }) {
     setEtat({ pour: recherche.reponse, etat: "enCours" });
     try {
       const cle = await enregistrerVoyage(db, voyage);
+      // « Modifier » (spec 24, D100) : le voyage d'origine part, avec sa carte, s'il n'a pas été remplacé sur place.
+      const ancien = recherche.remplace;
+      // Un échec ici laisse l'ancien voyage dans la liste, sans perdre le nouveau.
+      if (ancien && ancien !== cle) {
+        await supprimerVoyage(db, ancien)
+          .then(() => supprimerCarte(ancien))
+          .catch(() => undefined);
+      }
       setEtat({ pour: recherche.reponse, etat: "fait" });
       AccessibilityInfo.announceForAccessibility("Voyage enregistré dans Mes trajets");
       // Le même voyage enregistré de nouveau : ses anciens packs sont remplacés (D99, §3.5).

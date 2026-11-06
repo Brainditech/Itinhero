@@ -6,6 +6,7 @@ import { schemaPossibilite, type Possibilite, type ReponseItineraires } from "./
 import type { Demande } from "./demande";
 import {
   bandeauVoyage,
+  champsDepuisVoyage,
   cleVoyage,
   lireVoyage,
   peutEnregistrer,
@@ -104,14 +105,26 @@ describe("voyage enregistré (spec 22, D98)", () => {
     expect(peutEnregistrer(REPONSE)).toBe(true);
   });
 
-  it("résumé : jour, départ du verdict, lieux, retour, heure d'enregistrement à Paris", () => {
+  it("résumé : jour, lieux, aller et retour (heures, durée, changements), heure d'enregistrement à Paris", () => {
     expect(resumeVoyage(voyage())).toEqual({
       jour: "Jeudi 12/11",
-      depart: `Départ ${POSSIBILITE.depart}`,
       titre: "Domicile → France Travail Joigny",
-      retour: "Retour : départ 16:23",
+      aller: { possible: true, depart: "08:14", arrivee: "10:44", duree: "2 h 30", changements: "1 chgt" },
+      retour: { possible: true, depart: "16:23", arrivee: "17:40", duree: "2 h 30", changements: "1 chgt" },
       enregistre: "Enregistré le 06/11 à 14:32",
+      phrase:
+        "Jeudi 12/11, Domicile vers France Travail Joigny. Aller : départ 08:14, arrivée 10:44, 2 h 30, 1 correspondance. " +
+        "Retour : départ 16:23, arrivée 17:40, 2 h 30, 1 correspondance. Horaire prévu, sans suivi en direct. " +
+        "Enregistré le 06/11 à 14:32.",
     });
+  });
+
+  it("résumé : direct, 2 changements, arrivée le lendemain avec son jour", () => {
+    const avec = (p: Partial<Possibilite>) => resumeVoyage(voyage({ reponse: { ...REPONSE, possibilites: [{ ...POSSIBILITE, ...p }] } })).aller;
+    expect(avec({ correspondances: 0, duree_minutes: 45 })).toMatchObject({ duree: "45 min", changements: "direct" });
+    expect(avec({ correspondances: 2 })).toMatchObject({ changements: "2 chgt" });
+    // 23:30 + 7 h 42 ⇒ vendredi 07:12 : l'arrivée garde son jour, comme le Résultat (D79).
+    expect(avec({ depart: "23:30", arrivee: "07:12", duree_minutes: 462 })).toMatchObject({ arrivee: "ven. 07:12", duree: "7 h 42" });
   });
 
   it("bandeau du voyage rouvert : heure d'enregistrement à Paris, jamais « en direct »", () => {
@@ -121,10 +134,33 @@ describe("voyage enregistré (spec 22, D98)", () => {
   });
 
   it("résumé : sans retour, ou retour impossible", () => {
-    const sansRetour = voyage({ reponse: { ...REPONSE, retour: null } });
-    expect(resumeVoyage(sansRetour).retour).toBeNull();
-    const retourImpossible = voyage({ reponse: { ...REPONSE, retour: { ...REPONSE.retour!, verdict: "impossible", possibilites: [] } } });
-    expect(resumeVoyage(retourImpossible).retour).toBe("Retour : aucun ce jour-là");
+    const sansRetour = resumeVoyage(voyage({ reponse: { ...REPONSE, retour: null } }));
+    expect(sansRetour.retour).toBeNull();
+    expect(sansRetour.phrase).not.toContain("Retour");
+    const retourImpossible = resumeVoyage(
+      voyage({ reponse: { ...REPONSE, retour: { ...REPONSE.retour!, verdict: "impossible", possibilites: [] } } }),
+    );
+    expect(retourImpossible.retour).toEqual({ possible: false, texte: "aucun ce jour-là" });
+    expect(retourImpossible.phrase).toContain("Retour : aucun ce jour-là.");
+  });
+
+  it("modifier : le formulaire reprend le voyage, lieux déjà trouvés sans réseau, date passée ramenée à aujourd'hui", () => {
+    const v = voyage();
+    expect(champsDepuisVoyage(v, "2026-11-06")).toEqual({
+      depart: { type: "domicile" },
+      // Texte déjà cherché à l'enregistrement : le lieu trouvé est repris tel quel, sans nouvelle recherche.
+      arrivee: { type: "lieu", nom: "France Travail Joigny", lat: 47.9822, lon: 3.3974, nature: "lieu", commune: null, code_postal: null },
+      date: "2026-11-12",
+      heure: "10:00",
+      sens: "arriver_avant",
+      marge: "10",
+      retour: "16:00",
+    });
+    expect(champsDepuisVoyage(v, "2026-11-20").date).toBe("2026-11-20");
+    const position = voyage({ demande: { ...DEMANDE, depart: { type: "position" }, retour: null } });
+    expect(champsDepuisVoyage(position, "2026-11-06")).toMatchObject({ depart: { type: "position" }, retour: null });
+    const lieu = { type: "lieu" as const, nom: "Gare de Joigny", lat: 47.98, lon: 3.39, nature: "arret" as const, commune: "Joigny", code_postal: "89300" };
+    expect(champsDepuisVoyage(voyage({ demande: { ...DEMANDE, arrivee: lieu } }), "2026-11-06").arrivee).toEqual(lieu);
   });
 
   it("rangement : aujourd'hui compte à venir ; à venir du plus proche, passés du plus récent", () => {

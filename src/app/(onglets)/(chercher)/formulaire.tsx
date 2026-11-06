@@ -39,7 +39,7 @@ import {
 } from "@/domaine/demande";
 import { detailCandidat } from "@/domaine/resultat";
 import { boutDuCandidat, candidatDuBout, reporterLieu, type EtatSuggestions } from "@/domaine/suggestions";
-import { DOMICILE_ABSENT, useDeroulerRecherche } from "@/recherche";
+import { DOMICILE_ABSENT, useDeroulerRecherche, useRecherche } from "@/recherche";
 
 // Valeurs en dur de la maquette design/accueil/02-formulaire-repli.png (règle 5), marge D17.
 // Remplacées au branchement réel par la sortie de /v1/comprendre.
@@ -85,7 +85,13 @@ export default function Formulaire() {
   const { raison, depart: departParam } = useLocalSearchParams<{ raison?: string; depart?: string }>();
   const defilement = useRef<ScrollViewInstance>(null);
   const margeActive = useRef(false);
-  const [champs, setChamps] = useState<ChampsFormulaire>(() => valeursInitiales(departParam));
+  // « Modifier » dans Mes trajets (spec 24, D100) : le formulaire reprend le voyage, et retient celui à remplacer.
+  const { modification, setModification } = useRecherche();
+  const [champs, setChamps] = useState<ChampsFormulaire>(() => modification?.champs ?? valeursInitiales(departParam));
+  const [remplace, setRemplace] = useState<{ cle: string; titre: string } | null>(() =>
+    modification ? { cle: modification.cle, titre: modification.titre } : null,
+  );
+  const [modificationVue, setModificationVue] = useState(modification?.jeton);
   const [erreurs, setErreurs] = useState<ErreursFormulaire>({});
   const [erreurRecherche, setErreurRecherche] = useState<string | undefined>();
   const [enCours, setEnCours] = useState(false);
@@ -126,6 +132,20 @@ export default function Formulaire() {
     setDepartVu(departParam);
     if (departParam === "position" || departParam === "domicile") changer("depart", departDeLAccueil(departParam));
   }
+
+  // Formulaire déjà ouvert quand « Modifier » est touché : il reprend le voyage (état ajusté pendant le rendu).
+  if (modification && modification.jeton !== modificationVue) {
+    setModificationVue(modification.jeton);
+    setChamps(modification.champs);
+    setRemplace({ cle: modification.cle, titre: modification.titre });
+    setErreurs({});
+    setErreurRecherche(undefined);
+    setAChoisir({});
+  }
+  // Lue une fois : une recherche ouverte plus tard depuis l'Accueil part des valeurs habituelles.
+  useEffect(() => {
+    if (modification) setModification(null);
+  }, [modification, setModification]);
 
   // La marge est en bas de la carte : quand le clavier s'ouvre pour elle, on la fait remonter.
   useEffect(() => {
@@ -176,7 +196,11 @@ export default function Formulaire() {
     setEnCours(true);
     try {
       // Un texte qui donne un seul lieu s'écrit dans son champ (D91), s'il n'a pas changé entre-temps.
-      const echec = await demarrer(resultat.demande, (cote, texte, lieu) => setChamps((c) => reporterLieu(c, cote, texte, lieu)));
+      const echec = await demarrer(
+        resultat.demande,
+        (cote, texte, lieu) => setChamps((c) => reporterLieu(c, cote, texte, lieu)),
+        remplace?.cle,
+      );
       if (echec?.champ) {
         setErreurs({ [echec.champ]: echec.message });
         if (echec.candidats) setAChoisir({ [echec.champ]: echec.candidats });
@@ -214,6 +238,9 @@ export default function Formulaire() {
         >
           {raison === "indisponible" ? (
             <BandeauInfo texte="La compréhension de phrase est indisponible. Remplissez ces champs." />
+          ) : null}
+          {remplace ? (
+            <BandeauInfo texte={`Vous modifiez le trajet du ${remplace.titre}. « Enregistrer ce voyage » remplacera l'ancien.`} />
           ) : null}
 
           <CarteFlottante>

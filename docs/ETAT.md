@@ -136,3 +136,4 @@ Le détail et la phase où chacun se tranche sont dans `PLAN.md` §9.
 - R11 : dates relatives et fuseau.
 - R12 : compatibilité SDK 58 de MapLibre RN (NativeWind : vérifié le 2026-11-02 sur le téléphone).
 - R13 : sauvegarde de la clé de signature.
+| 2026-11-06 | Spec 24 (D100) approuvée par Brainditech et appliquée : Mes trajets en petits rectangles (aller et retour, durée, changements, pastilles) et menu « ⋮ » Afficher / Modifier / Supprimer ; « Modifier » pré-remplit le formulaire et l'enregistrement remplace l'ancien voyage. 312 tests, lint et types verts ; constaté par adb | `docs/specs/24-cartes-mes-trajets.md` §6, captures `docs/screenshots/spec-24/` (non versionnées) |

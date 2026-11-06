@@ -1,8 +1,15 @@
 import { z } from "zod";
 
-import { schemaReponseItineraires, type Point, type ReponseItineraires } from "./api";
-import { maintenantAParis, schemaDemande, type Demande } from "./demande";
-import { jourCourt, phraseVerdict } from "./resultat";
+import { schemaReponseItineraires, type Point, type ReponseItineraires, type ReponseSens } from "./api";
+import { maintenantAParis, schemaDemande, type Bout, type ChampsFormulaire, type Demande } from "./demande";
+import {
+  formaterDuree,
+  jourApres,
+  jourCourt,
+  joursEnPlus,
+  libelleCorrespondances,
+  possibiliteDuVerdict,
+} from "./resultat";
 
 // Voyage enregistré (spec 22, D98) : la demande, ses deux lieux et la réponse entière du serveur, gardés sur le
 // téléphone seulement (invariant 6). Relu tel quel, sans aucune heure recalculée (invariant 3 par extension).
@@ -85,28 +92,79 @@ export function bandeauVoyage(iso: string): string {
   return `Voyage enregistré ${quandEnregistre(iso)}. Horaires prévus, sans suivi en direct.`;
 }
 
+/** Un sens du voyage dans le rectangle de Mes trajets (spec 24, D100), tiré de la possibilité du verdict (D80). */
+export type ResumeSens =
+  | { possible: true; depart: string; arrivee: string; duree: string; changements: string }
+  | { possible: false; texte: string };
+
 export type ResumeVoyage = {
   jour: string;
-  depart: string | null;
   titre: string;
-  retour: string | null;
+  aller: ResumeSens;
+  retour: ResumeSens | null;
   enregistre: string;
+  /** Ce que TalkBack lit du rectangle, d'un bloc. */
+  phrase: string;
 };
 
-/** Lignes de la carte de Mes trajets (maquette 06) : toutes tirées du voyage, l'heure étant celle du verdict. */
-export function resumeVoyage(v: Voyage): ResumeVoyage {
-  const aller = phraseVerdict(v.reponse, "aller");
-  let retour: string | null = null;
-  if (v.reponse.retour) {
-    const h = phraseVerdict(v.reponse.retour, "retour").heureDepart;
-    retour = h ? `Retour : départ ${h}` : "Retour : aucun ce jour-là";
-  }
+function resumeSens(r: ReponseSens, date: string): { resume: ResumeSens; phrase: string } {
+  const p = r.verdict === "impossible" ? undefined : possibiliteDuVerdict(r);
+  if (!p) return { resume: { possible: false, texte: "aucun ce jour-là" }, phrase: "aucun ce jour-là" };
+  // L'arrivée garde son jour quand elle tombe le lendemain (« ven. 07:12 »), comme le Résultat (D79).
+  const plus = joursEnPlus(p);
+  const jour = plus > 0 ? jourApres(date, plus) : null;
+  const duree = formaterDuree(p.duree_minutes);
   return {
-    jour: jourCourt(v.demande.date),
-    depart: aller.heureDepart ? `Départ ${aller.heureDepart}` : null,
-    titre: `${v.depart.nom} → ${v.arrivee.nom}`,
-    retour,
-    enregistre: `Enregistré ${quandEnregistre(v.enregistre_le)}`,
+    resume: {
+      possible: true,
+      depart: p.depart,
+      arrivee: jour ? `${jour.slice(0, 3)}. ${p.arrivee}` : p.arrivee,
+      duree,
+      changements: p.correspondances === 0 ? "direct" : `${p.correspondances} chgt`,
+    },
+    phrase: `départ ${p.depart}, arrivée ${jour ? `${jour} ` : ""}${p.arrivee}, ${duree}, ${libelleCorrespondances(p.correspondances).toLowerCase()}`,
+  };
+}
+
+/**
+ * Rectangle de Mes trajets (spec 24, D100) : jour, lieux, aller et retour (heures, durée, changements).
+ * Tout vient de la réponse enregistrée : aucune heure recalculée (invariant 3), l'horaire est dit prévu (invariant 12).
+ */
+export function resumeVoyage(v: Voyage): ResumeVoyage {
+  const jour = jourCourt(v.demande.date);
+  const enregistre = `Enregistré ${quandEnregistre(v.enregistre_le)}`;
+  const aller = resumeSens(v.reponse, v.demande.date);
+  const retour = v.reponse.retour ? resumeSens(v.reponse.retour, v.demande.date) : null;
+  const phrase = [
+    `${jour}, ${v.depart.nom} vers ${v.arrivee.nom}.`,
+    `Aller : ${aller.phrase}.`,
+    ...(retour ? [`Retour : ${retour.phrase}.`] : []),
+    "Horaire prévu, sans suivi en direct.",
+    `${enregistre}.`,
+  ].join(" ");
+  return { jour, titre: `${v.depart.nom} → ${v.arrivee.nom}`, aller: aller.resume, retour: retour?.resume ?? null, enregistre, phrase };
+}
+
+/** Un bout du voyage pour le formulaire : Domicile et Ma position restent tels quels ; un texte déjà trouvé devient ce lieu. */
+function boutDuVoyage(bout: Bout, lieu: LieuVoyage): Bout {
+  if (bout.type !== "texte") return bout;
+  return { type: "lieu", nom: lieu.nom, lat: lieu.point.lat, lon: lieu.point.lon, nature: "lieu", commune: null, code_postal: null };
+}
+
+/**
+ * « Modifier » (spec 24, D100, §3.2) : le formulaire reprend le voyage. Les lieux déjà trouvés ne sont pas
+ * recherchés de nouveau ; une date passée devient aujourd'hui (le formulaire refuse une date passée).
+ */
+export function champsDepuisVoyage(v: Voyage, aujourdhui: string): ChampsFormulaire {
+  const d = v.demande;
+  return {
+    depart: boutDuVoyage(d.depart, v.depart),
+    arrivee: boutDuVoyage(d.arrivee, v.arrivee),
+    date: d.date < aujourdhui ? aujourdhui : d.date,
+    heure: d.heure,
+    sens: d.sens,
+    marge: String(d.marge),
+    retour: d.retour ?? null,
   };
 }
 
