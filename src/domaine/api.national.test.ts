@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { clientApi, type ClientApi } from "./api";
 import { versRequeteItineraires } from "./demande";
-import { libelleEtape, phraseVerdict, resumePossibilite } from "./resultat";
+import { avecTaxi, libelleEtape, phraseVerdict, resumePossibilite } from "./resultat";
 
 /**
  * Le client de l'app contre une vraie API reliée au MOTIS national du PC (spec 10, §10), jamais en CI.
@@ -42,13 +42,20 @@ describe("app ⇄ API nationale", () => {
     console.log(`Joigny : ${v.titre}, départ ${v.heureDepart}. ${v.detail}\n  ${r.donnees.possibilites.map(resumePossibilite).join("\n  ")}`);
   });
 
-  it("le même trajet le dimanche 15/11 : impossible, sans aucune heure", async () => {
+  // Spec 16 (D80) : sans transport public suffisant, le verdict retient un trajet avec taxi et le dit.
+  // Le dimanche, aucun car ne part de Brienon : chaque possibilité commence donc par un taxi.
+  it("le même trajet le dimanche 15/11 : aucun trajet sans taxi, possible seulement avec un taxi à réserver", async () => {
     const [arrivee] = await lieu("France Travail Joigny", BRIENON_MAIRIE);
     const demande = { depart: { type: "domicile" as const }, arrivee: { type: "texte" as const, texte: "x" }, date: "2026-11-15", heure: "10:00", sens: "arriver_avant" as const, marge: 10 };
     const r = await client().itineraires(versRequeteItineraires(demande, BRIENON_MAIRIE, arrivee!));
     expect(r.etat).toBe("ok");
     if (r.etat !== "ok") return;
-    expect(phraseVerdict(r.donnees)).toMatchObject({ possible: false, heureDepart: null });
+    const resumes = r.donnees.possibilites.map(resumePossibilite).join("\n");
+    expect(r.donnees.possibilites.length, resumes).toBeGreaterThan(0);
+    for (const p of r.donnees.possibilites) expect(avecTaxi(p), resumes).toBe(true);
+    const v = phraseVerdict(r.donnees);
+    expect(v.possible).toBe(true);
+    expect(v.detail).toContain("Avec un taxi à réserver");
   });
 
   it("Châtelet → Orly, partir à 07:00 le vendredi 13/11 : métro 14 direct (issue 0008)", async () => {
