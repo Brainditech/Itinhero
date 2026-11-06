@@ -32,6 +32,8 @@ import {
   trajetDuParametre,
   vientVousChercher,
 } from "@/domaine/resultat";
+import { Lien } from "@/composants/elements";
+import { lienUber } from "@/domaine/uber";
 import { useRecherche } from "@/recherche";
 import { useClient } from "@/session";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -134,6 +136,7 @@ function ListeVehicule({
   const duTrajet = arretsDuTrajet(etape);
   const arrets: ArretDeLaCourse[] = course.etat === "ok" ? course.arrets : duTrajet;
   const reservation = phraseReservation(etape) ?? phraseTaxi(etape);
+  const uber = lienUber(etape);
   const taxi = vientVousChercher(etape);
   const descente = duTrajet.find((a) => a.role === "descente");
   const m = arrets.findIndex((a) => a.role === "montee");
@@ -223,6 +226,12 @@ function ListeVehicule({
           <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
             {reservation}
           </Text>
+        </View>
+      ) : null}
+      {/* Spec 31 (D109) : Uber ouvert avec la prise en charge et la dépose de l'étape ; prix et attente chez Uber. */}
+      {uber ? (
+        <View className="items-start">
+          <Lien libelle="Commander un Uber pour cette étape" onPress={() => void Linking.openURL(uber).catch(() => undefined)} />
         </View>
       ) : null}
       {etape.mode === "taxi" ? null : (

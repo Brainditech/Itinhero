@@ -330,6 +330,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests (« aucun numéro connu »), au moins une fiche taxi validée.
 - [ ] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
   Preuve : test du lien, plus capture.
+  Fait en partie (spec 31, D109) : `src/domaine/uber.ts` (lien universel `m.uber.com/looking`, prise en charge et dépose de l'étape), lien « Commander un Uber pour cette étape » sur l'écran Étape ; `src/domaine/uber.test.ts`, 2026-11-06. Manque : la capture sur le téléphone et le taxi de bout en bout.
 - [ ] Numéros trouvés hors des fiches, « non vérifié » (D49, `POST /v1/numeros`).
   Preuve : tests (numéro absent de la page ⇒ non affiché ; page injoignable ⇒ « aucun numéro connu » ; numéro affiché avec URL, date et « non vérifié » ; fiche validée ⇒ mention retirée), plus capture.
 
