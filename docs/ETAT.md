@@ -23,7 +23,7 @@
 | 5 — Mes trajets | en cours (specs 22, 23) | 2026-11-06 | 0 jour |
 | 6 — Réglages | à faire | — | — |
 | 6 bis — Assistant | à faire | — | — |
-| 7 — Temps réel et alertes | en cours (spec 29) | 2026-11-06 | 0 jour |
+| 7 — Temps réel et alertes | en cours (specs 29, 33) | 2026-11-06 | 0 jour |
 | 8 — Ingestion nocturne | en cours (spec 32) | 2026-11-06 | 0 jour |
 | 9 — Surveillance et sécurisation | en cours (spec 26) | 2026-11-06 | 0 jour |
 | 10 — Déploiement VPS | à faire | — | — |
@@ -129,6 +129,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-06 | PR #47 (spec 29) fusionnée, CI verte. Spec 30 (rappels locaux) rédigée et approuvée par délégation, D108 ; codée : `expo-notifications` 58.1.8 (plugin, canal « rappels »), `src/domaine/rappels.ts` (veille, réservation, taxi, partir), `src/rappels.ts` (programmés à l'enregistrement, annulés avec le trajet). 5 tests. Case non cochée : il faut le development build et une notification reçue | `docs/specs/30-rappels-locaux.md`, `src/domaine/rappels.test.ts` |
 | 2026-11-06 | PR #48 (spec 30) fusionnée, CI verte. Spec 31 (lien Uber pré-rempli) rédigée et approuvée par délégation, D109 ; codée : `src/domaine/uber.ts`, lien sur l'écran Étape d'un taxi ; 3 tests. Case « Lien Uber … » non cochée : capture et taxi de bout en bout à faire | `docs/specs/31-lien-uber.md`, `src/domaine/uber.test.ts` |
 | 2026-11-06 | PR #49 (spec 31) fusionnée, CI verte. Phase 8 ouverte. Spec 32 (« Horaires du JJ/MM » et bandeau au-delà de 7 jours) rédigée et approuvée par délégation, D110 ; codée : `date_horaires` dans la source GTFS (serveur), ligne « Horaires du …, valables jusqu'au … » et bandeau au Résultat. Case non cochée : capture à faire (API à reconstruire) | `docs/specs/32-horaires-du.md`, `src/domaine/horaires.test.ts` |
+| 2026-11-06 | PR #50 (spec 32) fusionnée, CI verte. Spec 33 (`POST /v1/etat-courses`) rédigée et approuvée par délégation, D111 ; codée : `lireEtatCourse` (prévu, en direct, retard ≥ 5 min, supprimé), route, `client.etatCourses`. Case « Rafraîchissement d'un trajet enregistré » cochée | `docs/specs/33-etat-courses.md`, `serveur/src/routes/etat-courses.test.ts` |
 
 ## Trous ouverts
 

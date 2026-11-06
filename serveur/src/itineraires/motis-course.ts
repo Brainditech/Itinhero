@@ -61,3 +61,45 @@ export function lireReponseCourse(brut: unknown): ArretCourse[] {
   });
   return arrets.filter((a) => !(a.lat === 0 && a.lon === 0));
 }
+
+// ——— État temps réel d'une course (spec 33, D111) ———
+
+const schemaEtatCourse = z.object({
+  legs: z
+    .array(
+      z.object({
+        startTime: z.iso.datetime(),
+        endTime: z.iso.datetime(),
+        scheduledStartTime: z.iso.datetime(),
+        scheduledEndTime: z.iso.datetime(),
+        realTime: z.boolean(),
+        cancelled: z.boolean().optional(),
+      }),
+    )
+    .min(1),
+});
+
+/** Seuil de retard de D21. */
+export const SEUIL_RETARD_MIN = 5;
+
+export type EtatCourse =
+  | { etat: "prevu" }
+  | { etat: "en_direct"; retard_minutes: number }
+  | { etat: "retard"; retard_minutes: number }
+  | { etat: "supprime" };
+
+/**
+ * Réponse de `/api/v6/trip` ⇒ état de la course (D21, invariant 12) :
+ * - une partie supprimée ⇒ « supprime » ;
+ * - aucune donnée temps réel ⇒ « prevu » (horaire prévu, sans suivi en direct ; Mobigo l'est toujours) ;
+ * - sinon le plus grand écart au départ ou à l'arrivée : 5 min ou plus ⇒ « retard », moins ⇒ « en_direct ».
+ * Hors schéma ⇒ ZodError.
+ */
+export function lireEtatCourse(brut: unknown): EtatCourse {
+  const { legs } = schemaEtatCourse.parse(brut);
+  if (legs.some((l) => l.cancelled)) return { etat: "supprime" };
+  if (!legs.some((l) => l.realTime)) return { etat: "prevu" };
+  const ecart = (a: string, b: string) => Math.round((Date.parse(a) - Date.parse(b)) / 60_000);
+  const retard = Math.max(0, ...legs.flatMap((l) => [ecart(l.startTime, l.scheduledStartTime), ecart(l.endTime, l.scheduledEndTime)]));
+  return retard >= SEUIL_RETARD_MIN ? { etat: "retard", retard_minutes: retard } : { etat: "en_direct", retard_minutes: retard };
+}

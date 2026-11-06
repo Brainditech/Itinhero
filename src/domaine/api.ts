@@ -182,6 +182,18 @@ export const schemaComprehension = z.object({
 export type Comprehension = z.infer<typeof schemaComprehension>;
 const schemaReponseComprendre = z.object({ comprehension: schemaComprehension });
 
+// ——— État des courses d'un trajet enregistré (spec 33, D111) ———
+
+export const schemaEtatCourse = z.discriminatedUnion("etat", [
+  z.object({ course: z.string(), etat: z.literal("prevu") }),
+  z.object({ course: z.string(), etat: z.literal("en_direct"), retard_minutes: z.number().int().nonnegative() }),
+  z.object({ course: z.string(), etat: z.literal("retard"), retard_minutes: z.number().int().nonnegative() }),
+  z.object({ course: z.string(), etat: z.literal("supprime") }),
+  z.object({ course: z.string(), etat: z.literal("inconnu") }),
+]);
+export type EtatCourse = z.infer<typeof schemaEtatCourse>;
+const schemaReponseEtatCourses = z.object({ etats: z.array(schemaEtatCourse) });
+
 // ——— Résultat d'un appel ———
 
 export type ResultatApi<T> =
@@ -277,6 +289,14 @@ export function clientApi({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(requete),
+      });
+    },
+    /** État des courses d'un trajet enregistré (spec 33) : 20 au plus, identifiants `course` des étapes. */
+    etatCourses(courses: string[]): Promise<ResultatApi<EtatCourse[]>> {
+      return appeler("/v1/etat-courses", schemaReponseEtatCourses.transform((r) => r.etats), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ courses }),
       });
     },
     /** Phrase de l'Accueil ⇒ champs compris par le serveur (spec 28). Tout échec ⇒ le formulaire de repli. */

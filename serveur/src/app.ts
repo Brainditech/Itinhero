@@ -3,6 +3,7 @@ import { controlerAcces, type Acces } from "./acces/acces.js";
 import type { Manifest } from "./manifest.js";
 import type { Moteur, SondeMotis } from "./motis.js";
 import { routeCourse } from "./routes/course.js";
+import { routeEtatCourses } from "./routes/etat-courses.js";
 import { routeHealth } from "./routes/health.js";
 import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
@@ -92,6 +93,7 @@ export function construireApp({
       routeLieux(v1, moteur, geocodeurIgn, lieux);
       routeItineraires(v1, moteur, manifest, { horaires, adresse: adresseIgn });
       routeCourse(v1, moteur);
+      routeEtatCourses(v1, moteur);
       routeMarche(v1, moteur, manifest);
       routeComprendre(v1, claude);
       routeAbonnements(v1, abonnements, horloge);
