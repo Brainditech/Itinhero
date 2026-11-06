@@ -100,3 +100,20 @@ Une durée (« 20 minutes de marge », « 1 h 30 de trajet ») reste permise : c
 ## 10. Hors de ce temps
 
 L'Assistant qui lance des recherches et montre des cartes de trajets, et les pièces jointes (spec 40) ; le bot de l'onglet Trajet (spec 41) ; garder les discussions d'une ouverture de l'app à l'autre.
+
+## 11. Constat (2026-11-06)
+
+| Critère | Résultat | Preuve |
+|---|---|---|
+| 1. Bulle tout de suite, texte en plusieurs fois | oui : trois points et « Arrêter » 0,5 s après l'envoi, texte plus long à chaque capture (0,5 s d'écart), puis fini | `docs/screenshots/20261106-spec39-05-flux-1.png` à `-4.png` |
+| 2. Premiers mots en moins de 3 s | oui : premier texte visible à 1 s sur le téléphone ; jeu de 20 : médiane 1,3 s, pire 2,7 s | captures ci-dessus, `docs/preuves/2026-11-06-spec39/jeu-20-questions-haiku.txt` |
+| 3. Arrêter | oui : coupé à « Pour le prix et », le texte reste, ➤ revient ; journal du serveur `"issue":"arretee"` | `-08-arrete-apres.png` ; tests |
+| 4. « Explique-moi mon trajet », Domicile → Flers | oui : correspondances, marche, taxi à réserver, nuit dehors, aucune heure ni prix | `-11-explique.png` ; jeu, question 1 |
+| 5. « Et si je rate le car ? » | oui : « Recalculer depuis ici », conducteur ou guichet, plus de temps entre deux véhicules | jeu, question 2 |
+| 6. Filtre, même coupé | oui | `serveur/src/assistant/filtre.test.ts` |
+| 7. Entrées refusées ⇒ 400 | oui | `serveur/src/routes/discussion.test.ts` |
+| 8. Plafond atteint | oui : message du §2.10 sur le téléphone (API relancée un moment avec un plafond minuscule, sans toucher au `.env`) | `-12-plafond.png` ; test |
+| 9. Journal sans texte | oui : durée, jetons, issue seulement | test (chaîne canari) ; `docker logs` |
+| 10. Lint, types, tests | verts | — |
+
+Écarts constatés et corrigés en route : Claude écrivait en Markdown (`**…**`) et disait que l'app affiche les prix ; il répétait l'heure du rendez-vous, masquée par le filtre (« avant (voir l'horaire dans l'app) »). Consignes complétées (texte brut, « Prix non publié », « avant votre rendez-vous ») et gras retiré par le filtre ; nouveau passage du jeu : 20/20, plus aucune heure masquée. Une réponse arrêtée ne compte que les jetons reçus avant l'arrêt (l'API ne donne le total qu'à la fin).

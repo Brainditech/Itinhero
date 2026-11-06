@@ -52,7 +52,7 @@ Toutes les routes sont validées par Zod. La clé d'appareil est obligatoire sau
 |---|---|
 | `GET /health` | état de l'API, de MOTIS et date du jeu GTFS actif |
 | `POST /v1/comprendre` | phrase → `{lieu_texte, date, heure, sens, marge}` par Claude, sous limite et plafond |
-| `POST /v1/assistant` | demande + réglages en cours → action ou identifiant de conseil par Claude, sous limite et plafond (D31) |
+| `POST /v1/assistant/discussion` | discussion (20 messages au plus) + résumé de la recherche en cours sans coordonnées → réponse de Claude en flux `text/event-stream`, filtrée (aucune heure, aucun prix, aucun numéro), sous limite et plafond (D117, spec 39) |
 | `GET /v1/lieux?q=&proche=` | candidats de l'IGN et de MOTIS classés ensemble (D60), doublons écartés ; `transport` d'un arrêt ou d'une gare (D92) |
 | `POST /v1/itineraires` | verdict + possibilités (segments sourcés, tous les tarifs applicables) ; avec l'heure de fin du rendez-vous, le retour lié (D47) ; taxi comme étape (D48) ; covoiturage (D50) |
 | `POST /v1/marche` | position et fin de la marche en cours → nouveau chemin à pied d'au plus 1 h (MOTIS `plan` sans transport), de même forme qu'une étape, ou null (D96) |
@@ -111,7 +111,7 @@ Chaque règle est une interdiction. Les enfreindre bloque la fusion.
 
 1. **Aucun secret dans l'app.** Aucun secret (clé Anthropic, `EXPO_ACCESS_TOKEN`, clés Inngest, keystore) dans l'app, le bundle, l'APK, une variable `EXPO_PUBLIC_*` ou git.
 2. **L'API Itinhero est le seul point d'entrée.** L'app n'appelle jamais directement Anthropic, MOTIS, Inngest ni les flux GTFS-RT.
-3. **Claude ne produit jamais de donnée de trajet.** Il ne produit ni horaire, ni arrêt, ni correspondance, ni coordonnée, ni prix, ni numéro, ni texte d'étape affiché. Sa sortie se limite aux champs de requête validés par Zod.
+3. **Claude ne produit jamais de donnée de trajet affichée comme telle** (réécrit par D117, spec 39). Il ne produit ni horaire, ni arrêt choisi, ni correspondance, ni coordonnée, ni prix, ni numéro, ni texte d'étape. Dans `/v1/comprendre`, sa sortie se limite aux champs de requête validés par Zod. Dans la discussion de l'Assistant (D117), il écrit librement ses explications, mais le serveur retire de son texte tout horaire, prix, numéro ou coordonnée ; les trajets s'affichent en cartes construites par l'app à partir du moteur.
 4. **Aucun segment sans `source`.** Aucun segment n'est affiché sans son `source` (feed_version + trip_id/stop_id, ou fiche_id).
 5. **Aucun prix sans fiche.** Aucun prix affiché sans fiche tarifaire sourcée. Aucun prix calculé ou estimé.
 6. **Le serveur ne stocke presque rien.** Il ne stocke jamais le domicile, le texte d'une demande, un lieu, des coordonnées ni les cartes de réduction. Seule `abonnements_alerte` persiste, et elle est purgée à J+1.
