@@ -7,8 +7,7 @@ import { SymbolView } from "expo-symbols";
 import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
-import { allerALAccueil } from "@/composants/BarreOnglets";
-import { BandeauInfo, BoutonPrincipal, CarteFlottante, Lien, Puce } from "@/composants/elements";
+import { BandeauInfo, CarteFlottante, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
 import { BoutonRepli } from "@/composants/Repli";
 import { CartePossibilite } from "@/composants/Trajet";
@@ -359,7 +358,7 @@ function BlocVerdict({ reponse, trajet }: { reponse: ReponseSens; trajet: Trajet
   );
 }
 
-/** Onglet Trajet sans recherche en cours (spec 34, D112, §3.4). */
+/** Onglet Trajet sans recherche en cours (spec 34, D112, §3.4) ; sans bouton, l'onglet Accueil y mène (spec 38, D116). */
 function AucunTrajet() {
   return (
     <Ecran>
@@ -370,9 +369,6 @@ function AucunTrajet() {
         <Text className="mt-2 font-inter text-corps text-texte-secondaire">
           {"Écrivez sur l'Accueil où vous devez être, et quand."}
         </Text>
-        <View className="mt-4">
-          <BoutonPrincipal libelle="Aller à l'Accueil" onPress={() => allerALAccueil()} />
-        </View>
       </CarteFlottante>
     </Ecran>
   );

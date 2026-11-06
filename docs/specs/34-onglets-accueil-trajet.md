@@ -29,7 +29,7 @@ Mes trajets, Assistant et Réglages ne changent pas.
    Les adresses ne changent pas (`/resultat`, `/etape`, `/guidage`, `/formulaire`) : les groupes n'en font pas partie.
 2. **Toucher Accueil ramène toujours à la première page**, depuis n'importe quel onglet et n'importe quel écran (`allerALAccueil`, §6). Toucher l'onglet déjà actif remonte sa pile au premier écran (`tabPress` émis par la barre, comme la barre d'origine ; vaut pour tous les onglets).
 3. **Une recherche aboutie ouvre l'onglet Trajet** : `router.navigate("/resultat")` (au lieu de `push`), qui revient au Résultat déjà ouvert au lieu d'en empiler un second. Mes trajets ouvre déjà un trajet ainsi (spec 22).
-4. **Trajet sans recherche** (app tout juste ouverte) : « Aucun trajet pour l'instant. » et « Écrivez sur l'Accueil où vous devez être, et quand. », avec le bouton « Aller à l'Accueil ». Avant : le Résultat renvoyait au formulaire.
+4. **Trajet sans recherche** (app tout juste ouverte) : « Aucun trajet pour l'instant. » et « Écrivez sur l'Accueil où vous devez être, et quand. », avec le bouton « Aller à l'Accueil » (bouton retiré par la spec 38, D116 : l'onglet Accueil suffit). Avant : le Résultat renvoyait au formulaire.
 5. **« Modifier la recherche »** du Résultat ouvre le formulaire de l'onglet Accueil (pile remise à la première page, puis le formulaire) avec les champs de la recherche en cours, lieux déjà trouvés compris, sans bandeau « Vérifiez ». Le formulaire a pu être fermé par l'onglet Accueil entre-temps : il reçoit donc les champs (comme « Modifier » de Mes trajets, spec 24) au lieu de compter sur son état.
 6. La barre d'onglets reste masquée pendant le Guidage et l'Étape (spec 12, spec 17).
 
