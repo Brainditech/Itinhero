@@ -32,10 +32,16 @@ export default function Accueil() {
   const [depart, setDepart] = useState<Depart>("domicile");
   const attribution = useAttributionCarte();
 
+  // Issue 0024 : un formulaire ouvert sans phrase comprise part des valeurs habituelles, pas d'une modification restée là.
+  function ouvrirFormulaireVierge(raison?: "indisponible") {
+    setModification(null);
+    router.push({ pathname: "/formulaire", params: raison ? { raison, depart } : { depart } });
+  }
+
   async function chercher() {
     const texte = phrase.trim();
     if (texte.length < 3) {
-      router.push({ pathname: "/formulaire", params: { depart } });
+      ouvrirFormulaireVierge();
       return;
     }
     setEnCours("phrase");
@@ -47,7 +53,7 @@ export default function Accueil() {
     }
     if (r.etat !== "ok") {
       setEnCours(null);
-      router.push({ pathname: "/formulaire", params: { raison: "indisponible", depart } });
+      ouvrirFormulaireVierge("indisponible");
       return;
     }
     const champs = champsDepuisComprehension(r.donnees, { type: depart }, maintenantAParis(new Date()));
@@ -110,7 +116,7 @@ export default function Accueil() {
             </View>
             {/* Dans la carte, et non sur le fond : posé sur la carte MapLibre, il se perdait parmi les noms de villages. */}
             <View className="mt-2 items-center">
-              <Lien libelle="Remplir un formulaire à la place" onPress={() => router.push({ pathname: "/formulaire", params: { depart } })} />
+              <Lien libelle="Remplir un formulaire à la place" onPress={() => ouvrirFormulaireVierge()} />
             </View>
           </CarteFlottante>
         </View>

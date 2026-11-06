@@ -361,20 +361,25 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 6 bis — Assistant (D31)
 
-- [ ] Écran en valeurs en dur, comparé à `design/assistant/09-assistant.png`.
+- [x] Écran en valeurs en dur, comparé à `design/assistant/09-assistant.png`.
   Preuve : capture côte à côte.
-- [ ] `POST /v1/assistant` : Claude transforme la demande en action (relancer avec de nouveaux réglages, trier, choisir un conseil), sortie validée par Zod. Aucune heure, aucun arrêt, aucun prix ni numéro dans la sortie de Claude.
+  Fait (spec 37) : écran branché directement (pas d'étape en dur), capture `docs/screenshots/20261106-spec37-assistant-marge.png` comparée à la maquette le 2026-11-06 : en-tête, « Trajet suivi », bulle de la demande, bulle de l'Assistant et ses puces (changée entourée), « Relancer la recherche », « Annuler », puces de suggestion, champ et ➤. Écart : la barre a cinq onglets (spec 34).
+- [x] `POST /v1/assistant` : Claude transforme la demande en action (relancer avec de nouveaux réglages, trier, choisir un conseil), sortie validée par Zod. Aucune heure, aucun arrêt, aucun prix ni numéro dans la sortie de Claude.
   Preuve : tests (sortie hors schéma ⇒ rejet ; requête sans historique ni coordonnées).
-- [ ] Jeu d'au moins 30 demandes (changer la marge, l'heure, le jour, le départ, « moins de marche », « si je rate le car »…).
+  Fait (spec 37, D115) : `serveur/src/routes/assistant.test.ts` (hors schéma ⇒ 503 ; coordonnées, lieu avec point, historique ⇒ 400), `serveur/src/assistant/assistant.test.ts`, 2026-11-06.
+- [x] Jeu d'au moins 30 demandes (changer la marge, l'heure, le jour, le départ, « moins de marche », « si je rate le car »…).
   Preuve : réussi à 27/30 au minimum, modèle retenu par mesure et consigné.
+  Fait (spec 37) : `serveur/src/assistant/jeu-30-demandes.json`, `npm run assistant:jeu`. `claude-haiku-5-5` : 29/30 puis 30/30 après la correction de « la veille », 0,0079 € les 30, 2026-11-06. Modèle retenu : celui de `CLAUDE_MODEL` (haiku), le seul mesuré.
 - [ ] `data/conseils.json` : gabarits relus, validés par Brainditech, remplis par les valeurs du moteur et des fiches.
   Preuve : tests (gabarit non validé ⇒ non affiché ; valeur absente ⇒ « — »), au moins un gabarit validé.
 - [ ] Confirmation avant toute modification : rien n'est relancé ni modifié sans « Relancer la recherche ».
   Preuve : test.
-- [ ] Même clé d'appareil, mêmes limites de débit et même plafond de coût que `/v1/comprendre`. Au-delà, message et renvoi vers le formulaire.
+- [x] Même clé d'appareil, mêmes limites de débit et même plafond de coût que `/v1/comprendre`. Au-delà, message et renvoi vers le formulaire.
   Preuve : tests (sans clé ⇒ 401, limites ⇒ 429, plafond ⇒ repli).
-- [ ] Branchement réel.
+  Fait (spec 37) : `serveur/src/routes/assistant.test.ts` (401, 429, plafond ⇒ 503 `plafond_atteint` sans appel, même compteur), `securite.test.ts` ; l'app dit « L'assistant est indisponible pour l'instant. » et propose « Modifier la recherche », 2026-11-06.
+- [x] Branchement réel.
   Preuve : capture de « Je voudrais 20 min d'avance au lieu de 10. » relancée et du nouveau résultat.
+  Fait (spec 37) : « Je voudrais 20 minutes de marge au lieu de 10. » (l'apostrophe ne passe pas par `adb input`) sur Domicile → gare de Joigny, jeudi 12/11, avant 10:00 ⇒ puce « Marge 20 min » entourée ; « Relancer la recherche » ⇒ « À faire : être sur place avant 09:40 (rendez-vous 10:00, marge 20 min) » (`docs/screenshots/20261106-spec37-assistant-marge.png`, `20261106-spec37-relance-resultat.png`), 2026-11-06.
 
 ### Phase 6 ter — Covoiturage (D50)
 

@@ -9,6 +9,7 @@ import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
 import { routeMarche } from "./routes/marche.js";
 import { routeComprendre, type Claude } from "./routes/comprendre.js";
+import { routeAssistant } from "./routes/assistant.js";
 import { routeAbonnements } from "./routes/abonnements.js";
 import type { Abonnements } from "./abonnements/abonnements.js";
 import { poserEntetesSecurite } from "./securite.js";
@@ -29,7 +30,7 @@ export type Dependances = {
   horaires?: IndexHoraires;
   /** Adresse du point d'arrivée par l'IGN (issue 0010, C) ; absent ⇒ pas d'adresse. */
   adresseIgn?: AdresseInverse;
-  /** Claude pour `/v1/comprendre` (spec 28) ; absent ⇒ 503, l'app passe au formulaire. */
+  /** Claude pour `/v1/comprendre` (spec 28) et `/v1/assistant` (spec 37) ; absent ⇒ 503, l'app passe au formulaire. */
   claude?: Claude;
   /** Table `abonnements_alerte` (spec 29) ; absente ⇒ 503 sur `/v1/abonnements`. */
   abonnements?: Abonnements;
@@ -96,6 +97,7 @@ export function construireApp({
       routeEtatCourses(v1, moteur);
       routeMarche(v1, moteur, manifest);
       routeComprendre(v1, claude);
+      routeAssistant(v1, claude, horloge);
       routeAbonnements(v1, abonnements, horloge);
     },
     { prefix: "/v1" },

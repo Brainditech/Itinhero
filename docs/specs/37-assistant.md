@@ -1,7 +1,7 @@
 # Spec 37 — Assistant
 
 - **Date** : 2026-11-06
-- **État** : **approuvée par délégation** de Brainditech (« dès que t'as fini tous les tests, implémente également l'Assistant », 2026-11-06, après « je te laisse choisir »). Règles : D31, D115.
+- **État** : **approuvée par délégation** de Brainditech (« dès que t'as fini tous les tests, implémente également l'Assistant », 2026-11-06, après « je te laisse choisir »). Règles : D31, D115. **Appliquée** sur `app/assistant`.
 - **Branche** : `app/assistant`.
 - **Cases de PLAN.md** : phase 6 bis (écran, route, jeu de 30 demandes, conseils, confirmation, clé et limites, branchement réel).
 - **Invariants** : 3 (Claude ne rend que des réglages de recherche, jamais d'horaire, d'arrêt, de prix ni de numéro), 9 (le serveur contrôle la sortie de Claude), 10 (ni la phrase ni la sortie au journal).
@@ -47,3 +47,16 @@ D31 : dans l'onglet Assistant, la personne modifie la recherche en cours en lang
 2. Jeu de 30 demandes, 27/30 au moins avec le modèle de `CLAUDE_MODEL`.
 3. App : changements appliqués aux réglages, puces et marquage des changements, gabarit rempli (« — » si absent), rien de relancé sans confirmation (tests du domaine).
 4. Téléphone : « Je voudrais 20 min d'avance au lieu de 10. » sur une recherche en « Arriver avant » ⇒ puce « Marge 20 min » entourée, « Relancer la recherche » ⇒ nouveau Résultat ; « moins de marche » ⇒ tri ; écran comparé à la maquette.
+
+## 6. Constat (2026-11-06)
+
+- Serveur : 24 tests de l'Assistant (route et contrôle), 397 tests serveur verts. Jeu de 30 demandes avec `claude-haiku-5-5` : 29/30, puis 30/30 après l'ajout de « veille » aux mots qui disent un jour (`phraseDitUnJour`).
+- App : 8 tests du domaine (`src/domaine/assistant.test.ts`).
+- Téléphone (adb), recherche Domicile → gare de Joigny, jeudi 12/11, avant 10:00 :
+  - « Je voudrais 20 minutes de marge au lieu de 10. » ⇒ puces Jeudi 12/11, Arriver avant 10:00, **Marge 20 min** (entourée), Depuis Domicile, Vers Joigny ; « Relancer la recherche » ⇒ « être sur place avant 09:40 (rendez-vous 10:00, marge 20 min) » ;
+  - « montre moi les trajets avec moins de marche » ⇒ « Je range les trajets : moins de marche. », « Voir les trajets » ⇒ onglet Trajet, tri « Moins de marche » coché ;
+  - « combien coute le billet ? » ⇒ « Je n'ai pas compris… » ;
+  - « je pars de la gare de Sens » ⇒ puce « Depuis gare de Sens » ; « Relancer » ⇒ formulaire avec la liste des lieux (D91), gare choisie ⇒ « Gare de Sens → Joigny, départ 07:26 ».
+- Trouvé pendant l'essai : l'issue 0024 (formulaire rouvert qui perdait la recherche), corrigée ; les classes `rounded-bulle` et `max-w-[85%]` ne s'appliquaient pas, remplacées par un style direct.
+- Conseils : trois gabarits écrits, **non validés** (`valide: false`) : ils attendent la relecture de Brainditech. Tant qu'aucun n'est validé, Claude ne peut pas choisir l'action « conseil ».
+- Case « Confirmation avant toute modification » de PLAN non cochée : le comportement est constaté sur le téléphone, mais aucun test de composant ne le couvre.
