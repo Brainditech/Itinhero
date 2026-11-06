@@ -40,6 +40,10 @@ services:
       CLES_APPAREILS: ${CLES_APPAREILS:?empreinte(s) de clé d'appareil à mettre dans .env (npm run cle:nouvelle)}
       LIMITE_REQ_MINUTE: ${LIMITE_REQ_MINUTE:?limite par minute à mettre dans .env}
       LIMITE_REQ_JOUR: ${LIMITE_REQ_JOUR:?limite par jour à mettre dans .env}
+      # Spec 28 (D106) : Claude, toutes les trois ou aucune (vides ⇒ /v1/comprendre répond 503, l'app ouvre le formulaire).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-}
+      CLAUDE_PLAFOND_MENSUEL_EUR: ${CLAUDE_PLAFOND_MENSUEL_EUR:-}
     depends_on:
       motis:
         condition: service_healthy

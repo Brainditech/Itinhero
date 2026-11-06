@@ -7,6 +7,7 @@ import { routeHealth } from "./routes/health.js";
 import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
 import { routeMarche } from "./routes/marche.js";
+import { routeComprendre, type Claude } from "./routes/comprendre.js";
 import { poserEntetesSecurite } from "./securite.js";
 import type { AdresseInverse, GeocodeurIgn } from "./lieux/ign-geocode.js";
 import type { IndexHoraires } from "./itineraires/horaires-gtfs.js";
@@ -25,6 +26,8 @@ export type Dependances = {
   horaires?: IndexHoraires;
   /** Adresse du point d'arrivée par l'IGN (issue 0010, C) ; absent ⇒ pas d'adresse. */
   adresseIgn?: AdresseInverse;
+  /** Claude pour `/v1/comprendre` (spec 28) ; absent ⇒ 503, l'app passe au formulaire. */
+  claude?: Claude;
   /** Flux du journal (les tests y capturent les lignes pour la chaîne canari). */
   fluxJournal?: { write(ligne: string): void };
 };
@@ -45,6 +48,7 @@ export function construireApp({
   lieux,
   horaires,
   adresseIgn,
+  claude,
   fluxJournal,
 }: Dependances): FastifyInstance {
   const app = Fastify({
@@ -81,6 +85,7 @@ export function construireApp({
       routeItineraires(v1, moteur, manifest, { horaires, adresse: adresseIgn });
       routeCourse(v1, moteur);
       routeMarche(v1, moteur, manifest);
+      routeComprendre(v1, claude);
     },
     { prefix: "/v1" },
   );

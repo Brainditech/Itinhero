@@ -45,7 +45,11 @@ export type Recherche = {
  * « Modifier » touché dans Mes trajets (spec 24, D100) : ce que le formulaire reprend, et le voyage à remplacer.
  * `jeton` change à chaque toucher : le formulaire déjà ouvert reprend les valeurs même pour le même voyage.
  */
-export type Modification = { cle: string; titre: string; champs: ChampsFormulaire; jeton: number };
+/**
+ * Formulaire pré-rempli : par « Modifier » d'un trajet enregistré (`remplace`, spec 24) ou par la phrase
+ * comprise de l'Accueil (`remplace` null, spec 28 : le formulaire demande de vérifier avant « Chercher »).
+ */
+export type Modification = { remplace: { cle: string; titre: string } | null; champs: ChampsFormulaire; jeton: number };
 
 /**
  * Échec à montrer : sous un champ du formulaire (`champ`), ou dans la carte d'erreur (`champ` null).
@@ -118,8 +122,7 @@ export function useModifierVoyage() {
   return (cle: string, v: Voyage) => {
     const r = resumeVoyage(v);
     setModification({
-      cle,
-      titre: `${r.jour} · ${r.titre}`,
+      remplace: { cle, titre: `${r.jour} · ${r.titre}` },
       champs: champsDepuisVoyage(v, maintenantAParis(new Date()).date),
       jeton: Date.now(),
     });
