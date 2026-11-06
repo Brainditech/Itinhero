@@ -468,6 +468,12 @@ describe("issue 0017 — gare, arrêt, article", () => {
     expect(phraseMarche(e)).toMatch(/^2 min jusqu'à la gare/);
     expect(phraseMarche(POSSIBILITE.etapes[2]!)).toMatch(/^\d+ min, [\d,]+ k?m jusqu'à la gare/);
   });
+  it("issue 0028 : 3 m jusqu'à la gare (arrondis à 0) ne disent pas « 0 m », 6 m disent « 10 m »", () => {
+    const e = { ...POSSIBILITE.etapes[2]!, distance_metres: 3, duree_minutes: 1 };
+    expect(phraseMarche(e)).not.toContain("0 m");
+    expect(phraseMarche(e)).toMatch(/^1 min jusqu'à la gare/);
+    expect(phraseMarche({ ...e, distance_metres: 6 })).toMatch(/^1 min, 10 m jusqu'à la gare/);
+  });
 });
 
 describe("issue 0017 — trajet d'un autre jour", () => {

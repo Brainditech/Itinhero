@@ -39,3 +39,4 @@ Une recherche dont le départ ou l'arrivée est à l'étranger, ou outre-mer, pa
 
 - 2026-11-06 : critères 1 à 3 verts (`cd serveur && npm test`, `npm test`).
 - Critère 4 : à constater sur le téléphone.
+- 2026-11-06, par adb (critère 4), passe demandée par Brainditech : l'IGN ne connaît pas Madrid ni Bruxelles (« gare de Bruxelles Midi » ne propose que des lieux français) ; essai fait avec l'outre-mer, que l'IGN connaît : Domicile → Pointe-à-Pitre (97110) ⇒ « L'arrivée est hors de la zone couverte : Itinhero ne connaît que la France métropolitaine et la Corse. » sous le champ d'arrivée, aucune possibilité affichée (`docs/screenshots/passe/34-hors-zone.png`, non versionnée).
