@@ -12,6 +12,7 @@ import { maintenantAParis } from "@/domaine/demande";
 import { rangerVoyages, resumeVoyage, type Voyage } from "@/domaine/voyages";
 import { useOuvrirVoyage } from "@/recherche";
 import { lireVoyages, separerAnciensVoyages, supprimerVoyage, type LigneVoyage } from "@/stockage/voyages";
+import { annulerRappels } from "@/rappels";
 
 type VoyageLu = Voyage & { cle: string };
 
@@ -67,6 +68,7 @@ export default function MesTrajets() {
           // La carte du voyage part avec lui (D99, §3.5) ; un échec ici ne garde pas le voyage.
           supprimerVoyage(db, cle)
             .then(() => supprimerCarte(cle).catch(() => undefined))
+            .then(() => annulerRappels(cle).catch(() => undefined))
             .then(relire, () => setErreur(true));
         },
       },

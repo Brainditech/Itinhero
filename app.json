@@ -46,6 +46,12 @@
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "rappels"
+        }
       ]
     ],
     "experiments": {
