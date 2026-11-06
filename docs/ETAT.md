@@ -23,7 +23,7 @@
 | 5 — Mes trajets | en cours (specs 22, 23) | 2026-11-06 | 0 jour |
 | 6 — Réglages | à faire | — | — |
 | 6 bis — Assistant | à faire | — | — |
-| 7 — Temps réel et alertes | à faire | — | — |
+| 7 — Temps réel et alertes | en cours (spec 29) | 2026-11-06 | 0 jour |
 | 8 — Ingestion nocturne | à faire | — | — |
 | 9 — Surveillance et sécurisation | en cours (spec 26) | 2026-11-06 | 0 jour |
 | 10 — Déploiement VPS | à faire | — | — |
@@ -125,6 +125,7 @@ Une ligne par avancée, avec sa preuve (commit, test, capture).
 | 2026-11-06 | Phase 9 ouverte. Spec 26 (sécurisation du serveur) rédigée et approuvée par délégation (« implement tous les specs … »), D104 ; codée : `serveur/src/securite.ts` (sept en-têtes sur toute réponse), `serveur/src/securite.test.ts` (en-têtes sur 200/400/401/404/413/429/503, chaque route déclarée refuse une entrée invalide, canaris sur toutes les routes) ; `docker inspect` : `api` en `node`, `motis` en `motis`, healthchecks. Six cases de la phase 9 cochées. Journal d'ETAT remis en ordre (lignes égarées après « Trous ouverts ») | `docs/specs/26-securisation-serveur.md`, `cd serveur && npm test` |
 | 2026-11-06 | PR #44 (spec 26) fusionnée, CI verte. Spec 27 (refus hors de la zone couverte) rédigée et approuvée par délégation, D105 ; codée : contour de l'extrait OSM Geofabrik (`serveur/src/zone/`), 422 `hors_zone` dans `POST /v1/itineraires` avant MOTIS, message par point dans l'app (`src/domaine/api.ts`, `src/recherche.tsx`). Case « Refus explicite hors des données chargées » cochée ; message à voir sur le téléphone | `docs/specs/27-hors-zone.md`, `serveur/src/zone/zone.test.ts`, `src/domaine/api.test.ts` |
 | 2026-11-06 | PR #45 (spec 27) fusionnée, CI verte. Spec 28 (`POST /v1/comprendre`) rédigée et approuvée par délégation, D106 ; codée : `serveur/src/comprendre/` (appel à Claude, prix et compteur du mois, jeu de 30 phrases et `npm run comprendre:jeu`), `serveur/src/routes/comprendre.ts`, variables Claude « trois ou aucune », Accueil qui envoie la phrase et ouvre le formulaire pré-rempli (`src/domaine/comprendre.ts`). Cases « Plafond mensuel et compteur de coût » (phase 1) et « Limite de débit et plafond de coût… » (phase 9) cochées. À faire par Brainditech : remplir les trois variables, `npm run comprendre:jeu`, choisir le modèle | `docs/specs/28-comprendre.md`, `serveur/src/routes/comprendre.test.ts`, `src/domaine/comprendre.test.ts` |
+| 2026-11-06 | PR #46 (spec 28) fusionnée, CI verte. Phase 7 ouverte. Spec 29 (abonnements d'alerte) rédigée et approuvée par délégation, D107 ; codée : `serveur/src/abonnements/abonnements.ts` (SQLite `node:sqlite`), `POST`/`DELETE /v1/abonnements`, purge à J+1 chaque heure, volume `abonnements` à l'utilisateur `node`. Constaté dans l'image construite (`uid=1000(node)`, table créée sur le volume). Case « `abonnements_alerte`, routes, purge » cochée | `docs/specs/29-abonnements-alerte.md`, `serveur/src/routes/abonnements.test.ts` |
 
 ## Trous ouverts
 

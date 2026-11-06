@@ -8,6 +8,7 @@ import { chargerHoraires } from "./itineraires/horaires-gtfs.js";
 import { chargerLieux } from "./lieux/charger.js";
 import { appelClaude } from "./comprendre/comprendre.js";
 import { CompteurCout } from "./comprendre/cout.js";
+import { Abonnements } from "./abonnements/abonnements.js";
 
 const CHEMIN_MANIFEST = process.env.FIXTURES_MANIFEST ?? "/fixtures/manifest.json";
 
@@ -36,7 +37,13 @@ async function demarrer(): Promise<void> {
         }
       : undefined;
   if (!claude) console.warn("Claude non configuré : /v1/comprendre répond 503, l'app ouvre le formulaire (D106).");
+  // Spec 29 (D107) : purge à J+1, au démarrage puis chaque heure (Inngest prendra le relais en phase 7).
+  const abonnements = new Abonnements(env.ABONNEMENTS_SQLITE);
+  if (!env.ABONNEMENTS_SQLITE) console.warn("ABONNEMENTS_SQLITE absente : abonnements d'alerte en mémoire, perdus au redémarrage.");
+  abonnements.purger(new Date());
+  setInterval(() => abonnements.purger(new Date()), 60 * 60 * 1000).unref();
   const app = construireApp({
+    abonnements,
     manifest,
     sonde: sondeMotis(env.MOTIS_URL),
     moteur: moteurMotis(env.MOTIS_URL),

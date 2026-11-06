@@ -81,6 +81,8 @@ export function appTest(d: Partial<Dependances> & { maintenant?: () => Date; par
     horaires: d.horaires,
     adresseIgn: d.adresseIgn,
     claude: d.claude,
+    abonnements: d.abonnements,
+    horloge: d.horloge,
     fluxJournal: d.fluxJournal ?? { write: () => {} },
   });
 }

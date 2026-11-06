@@ -8,6 +8,8 @@ import { routeItineraires } from "./routes/itineraires.js";
 import { routeLieux } from "./routes/lieux.js";
 import { routeMarche } from "./routes/marche.js";
 import { routeComprendre, type Claude } from "./routes/comprendre.js";
+import { routeAbonnements } from "./routes/abonnements.js";
+import type { Abonnements } from "./abonnements/abonnements.js";
 import { poserEntetesSecurite } from "./securite.js";
 import type { AdresseInverse, GeocodeurIgn } from "./lieux/ign-geocode.js";
 import type { IndexHoraires } from "./itineraires/horaires-gtfs.js";
@@ -28,6 +30,10 @@ export type Dependances = {
   adresseIgn?: AdresseInverse;
   /** Claude pour `/v1/comprendre` (spec 28) ; absent ⇒ 503, l'app passe au formulaire. */
   claude?: Claude;
+  /** Table `abonnements_alerte` (spec 29) ; absente ⇒ 503 sur `/v1/abonnements`. */
+  abonnements?: Abonnements;
+  /** Horloge (les tests la fixent). */
+  horloge?: () => Date;
   /** Flux du journal (les tests y capturent les lignes pour la chaîne canari). */
   fluxJournal?: { write(ligne: string): void };
 };
@@ -49,6 +55,8 @@ export function construireApp({
   horaires,
   adresseIgn,
   claude,
+  abonnements,
+  horloge,
   fluxJournal,
 }: Dependances): FastifyInstance {
   const app = Fastify({
@@ -86,6 +94,7 @@ export function construireApp({
       routeCourse(v1, moteur);
       routeMarche(v1, moteur, manifest);
       routeComprendre(v1, claude);
+      routeAbonnements(v1, abonnements, horloge);
     },
     { prefix: "/v1" },
   );

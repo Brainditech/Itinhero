@@ -13,6 +13,8 @@ WORKDIR /app
 COPY --from=construction --chown=node:node /app/node_modules ./node_modules
 COPY --from=construction --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json ./
+# Spec 29 : dossier du volume de `abonnements_alerte`, à l'utilisateur node (un volume neuf en reprend le propriétaire).
+RUN mkdir -p /var/lib/itinhero && chown node:node /var/lib/itinhero
 USER node
 EXPOSE 3000
 CMD ["node", "dist/index.js"]

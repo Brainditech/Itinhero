@@ -30,6 +30,8 @@ const schemaEnv = z
     ANTHROPIC_API_KEY: z.string().regex(/^sk-ant-[A-Za-z0-9_-]{20,}$/).optional(),
     CLAUDE_MODEL: z.enum(MODELES_CLAUDE).optional(),
     CLAUDE_PLAFOND_MENSUEL_EUR: z.coerce.number().positive().max(1000).optional(),
+    // Spec 29 (D107) : fichier SQLite de `abonnements_alerte`, sur un volume. Absente ⇒ table en mémoire.
+    ABONNEMENTS_SQLITE: z.string().min(1).optional(),
   })
   .refine((e) => e.LIMITE_REQ_JOUR >= e.LIMITE_REQ_MINUTE, {
     path: ["LIMITE_REQ_JOUR"],
