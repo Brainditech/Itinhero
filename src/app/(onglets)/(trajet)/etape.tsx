@@ -25,6 +25,7 @@ import {
 } from "@/domaine/etape";
 import { jusqua, phraseMarche, phraseTrajetVehicule, vehiculeMinuscule } from "@/domaine/guidage";
 import {
+  estMarcheLongue,
   formaterDuree,
   jetonMode,
   phraseReservation,
@@ -75,11 +76,19 @@ function BoutonRond({
 function ListeMarche({ etape, suivante, choisi, choisir }: { etape: Etape; suivante?: Etape; choisi: number | null; choisir: (i: number, p: Point) => void }) {
   const consignes = etape.consignes ?? [];
   const destination = destinationMarche(etape, suivante);
+  // Issue 0029 : l'avertissement de la marche longue vit ici, en tête de la liste d'une marche.
+  const taxi = estMarcheLongue(etape) ? <TaxiPourLaMarche etape={etape} /> : null;
   if (consignes.length < 2) {
-    return <Text className="font-inter text-secondaire text-texte-secondaire">{phraseMarche(etape, suivante)}</Text>;
+    return (
+      <View className="gap-4">
+        {taxi}
+        <Text className="font-inter text-secondaire text-texte-secondaire">{phraseMarche(etape, suivante)}</Text>
+      </View>
+    );
   }
   return (
     <View>
+      {taxi ? <View className="pb-4">{taxi}</View> : null}
       {consignes.map((c, i) => {
         const d = distanceConsigne(c);
         const active = i === choisi;
@@ -231,7 +240,6 @@ function ListeVehicule({
       ) : null}
       {/* Spec 41 (D122) : le numéro à appeler, toujours avec sa source (invariant 16). */}
       {etape.mode === "taxi" || etape.reservation === "appel" ? <Numero contact={etape.contact} /> : null}
-      {etape.mode === "marche" && etape.duree_minutes > 15 ? <TaxiPourLaMarche etape={etape} /> : null}
       {/* Spec 31 (D109) : Uber ouvert avec la prise en charge et la dépose de l'étape ; prix et attente chez Uber. */}
       {uber ? (
         <View className="items-start">
@@ -460,6 +468,7 @@ export default function FenetreEtape() {
  * `POST /v1/numeros` (fiches validées ou pages publiques vérifiées) ; sans réseau, l'Uber reste proposé.
  */
 function TaxiPourLaMarche({ etape }: { etape: Etape }) {
+  const uber = lienUber(etape);
   return (
     <View className="gap-2">
       <View className="flex-row items-center gap-2">
@@ -468,6 +477,11 @@ function TaxiPourLaMarche({ etape }: { etape: Etape }) {
           {`Marche de ${formaterDuree(etape.duree_minutes)} : un taxi peut faire cette étape.`}
         </Text>
       </View>
+      {uber ? (
+        <View className="items-start">
+          <Lien libelle="Commander un Uber pour cette étape" onPress={() => void Linking.openURL(uber).catch(() => undefined)} />
+        </View>
+      ) : null}
       <NumerosPres point={{ lat: etape.de.lat, lon: etape.de.lon }} />
     </View>
   );

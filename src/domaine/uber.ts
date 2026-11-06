@@ -1,4 +1,5 @@
 import type { Etape, LieuEtape } from "./api";
+import { estMarcheLongue } from "./resultat";
 
 /**
  * Lien Uber pré-rempli (spec 31, D109, A9) : lien universel `https://m.uber.com/looking` de la doc Uber
@@ -20,6 +21,6 @@ export function lienUberEntre(de: LieuUber, a: LieuUber): string {
  * Spec 31 : une étape en taxi. Spec 41 (D122, D3) : aussi une marche de plus de 15 min, que le taxi peut remplacer.
  */
 export function lienUber(e: Etape): string | null {
-  if (e.mode !== "taxi" && !(e.mode === "marche" && e.duree_minutes > 15)) return null;
+  if (e.mode !== "taxi" && !estMarcheLongue(e)) return null;
   return lienUberEntre(e.de, e.a);
 }

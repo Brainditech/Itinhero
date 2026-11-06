@@ -6,6 +6,7 @@ import { versRequeteItineraires, type BoutLieu } from "./demande";
 import { trier } from "./tri";
 import {
   aMarcheLongue,
+  estMarcheLongue,
   attenteApres,
   directionEtape,
   finHoraires,
@@ -127,6 +128,13 @@ describe("étapes", () => {
     expect(aMarcheLongue(avec(16))).toBe(true);
     // Un trajet en transport de 22 min n'est pas une marche.
     expect(aMarcheLongue({ ...chatelet, etapes: [metro] })).toBe(false);
+  });
+
+  it("issue 0029 : l'écran Étape d'une marche de plus de 15 min propose le taxi (spec 41)", () => {
+    // La règle est la même pour la carte du Résultat, l'écran Étape et le lien Uber.
+    expect(estMarcheLongue({ ...marche, duree_minutes: 48 })).toBe(true);
+    expect(estMarcheLongue({ ...marche, duree_minutes: 15 })).toBe(false);
+    expect(estMarcheLongue({ ...metro, duree_minutes: 48 })).toBe(false);
   });
 
   it("couleurs : jetons du design system seulement (D67)", () => {

@@ -69,8 +69,8 @@
       "rayon_km": 20,
       "delai": "Au plus tard la veille du déplacement : du lundi au vendredi, la veille avant 17 h, sauf jours fériés ; pour le…",
       "url": "https://www.viamobigo.fr/ftp/document/2-fh-tad864.pdf",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "tad-train-mobigo-taxi-a-la-demande-brien",
@@ -106,8 +106,8 @@
       "rayon_km": 15,
       "delai": "Jusqu'à 7 jours à l'avance et au plus tard la veille du déplacement souhaité ; centrale du lundi au vendredi de 8h30…",
       "url": "https://nemus.flers-agglo.fr/se-deplacer/transport-a-la-demande",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "tad-tinchebray-bocage-tibus-tad-orne-rel",
@@ -247,8 +247,8 @@
       "rayon_km": 10,
       "delai": null,
       "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "taxi-a-h-taxi-joigny",
@@ -266,8 +266,8 @@
       "rayon_km": 10,
       "delai": null,
       "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "taxi-taxi-ks-joigny",
@@ -284,8 +284,8 @@
       "rayon_km": 10,
       "delai": null,
       "url": "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "taxi-centrale-taxis-du-bocage-flers",
