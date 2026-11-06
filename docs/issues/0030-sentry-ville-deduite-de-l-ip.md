@@ -1,7 +1,7 @@
 # Issue 0030 — Sentry déduit la ville de l'adresse IP
 
 - **Date** : 2026-11-07
-- **État** : analyse à approuver par Brainditech ; correction non commencée.
+- **État** : **corrigée** le 2026-11-07 (analyse approuvée par Brainditech : « je prends ta recommandation », A et B) ; constat serveur fait, constat app avec l'erreur volontaire de l'app.
 - **Branche** : `etapes/sentry-dsn`. Spec : 50 (D131). Invariant : 10 (rien de personnel dans Sentry).
 
 ## 1. Reproduction
@@ -26,16 +26,26 @@ Vérifiée :
 
 `beforeSend` supprime `user` côté SDK, mais la ville est ajoutée **après**, par Sentry, à la réception. Côté serveur, c'est la ville du PC ou du VPS. Côté app, ce serait la ville approximative du téléphone, donc une donnée personnelle (invariant 10).
 
-## 4. Correction proposée (à approuver)
+## 4. Correction (approuvée le 2026-11-07)
 
 - **A, dans Sentry (recommandée, immédiate)** : règle d'Advanced Data Scrubbing de l'organisation `[Remove] [Anything] from [$user.geo.**]`. Elle couvre l'app et le serveur, sans build. C'est un réglage du compte : Claude le pose dans Chrome avec l'accord de Brainditech.
-- **B, dans le code (défense en plus)** : au démarrage de Sentry, `Sentry.setUser({ ip_address: null })` côté serveur ; côté app, l'équivalent permis par le SDK React Native installé, vérifié dans ses types avant d'écrire. Test : `initSentry` pose l'utilisateur sans IP.
+- **B, dans le code (défense en plus)** : l'utilisateur envoyé ne dit pas d'où vient l'erreur.
+
+Appliqué :
+
+- A : règle posée le 2026-11-07 dans l'organisation (Settings > Security & Privacy > Advanced Data Scrubbing).
+- B : essai avant d'écrire (2026-11-07, deux événements envoyés depuis le conteneur) : `user: { ip_address: null }` ⇒ ville **encore** déduite (puis retirée par A) ; `user: { ip_address: "0.0.0.0" }` ⇒ **aucune** ville déduite, l'IP fictive effacée par « Prevent Storing of IP Addresses ». Donc `nettoyerEvenement` (app `src/domaine/sentry-nettoyage.ts` et serveur `serveur/src/sentry/nettoyage.ts`) remplace `user` par `{ ip_address: IP_FICTIVE }` (`"0.0.0.0"`) au lieu de le supprimer.
 
 ## 5. Test de régression
 
 - A : nouvel événement envoyé ⇒ JSON sans `user.geo`.
-- B : test vitest de l'initialisation (serveur et app).
+- B : `sentry-nettoyage.test.ts` (app) et `nettoyage.test.ts` (serveur), « issue 0030 » : l'utilisateur sort égal à `{ ip_address: "0.0.0.0" }`, sans `{{auto}}`.
 
 ## 6. Constat
 
-À faire après la correction.
+2026-11-07 :
+
+- A seule : événement `054f5f06…` ⇒ `user.geo` à `null`, `_meta` « rem organization:0 ».
+- A et B, image de l'API reconstruite, erreur envoyée par `initSentry()` : événement `a1e43b51…` ⇒ `user` = `{ ip_address: null, sentry_user: "ip:[ip]" }`, **aucun champ `geo`**.
+- Lint, types, tests : app 444, serveur 472, verts. Le test `envoi.test.ts` (faux Sentry local) a échoué une fois au premier lancement puis passé 6 fois : délai, sans lien avec l'IP.
+- App : à constater avec l'erreur volontaire de l'app (Metro relancé avec le DSN).
