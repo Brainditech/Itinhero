@@ -1,7 +1,7 @@
 import type { IndexHoraires } from "../itineraires/horaires-gtfs.js";
 import type { PossibiliteAffichee } from "../itineraires/normaliser.js";
 import type { Manifest } from "../manifest.js";
-import type { Annuaire, Contact } from "./annuaire.js";
+import { formaterNumero, type Annuaire, type Contact } from "./annuaire.js";
 
 /**
  * Spec 41 (D122) : le numéro à appeler de chaque étape qui en demande un, toujours avec sa source (invariant 16).
@@ -28,7 +28,7 @@ export function ajouterContacts<P extends PossibiliteAffichee>(
         const jeu = e.source.type === "gtfs" ? jeux.get(e.source.jeu) : undefined;
         contact =
           tel && e.exploitant
-            ? { nom: e.exploitant, numero: tel, source: "gtfs", url: jeu?.url_source ?? null, lu_le: jeu?.date_telechargement ?? null, verifie: false, delai: null }
+            ? { nom: e.exploitant, numero: formaterNumero(tel), source: "gtfs", url: jeu?.url_source ?? null, lu_le: jeu?.date_telechargement ?? null, verifie: false, delai: null }
             : (annuaire?.contactsPres(e.de, "tad")[0] ?? null);
       }
       return { ...e, contact };

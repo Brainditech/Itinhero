@@ -1,13 +1,11 @@
-import { useState } from "react";
 import { Linking, Text, View } from "react-native";
 import { SymbolView } from "expo-symbols";
 
-import { Numero } from "@/composants/AFaire";
+import { NumerosPres } from "@/composants/AFaire";
 import { Lien } from "@/composants/elements";
-import type { Contact, Point } from "@/domaine/api";
+import type { Point } from "@/domaine/api";
 import { formaterDuree } from "@/domaine/resultat";
 import { lienUberEntre } from "@/domaine/uber";
-import { useClient } from "@/session";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
 type TaxiDirect = { duree_minutes: number; distance_metres: number | null; depart: string; arrivee: string };
@@ -25,8 +23,6 @@ export function CarteTaxiDirect({
   depart: Point & { nom: string };
   arrivee: Point & { nom: string };
 }) {
-  const client = useClient();
-  const [numeros, setNumeros] = useState<Contact[] | "attente" | "echec" | null>(null);
   const km = taxi.distance_metres === null ? "" : ` · ${Math.round(taxi.distance_metres / 1000)} km`;
   const duree = formaterDuree(taxi.duree_minutes);
   return (
@@ -48,25 +44,7 @@ export function CarteTaxiDirect({
           onPress={() => void Linking.openURL(lienUberEntre({ ...depart }, { ...arrivee })).catch(() => undefined)}
         />
       </View>
-      {numeros === null ? (
-        <View className="items-start">
-          <Lien
-            libelle="Numéros de taxi près du départ"
-            onPress={() => {
-              setNumeros("attente");
-              void client.numeros({ lat: depart.lat, lon: depart.lon }, "taxi").then((r) => setNumeros(r.etat === "ok" ? r.donnees : "echec"));
-            }}
-          />
-        </View>
-      ) : numeros === "attente" ? (
-        <Text className="font-inter text-secondaire text-texte-secondaire">Recherche des numéros…</Text>
-      ) : numeros === "echec" ? (
-        <Text className="font-inter text-secondaire text-erreur">Numéros indisponibles sans connexion au serveur.</Text>
-      ) : numeros.length === 0 ? (
-        <Numero contact={null} />
-      ) : (
-        numeros.map((c) => <Numero key={`${c.nom}-${c.numero}`} contact={c} />)
-      )}
+      <NumerosPres point={{ lat: depart.lat, lon: depart.lon }} />
     </View>
   );
 }

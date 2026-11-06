@@ -26,7 +26,7 @@ const INVALIDES: Record<string, Requete> = {
   "POST /v1/numeros": { method: "POST", url: "/v1/numeros", payload: JSON.stringify({ point: { lat: 48, lon: 3.6 }, type: "bus" }) },
 };
 /** Routes sans entrée à valider, ou validées ailleurs. */
-const SANS_ENTREE = new Set(["GET /health"]);
+const SANS_ENTREE = new Set(["GET /health", "GET /v1/fiches"]);
 
 const envoyer = (app: ReturnType<typeof appTest>, r: Requete, entetes: Record<string, string> = ENTETE) =>
   app.inject({

@@ -11,6 +11,7 @@ import { appelClaude } from "./comprendre/comprendre.js";
 import { CompteurCout } from "./comprendre/cout.js";
 import { Abonnements } from "./abonnements/abonnements.js";
 import { chargerAnnuaire } from "./fiches/charger.js";
+import { chargerTarifs } from "./tarifs/tarifs.js";
 import { envoyerExpo, SuiviRetards } from "./alertes/suivi.js";
 import { heureParis } from "./temps.js";
 
@@ -48,9 +49,9 @@ async function demarrer(): Promise<void> {
   abonnements.purger(new Date());
   setInterval(() => abonnements.purger(new Date()), 60 * 60 * 1000).unref();
   // Spec 42 (D123) : suivi des retards chaque minute, dans le processus de l'API (pas d'Inngest).
-  const moteurSuivi = moteurMotis(env.MOTIS_URL);
-  if (moteurSuivi.course) {
-    const lireCourse = moteurSuivi.course;
+  const moteur = moteurMotis(env.MOTIS_URL);
+  if (moteur.course) {
+    const lireCourse = moteur.course;
     const suivi = new SuiviRetards(abonnements, (id) => lireCourse(id), envoyerExpo(env.EXPO_ACCESS_TOKEN));
     setInterval(() => {
       suivi.tour(new Date()).catch((e: unknown) => console.warn(`suivi-retards : ${(e as Error).name}`));
@@ -67,10 +68,11 @@ async function demarrer(): Promise<void> {
   setInterval(() => void verifier(), 24 * 60 * 60 * 1000).unref();
   const app = construireApp({
     annuaire,
+    tarifs: chargerTarifs(),
     abonnements,
     manifest,
     sonde: sondeMotis(env.MOTIS_URL),
-    moteur: moteurMotis(env.MOTIS_URL),
+    moteur,
     geocodeurIgn: geocodeurIgn(),
     adresseIgn: adresseIgn(),
     lieux,

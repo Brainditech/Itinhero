@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Annuaire, chiffres, numeroDansPage, schemaFichierFiches, type Fiche } from "./annuaire.js";
+import { Annuaire, chiffres, formaterNumero, numeroDansPage, schemaFichierFiches, type Fiche } from "./annuaire.js";
 import { ajouterContacts } from "./contacts.js";
 import { IndexHoraires } from "../itineraires/horaires-gtfs.js";
 import type { PossibiliteAffichee } from "../itineraires/normaliser.js";
@@ -28,6 +28,19 @@ describe("numéros dans une page (spec 41, D49)", () => {
     expect(numeroDansPage("03 86 00 00 01", "<a href='tel:+33386000001'>+33 (0)3 86 00 00 01</a>")).toBe(true);
     expect(numeroDansPage("03 86 00 00 01", "<p>03 86 00 00 02</p>")).toBe(false);
   });
+
+  it("revue PR #61 : des chiffres épars ne forment pas un numéro ; un numéro plus long non plus", () => {
+    expect(numeroDansPage("03 80 11 29 29", "<p>réf. 0380 le 11</p><script>x=2929</script>")).toBe(false);
+    expect(numeroDansPage("03 80 11 29 29", "id=1203801129291")).toBe(false);
+    expect(numeroDansPage("03 80 11 29 29", "Tél. 03-80-11-29-29 (touche 3)")).toBe(true);
+  });
+
+  it("numéro rendu à l'app : « 03 80 11 29 29 » quel que soit son écriture", () => {
+    expect(formaterNumero("03.80.11.29.29")).toBe("03 80 11 29 29");
+    expect(formaterNumero("+33 3 80 11 29 29")).toBe("03 80 11 29 29");
+    expect(formaterNumero("+33811444854")).toBe("08 11 44 48 54");
+    expect(formaterNumero("(0)3-80")).toBe("0 3 80");
+  });
 });
 
 describe("Annuaire (spec 41, critère 1)", () => {
@@ -53,7 +66,7 @@ describe("Annuaire (spec 41, critère 1)", () => {
     const taxis = annuaire.contactsPres(BRIENON, "taxi");
     expect(taxis.map((c) => c.nom)).toEqual(["Taxi Validé", "Taxi Exemple"]);
     expect(taxis[0]).toEqual({ nom: "Taxi Validé", numero: "03 86 11 11 11", source: "fiche", url: "https://v.fr/", lu_le: "2026-11-07", verifie: true, delai: "La veille" });
-    expect(taxis[1]).toMatchObject({ source: "page", verifie: false, url: "https://a.fr/", lu_le: "2026-11-08" });
+    expect(taxis[1]).toMatchObject({ numero: "03 86 00 00 01", source: "page", verifie: false, url: "https://a.fr/", lu_le: "2026-11-08" });
   });
 
   it("hors du rayon ou d'un autre type : absente ; page devenue muette ⇒ retirée", async () => {

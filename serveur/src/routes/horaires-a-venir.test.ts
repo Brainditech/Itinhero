@@ -53,3 +53,30 @@ describe("Horaires pas encore publiés (issue 0025)", () => {
     expect(horairesAVenir(undefined, manifest, "2026-12-28", "2026-11-06")).toBeNull();
   });
 });
+
+describe("Réseaux du trajet seulement (revue PR #61)", () => {
+  const idx = new IndexHoraires({
+    version: 1,
+    jeux: {
+      normandie: { fin_validite: "2026-12-01", reservations: {}, nom: "Nomad", emprise: [48.2, -1.9, 50.0, 1.8] },
+      national: { fin_validite: "2026-12-01", reservations: {}, nom: "SNCF", emprise: [42.5, -4.5, 51.0, 8.2] },
+      sansEmprise: { fin_validite: "2026-12-01", reservations: {}, nom: "Inconnu" },
+    },
+  });
+  const m: Manifest = { version: 1, fichiers: [fichier("normandie", 3), fichier("national", 2), fichier("sansEmprise", 1)] };
+  it("Brienon → Auxerre : Nomad (Normandie) écarté ; SNCF et un jeu sans emprise gardés", () => {
+    const r = horairesAVenir(idx, m, "2026-12-28", "2026-11-06", [
+      { lat: 47.99, lon: 3.617 },
+      { lat: 47.798, lon: 3.567 },
+    ]);
+    expect(r?.reseaux.map((x) => x.nom)).toEqual(["SNCF", "Inconnu"]);
+  });
+  it("Brienon → Flers : le rectangle touche la Normandie, Nomad compte", () => {
+    const r = horairesAVenir(idx, m, "2026-12-28", "2026-11-06", [
+      { lat: 47.99, lon: 3.617 },
+      { lat: 48.749, lon: -0.57 },
+    ]);
+    expect(r?.nombre).toBe(3);
+  });
+});
+

@@ -1,18 +1,20 @@
 import type { Etape, Possibilite } from "./api";
+import { comparerPrix, prixTrajet } from "./prix";
 import { minutesDeMarche, parArrivee, parMarche } from "./resultat";
 
 export { minutesDeMarche };
 
 // Tris du Résultat (spec 21, D97). Faits sur le téléphone, sans nouvelle recherche : ils rangent les possibilités
-// reçues avec leurs heures et leurs durées, sans rien calculer de neuf. « Moins cher » attend `data/tarifs.json`.
+// reçues avec leurs heures et leurs durées, sans rien calculer de neuf. « Moins cher » range par les tarifs validés reçus (spec 43).
 
-export const TRIS = ["arrivee", "marche", "sans_reservation"] as const;
+export const TRIS = ["arrivee", "marche", "sans_reservation", "moins_cher"] as const;
 export type Tri = (typeof TRIS)[number];
 
 export const LIBELLES_TRIS: Record<Tri, string> = {
   arrivee: "Arrivée la plus tôt",
   marche: "Moins de marche",
   sans_reservation: "Sans réservation",
+  moins_cher: "Moins cher",
 };
 
 /** Une possibilité rangée, avec son rang dans la réponse du serveur (l'Étape et le Guidage la retrouvent par lui). */
@@ -29,9 +31,15 @@ export function etapeAReserver(p: Possibilite): Etape | undefined {
  * « Sans réservation » retire tout trajet avec une étape à réserver, et range le reste comme « Arrivée la plus tôt ».
  * La liste reçue n'est pas modifiée.
  */
-export function trier(possibilites: Possibilite[], tri: Tri): PossibiliteRangee[] {
+export function trier(possibilites: Possibilite[], tri: Tri, cartes: readonly string[] = []): PossibiliteRangee[] {
   const rangees = possibilites.map((possibilite, index) => ({ possibilite, index }));
   const gardees = tri === "sans_reservation" ? rangees.filter(({ possibilite }) => !etapeAReserver(possibilite)) : rangees;
-  const comparer = tri === "marche" ? parMarche : parArrivee;
+  // Spec 43 : « Moins cher », trajets sans prix complet à la fin ; à prix égal, « Arrivée la plus tôt ».
+  const comparer =
+    tri === "marche"
+      ? parMarche
+      : tri === "moins_cher"
+        ? (a: Possibilite, b: Possibilite) => comparerPrix(prixTrajet(a, cartes), prixTrajet(b, cartes)) || parArrivee(a, b)
+        : parArrivee;
   return gardees.sort((a, b) => comparer(a.possibilite, b.possibilite) || a.index - b.index);
 }

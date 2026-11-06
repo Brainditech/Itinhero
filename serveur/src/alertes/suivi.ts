@@ -48,7 +48,12 @@ export class SuiviRetards {
     const actifs = this.abonnements.actifs(maintenant);
     const parCourse = new Map<string, typeof actifs>();
     for (const a of actifs) parCourse.set(a.trip_id, [...(parCourse.get(a.trip_id) ?? []), a]);
+    // Revue PR #61 : la mémoire ne garde que les abonnements encore actifs.
+    const ids = new Set(actifs.map((a) => a.id));
+    for (const id of this.dits.keys()) if (!ids.has(id)) this.dits.delete(id);
     const messages: MessagePush[] = [];
+    // Ce qui sera retenu comme dit, seulement une fois l'envoi réussi (sinon le tour suivant réessaie).
+    const aRetenir = new Map<string, "supprime" | number>();
     for (const [course, abonnes] of parCourse) {
       let etat;
       try {
@@ -59,7 +64,7 @@ export class SuiviRetards {
       for (const a of abonnes) {
         const avant = this.dits.get(a.id);
         if (etat.etat === "supprime" && avant !== "supprime") {
-          this.dits.set(a.id, "supprime");
+          aRetenir.set(a.id, "supprime");
           messages.push({
             to: a.jeton_push,
             title: "Un véhicule de votre trajet est supprimé",
@@ -69,7 +74,7 @@ export class SuiviRetards {
           });
         } else if (etat.etat === "retard" && avant !== "supprime" && etat.retard_minutes >= RETARD_SIGNALE_MIN) {
           if (avant === undefined || etat.retard_minutes >= avant + RETARD_SIGNALE_MIN) {
-            this.dits.set(a.id, etat.retard_minutes);
+            aRetenir.set(a.id, etat.retard_minutes);
             messages.push({
               to: a.jeton_push,
               title: `Retard de ${etat.retard_minutes} min sur votre trajet`,
@@ -82,6 +87,7 @@ export class SuiviRetards {
       }
     }
     if (messages.length > 0) await this.envoyer(messages);
+    for (const [id, dit] of aRetenir) this.dits.set(id, dit);
     return messages.length;
   }
 }

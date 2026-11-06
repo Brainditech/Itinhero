@@ -2,6 +2,7 @@ import { Tabs } from "expo-router/tabs";
 
 import { BarreOnglets } from "@/composants/BarreOnglets";
 import { OuvrirDepuisNotification } from "@/composants/OuvrirDepuisNotification";
+import { FournisseurCartes } from "@/cartes";
 import { FournisseurRecherche } from "@/recherche";
 
 export default function OngletsLayout() {
@@ -9,6 +10,7 @@ export default function OngletsLayout() {
   // Spec 34 (D112) : Accueil (première page et formulaire) et Trajet (Résultat, Étape, Guidage) ont chacun leur pile.
   return (
     <FournisseurRecherche>
+      <FournisseurCartes>
       <OuvrirDepuisNotification />
       <Tabs tabBar={(props) => <BarreOnglets {...props} />} screenOptions={{ headerShown: false }}>
         <Tabs.Screen name="(accueil)" />
@@ -17,6 +19,7 @@ export default function OngletsLayout() {
         <Tabs.Screen name="assistant" />
         <Tabs.Screen name="reglages" />
       </Tabs>
+      </FournisseurCartes>
     </FournisseurRecherche>
   );
 }

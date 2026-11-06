@@ -58,3 +58,21 @@ describe("suivi-retards (spec 42, critère 2)", () => {
     expect(await suivi.tour(new Date("2026-11-15T00:00:00Z"))).toBe(0);
   });
 });
+
+describe("suivi-retards, revue PR #61", () => {
+  it("envoi en échec ⇒ rien n'est retenu, le tour suivant réessaie", async () => {
+    const abonnements = new Abonnements(undefined);
+    abonnements.ajouter(COURSE, "2026-11-12", JETON);
+    let panne = true;
+    const envoyes: MessagePush[] = [];
+    const suivi = new SuiviRetards(abonnements, async () => reponseTrip(0, { cancelled: true }), async (m) => {
+      if (panne) throw new Error("expo push 503");
+      envoyes.push(...m);
+    });
+    const maintenant = new Date("2026-11-12T07:00:00Z");
+    await expect(suivi.tour(maintenant)).rejects.toThrow("503");
+    panne = false;
+    expect(await suivi.tour(maintenant)).toBe(1);
+    expect(await suivi.tour(maintenant)).toBe(0);
+  });
+});

@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
-import type { Contact } from "@/domaine/api";
+import type { Contact, Point } from "@/domaine/api";
+import { Lien } from "@/composants/elements";
+import { useClient } from "@/session";
 import { lienTel, texteSource } from "@/domaine/contacts";
 import type { Action } from "@/domaine/rappels";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -61,5 +64,37 @@ export function Numero({ contact }: { contact: Contact | null }) {
       </Pressable>
       <Text className={`font-inter text-badge ${contact.verifie ? "text-texte-secondaire" : "text-avertissement"}`}>{texteSource(contact)}</Text>
     </View>
+  );
+}
+
+/**
+ * « Numéros de taxi près du départ » (spec 41) : `POST /v1/numeros` à la demande, puis la liste (ou « Aucun numéro
+ * connu. ») ; sans réseau, un message. Partagé par le taxi de bout en bout et la marche longue.
+ */
+export function NumerosPres({ point }: { point: Point }) {
+  const client = useClient();
+  const [etat, setEtat] = useState<{ etat: "attente" } | { etat: "ok"; liste: Contact[] } | { etat: "echec" } | null>(null);
+  if (etat === null) {
+    return (
+      <View className="items-start">
+        <Lien
+          libelle="Numéros de taxi près du départ"
+          onPress={() => {
+            setEtat({ etat: "attente" });
+            void client.numeros(point, "taxi").then((r) => setEtat(r.etat === "ok" ? { etat: "ok", liste: r.donnees } : { etat: "echec" }));
+          }}
+        />
+      </View>
+    );
+  }
+  if (etat.etat === "attente") return <Text className="font-inter text-secondaire text-texte-secondaire">Recherche des numéros…</Text>;
+  if (etat.etat === "echec") return <Text className="font-inter text-secondaire text-erreur">Numéros indisponibles sans connexion au serveur.</Text>;
+  if (etat.liste.length === 0) return <Numero contact={null} />;
+  return (
+    <>
+      {etat.liste.map((c) => (
+        <Numero key={`${c.nom}-${c.numero}`} contact={c} />
+      ))}
+    </>
   );
 }

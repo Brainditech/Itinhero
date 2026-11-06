@@ -9,7 +9,7 @@ import { alertesNouvelles, etapesSuivies, type DejaDit } from "@/domaine/temps-r
 import { possibiliteMontree, type Voyage } from "@/domaine/voyages";
 import { CANAL } from "@/rappels";
 import { lireCle } from "@/stockage/cle";
-import { NOM_BASE } from "@/stockage/reglages";
+import { migrer, NOM_BASE } from "@/stockage/reglages";
 import { lireVoyages } from "@/stockage/voyages";
 
 /**
@@ -49,6 +49,29 @@ async function garderDejaDit(db: SQLiteDatabase, cle: string, d: DejaDit): Promi
   );
 }
 
+const clePush = (cle: string) => `push|${cle}`;
+
+/** Identifiants des abonnements poussés du trajet (spec 42), gardés sur le téléphone pour les retirer avec lui. */
+async function lireAbonnements(db: SQLiteDatabase, cle: string): Promise<string[]> {
+  const l = await db.getFirstAsync<{ valeur: string }>("SELECT valeur FROM reglages WHERE cle = ?", clePush(cle));
+  try {
+    const v: unknown = l ? JSON.parse(l.valeur) : [];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Trajet supprimé ou remplacé (revue PR #61) : ses alertes poussées sont retirées du serveur (au mieux) et ce que le
+ * téléphone gardait pour lui (déjà dit, abonnements) est effacé.
+ */
+export async function oublierTempsReel(db: SQLiteDatabase, client: ClientApi | null, cle: string): Promise<void> {
+  const ids = await lireAbonnements(db, cle);
+  if (client) await Promise.all(ids.map((id) => client.desabonner(id).catch(() => undefined)));
+  await db.runAsync("DELETE FROM reglages WHERE cle IN (?, ?)", cleDejaDit(cle), clePush(cle));
+}
+
 /** État des courses d'un trajet, puis les alertes nouvelles en notifications. Rend les états lus (ou null). */
 export async function releverTrajet(db: SQLiteDatabase, client: ClientApi, cle: string, v: Voyage): Promise<EtatCourse[] | null> {
   const p = possibiliteMontree(v.reponse, v.tri);
@@ -59,6 +82,9 @@ export async function releverTrajet(db: SQLiteDatabase, client: ClientApi, cle: 
   if (r.etat !== "ok") return null;
   const { alertes, dejaDit } = alertesNouvelles(p, r.donnees, await lireDejaDit(db, cle));
   await garderDejaDit(db, cle, dejaDit);
+  // Revue PR #61 : abonné aux alertes poussées, le serveur prévient déjà ; pas de seconde notification.
+  if ((await lireAbonnements(db, cle)).length > 0) return r.donnees;
+  // Même identifiant pour la même alerte : relevée deux fois (écran et arrière-plan), elle ne s'affiche qu'une fois.
   for (const a of alertes) {
     await Notifications.scheduleNotificationAsync({
       identifier: `temps-reel|${cle}|${a.cle}`,
@@ -111,10 +137,16 @@ async function tacheReleve(): Promise<boolean> {
   const env = lireEnvironnement({ EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL });
   const cle = await lireCle();
   if (!env.ok || !cle) return true;
+  // Revue PR #61 : la base est migrée (installation neuve) et refermée à chaque passage.
   const db = await openDatabaseAsync(NOM_BASE);
-  const client = clientApi({ urlApi: env.env.urlApi, cle, fetch: (u, i) => fetch(u, i), fetchFlux: (u, i) => fetch(u, i) });
-  await releverTout(db, client, new Date());
-  return true;
+  try {
+    await migrer(db);
+    const client = clientApi({ urlApi: env.env.urlApi, cle, fetch: (u, i) => fetch(u, i), fetchFlux: (u, i) => fetch(u, i) });
+    await releverTout(db, client, new Date());
+    return true;
+  } finally {
+    await db.closeAsync().catch(() => undefined);
+  }
 }
 
 // La tâche se définit au chargement du module, hors de React (doc expo-task-manager SDK 58).
@@ -146,7 +178,7 @@ export async function inscrireReleve(): Promise<void> {
  * (R7) ; sans eux, aucun jeton et la relève locale reste la seule. Chaque course suivie du trajet est abonnée
  * jusqu'à J+1 ; rien d'autre ne part (ni lieu, ni heure).
  */
-export async function abonnerTrajet(client: ClientApi, v: Voyage): Promise<number> {
+export async function abonnerTrajet(db: SQLiteDatabase, client: ClientApi, cle: string, v: Voyage): Promise<number> {
   const p = possibiliteMontree(v.reponse, v.tri);
   if (!p) return 0;
   let jeton: string;
@@ -157,12 +189,19 @@ export async function abonnerTrajet(client: ClientApi, v: Voyage): Promise<numbe
   } catch {
     return 0;
   }
-  let n = 0;
+  const ids: string[] = [];
   for (const { course } of etapesSuivies(p)) {
     const date = /^(\d{4})(\d{2})(\d{2})_/.exec(course);
     if (!date) continue;
     const r = await client.abonner(course, `${date[1]}-${date[2]}-${date[3]}`, jeton);
-    if (r.etat === "ok") n++;
+    if (r.etat === "ok") ids.push(r.donnees.id);
   }
-  return n;
+  if (ids.length > 0) {
+    await db.runAsync(
+      "INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur",
+      clePush(cle),
+      JSON.stringify(ids),
+    );
+  }
+  return ids.length;
 }

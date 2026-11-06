@@ -45,10 +45,26 @@ export function chiffres(numero: string): string {
   return c.startsWith("+33") ? `0${c.slice(3)}` : c.replace(/\+/g, "");
 }
 
-/** Vrai si le numéro figure dans le texte de la page (espaces, points, tirets et « +33 » ignorés). */
+/**
+ * Vrai si le numéro figure dans la page, écrit d'un bloc : ses chiffres séparés au plus par des espaces, points ou
+ * tirets, « +33 » ou « 0 » en tête, et aucun chiffre collé avant ou après (revue de la PR #61 : des chiffres épars
+ * d'une page, mis bout à bout, ne doivent pas former un numéro).
+ */
 export function numeroDansPage(numero: string, page: string): boolean {
-  const texte = page.replace(/&nbsp;|&#160;/g, " ").replace(/\+33\s*\(?0?\)?\s*/g, "0");
-  return texte.replace(/[^0-9]/g, "").includes(chiffres(numero));
+  const c = chiffres(numero);
+  if (c.length < 6) return false;
+  const texte = page.replace(/&nbsp;|&#160;|&#xa0;/gi, " ");
+  const sep = String.raw`[\s.\-]*`;
+  const corps = c.startsWith("0") ? c.slice(1).split("").join(sep) : c.split("").join(sep);
+  const tete = c.startsWith("0") ? String.raw`(?:0|\+33${sep}(?:\(0\))?)` + sep : "";
+  return new RegExp(`(?<![0-9])${tete}${corps}(?![0-9])`).test(texte);
+}
+
+/** « 03.80.11.29.29 », « +33 3 80 11 29 29 » ⇒ « 03 80 11 29 29 » ; un autre format reste tel quel, sans ponctuation rare. */
+export function formaterNumero(numero: string): string {
+  const c = chiffres(numero);
+  if (/^0[1-9][0-9]{8}$/.test(c)) return c.replace(/(\d{2})(?=\d)/g, "$1 ");
+  return numero.replace(/[^0-9+ ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export type LirePage = (url: string) => Promise<string>;
@@ -101,8 +117,16 @@ export class Annuaire {
       .slice(0, max)
       .map(({ f }) =>
         f.valide_le !== null
-          ? { nom: f.nom, numero: f.numero, source: "fiche", url: f.url, lu_le: f.valide_le, verifie: true, delai: f.delai }
-          : { nom: f.nom, numero: f.numero, source: "page", url: f.url, lu_le: this.retrouvees.get(f.id) ?? f.lu_le, verifie: false, delai: f.delai },
+          ? { nom: f.nom, numero: formaterNumero(f.numero), source: "fiche", url: f.url, lu_le: f.valide_le, verifie: true, delai: f.delai }
+          : {
+              nom: f.nom,
+              numero: formaterNumero(f.numero),
+              source: "page",
+              url: f.url,
+              lu_le: this.retrouvees.get(f.id) ?? f.lu_le,
+              verifie: false,
+              delai: f.delai,
+            },
       );
   }
 }

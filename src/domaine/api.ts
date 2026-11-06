@@ -109,7 +109,8 @@ export const schemaEtape = z.object({
   contact: z
     .object({
       nom: z.string().min(1),
-      numero: z.string().regex(/^\+?[0-9 ]{6,20}$/),
+      // Revue PR #61 : le serveur le rend « 03 80 11 29 29 », mais l'app accepte aussi les autres écritures d'un numéro.
+      numero: z.string().regex(/^\+?[0-9 .()-]{6,25}$/),
       source: z.enum(["gtfs", "fiche", "page"]),
       url: z.string().nullable(),
       lu_le: z.iso.date().nullable(),
@@ -119,8 +120,30 @@ export const schemaEtape = z.object({
     })
     .nullable()
     .default(null),
+  // Spec 43 (D124) : tarif validé qui s'applique à l'étape, tel que publié, avec sa source (invariant 5) ; sinon null.
+  tarif: z
+    .object({
+      id: z.string(),
+      reseau: z.string(),
+      produit: z.string(),
+      montant_eur: z.number().positive(),
+      reductions: z.array(z.object({ carte: z.string(), nom: z.string(), pourcentage: z.number().int().min(1).max(100) })),
+      canal_vente: z.string().nullable(),
+      url: z.string(),
+      lu_le: z.iso.date(),
+    })
+    .nullable()
+    .default(null),
 });
 export type Contact = NonNullable<z.infer<typeof schemaEtape>["contact"]>;
+export type TarifEtape = NonNullable<z.infer<typeof schemaEtape>["tarif"]>;
+// Spec 43 (D124) : cartes de réduction connues et tarifs validés (`GET /v1/fiches`).
+export const schemaCatalogueCartes = z.object({
+  cartes: z.array(
+    z.object({ carte: z.string(), nom: z.string(), reseaux: z.array(z.string()), pourcentage: z.number(), conditions: z.string().nullable() }),
+  ),
+});
+export type CatalogueCartes = z.infer<typeof schemaCatalogueCartes>;
 const schemaReponseNumeros = z.object({ numeros: z.array(schemaEtape.shape.contact.unwrap().unwrap()) });
 export type Etape = z.infer<typeof schemaEtape>;
 
@@ -315,6 +338,11 @@ export function clientApi({
         return lu.success ? { etat: "hors_zone", points: lu.data } : { etat: "erreur_serveur" };
       }
       if (!reponse.ok) return { etat: "erreur_serveur" };
+      // 204 (DELETE) : aucun corps ; le schéma dit s'il en attendait un.
+      if (reponse.status === 204) {
+        const vide = schema.safeParse(null);
+        return vide.success ? { etat: "ok", donnees: vide.data } : { etat: "erreur_serveur" };
+      }
       let corps: unknown;
       try {
         corps = await reponse.json();
@@ -368,6 +396,14 @@ export function clientApi({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ trip_id: course, date_service: dateService, jeton_push: jeton }),
       });
+    },
+    /** Spec 43 : cartes de réduction connues (Réglages). Aucune carte cochée n'est envoyée (invariant 7). */
+    fiches(): Promise<ResultatApi<CatalogueCartes>> {
+      return appeler("/v1/fiches", schemaCatalogueCartes);
+    },
+    /** Spec 42 : retire une alerte poussée (trajet supprimé ou remplacé) ; le serveur répond 204 même si elle n'existe plus. */
+    desabonner(id: string): Promise<ResultatApi<null>> {
+      return appeler(`/v1/abonnements/${encodeURIComponent(id)}`, z.null(), { method: "DELETE" });
     },
     /** Phrase de l'Accueil ⇒ champs compris par le serveur (spec 28). Tout échec ⇒ le formulaire de repli. */
     comprendre(phrase: string): Promise<ResultatApi<Comprehension>> {

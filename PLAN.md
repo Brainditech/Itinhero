@@ -312,6 +312,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (spec 16, D80) : `serveur/src/itineraires/taxi.test.ts` (taxi au début : prise en charge 06:58 = train 07:15 − marge 5 − route 12) et `src/domaine/resultat.test.ts` (« Délai pour appeler non connu », aucun numéro), 2026-11-05 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : arrivée 18:07 avec un taxi au lieu du vendredi 06:32).
 - [ ] `data/tarifs.json` : schéma, collecte, validation par Brainditech, application des cartes côté client, puis le tri « Moins cher » (D97).
   Preuve : test (« prix non publié » sans fiche ; tri « Moins cher », trajets sans prix à la fin), au moins une fiche tarifaire validée.
+  Fait en partie (spec 43, D124) : `serveur/src/tarifs/tarifs.json` (Mobigo car, ticket Métro-Train-RER, Némus, relevés le 2026-11-06, non validés), `serveur/src/tarifs/tarifs.test.ts`, `src/domaine/prix.test.ts` (total, partiel, « Prix non publié », « Moins cher ») ; puce « Moins cher » sur le téléphone (`docs/screenshots/fin/d2-spec43-moins-cher.png`). Manque : au moins un tarif **validé par Brainditech** (`valide_le`).
 
 ### Phase 4 — Détail
 
@@ -359,8 +360,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : capture côte à côte.
 - [ ] Domicile.
   Preuve : test, plus capture.
-- [ ] Cartes de réduction (stockées sur le téléphone, prix ajusté).
+- [x] Cartes de réduction (stockées sur le téléphone, prix ajusté).
   Preuve : test (Solidaire −75 % sur un train Mobigo), aucune carte envoyée au serveur.
+  Fait (spec 43, D124) : `src/domaine/prix.test.ts` (« carte cochée ⇒ réduit (Solidaire −75 % sur le train) », « la carte change l'ordre ») ; cartes dans la table `reglages` du téléphone (`src/stockage/reglages.ts`), aucune route ne les reçoit (`GET /v1/fiches` n'a pas d'entrée) ; section « Cartes de réduction » des Réglages (`docs/screenshots/fin/d1-spec43-reglages.png`, 2026-11-06 : « Aucune carte : aucun tarif n'est encore validé »).
 - [ ] « Depuis ma position » (autorisation au premier plan seulement).
   Preuve : capture de la demande d'autorisation, plus test.
 
@@ -413,6 +415,7 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 - [ ] `ingestion-gtfs` pour chaque jeu (D46) : import à part, contrôles par jeu (arrêt Brienon Mairie présent, couverture au-delà de J+30), bascule ou alerte ; un jeu cassé n'empêche pas les autres.
   Preuve : tests (fichier cassé ⇒ ancien jeu conservé, plus événement Sentry).
+  Fait en partie (spec 44, D125) : `serveur/src/donnees/nuit.ts` (décision par jeu, préparation à part), `scripts/ingestion-nuit.sh` (import dans un volume neuf, bascule, retour arrière), `serveur/src/donnees/nuit.test.ts` (fichier cassé ⇒ ancien gardé), 2026-11-06. Manque : l'événement Sentry (phase 9) et la bascule essayée sur le serveur (phase 10).
 - [x] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
   Preuve : test, plus capture.
   Fait (spec 32, D110, issue 0025) : `date_horaires` dans la source GTFS (serveur), ligne « Horaires publiés le …, valables jusqu'au … » et bandeau au-delà de 7 jours au Résultat ; réseaux pas encore publiés pour le jour demandé ; tests `src/domaine/horaires.test.ts`, `serveur/src/routes/horaires-a-venir.test.ts`, 2026-11-06. Captures : `docs/screenshots/fin/a3-joigny-20-11.png` (bandeau à J+14), `c2-0025-flers-libelle.png` (28/12).

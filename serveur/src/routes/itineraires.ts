@@ -13,6 +13,7 @@ import { appelMoteur, refuserEntree } from "./erreurs.js";
 import { dansZoneCouverte } from "../zone/zone.js";
 import type { Annuaire } from "../fiches/annuaire.js";
 import { ajouterContacts } from "../fiches/contacts.js";
+import { ajouterTarifs, type Tarif } from "../tarifs/tarifs.js";
 
 /** `POST /v1/itineraires` (spec 09, §4.5) : verdict et possibilités sourcées. */
 export const MAX_POSSIBILITES = 10;
@@ -92,6 +93,8 @@ export type OptionsItineraires = {
   adresse?: AdresseInverse;
   /** Spec 41 (D122) : fiches de taxis et de transport à la demande. */
   annuaire?: Annuaire;
+  /** Spec 43 (D124) : tarifs (seuls les validés s'appliquent). */
+  tarifs?: Tarif[];
   /** Jour de Paris d'aujourd'hui (issue 0025) ; l'horloge par défaut, fixé dans les tests. */
   aujourdhui?: () => string;
 };
@@ -117,6 +120,7 @@ async function chercherSens(
   manifest: Manifest,
   options: OptionsItineraires,
   log: FastifyBaseLogger,
+  avecTaxiDirect = true,
 ) {
   const d = demandeMoteur(r);
   const adresse = adresseOuRien(options.adresse, r.arrivee); // demandée pendant que MOTIS cherche
@@ -133,11 +137,14 @@ async function chercherSens(
     ),
   ).then((listes) => listes.flat());
   // Spec 41 (D122) : la route en voiture de bout en bout, en même temps ; une panne ne fait rien échouer.
-  const taxiDirect = moteur
-    .plan({ ...d, taxiDirect: true })
-    .then(lireReponsePlan)
-    .then((ps) => taxiDeBoutEnBout(ps, d))
-    .catch(() => null);
+  // Revue PR #61 : à l'aller seulement (l'app ne le montre pas au retour).
+  const taxiDirect = avecTaxiDirect
+    ? moteur
+        .plan({ ...d, taxiDirect: true })
+        .then(lireReponsePlan)
+        .then((ps) => taxiDeBoutEnBout(ps, d))
+        .catch(() => null)
+    : Promise.resolve(null);
   const toutes = lireReponsePlan(await moteur.plan(d));
 
   const retenir_ = (ps: Awaited<typeof avecTaxi>) =>
@@ -161,7 +168,11 @@ async function chercherSens(
     (a, b) => a.depart_utc.localeCompare(b.depart_utc) || a.arrivee_utc.localeCompare(b.arrivee_utc),
   );
   if (retirees > 0) log.warn({ retirees }, "possibilités sans source retirées");
-  const possibilites = ajouterContacts(triees, manifest, options.annuaire, options.horaires);
+  const possibilites = ajouterTarifs(
+    ajouterContacts(triees, manifest, options.annuaire, options.horaires),
+    options.tarifs ?? [],
+    options.horaires,
+  );
 
   return {
     verdict: verdict(possibilites), // jamais sur une possibilité retirée
@@ -178,6 +189,9 @@ async function chercherSens(
   };
 }
 
+/** Élargissement du rectangle départ-arrivée pour les réseaux pas encore publiés (≈ 30 km). */
+export const MARGE_ZONE_DEGRES = 0.3;
+
 /** Au plus 3 réseaux nommés, les plus gros d'abord (SNCF, Île-de-France Mobilités…). */
 export const MAX_RESEAUX_NOMMES = 3;
 
@@ -190,8 +204,19 @@ export function horairesAVenir(
   manifest: Manifest,
   date: string,
   aujourdhui: string,
+  points?: { lat: number; lon: number }[],
 ): { nombre: number; reseaux: { nom: string; jusquau: string }[]; des_le: string } | null {
-  const liste = horaires?.nonPublies(date, aujourdhui) ?? [];
+  // Le rectangle du départ et de l'arrivée, élargi d'environ 30 km : les réseaux que le trajet peut emprunter.
+  const zone: [number, number, number, number] | undefined =
+    points && points.length > 0
+      ? [
+          Math.min(...points.map((p) => p.lat)) - MARGE_ZONE_DEGRES,
+          Math.min(...points.map((p) => p.lon)) - MARGE_ZONE_DEGRES,
+          Math.max(...points.map((p) => p.lat)) + MARGE_ZONE_DEGRES,
+          Math.max(...points.map((p) => p.lon)) + MARGE_ZONE_DEGRES,
+        ]
+      : undefined;
+  const liste = horaires?.nonPublies(date, aujourdhui, zone) ?? [];
   if (liste.length === 0) return null;
   const tailles = new Map(manifest.fichiers.map((f) => [f.jeu, f.taille]));
   // Les plus gros réseaux d'abord, chacun avec le dernier jour couvert (le plus proche s'il a plusieurs jeux).
@@ -253,7 +278,7 @@ export function routeItineraires(
         chercherSens(aller, moteur, manifest, options, requete.log),
         fin_rdv === undefined
           ? null
-          : chercherSens(requeteRetour({ ...entree.data, fin_rdv }), moteur, manifest, options, requete.log),
+          : chercherSens(requeteRetour({ ...entree.data, fin_rdv }), moteur, manifest, options, requete.log, false),
       ]),
     );
     if (sens === undefined) return reponse;
@@ -263,6 +288,7 @@ export function routeItineraires(
       manifest,
       aller.date,
       options.aujourdhui?.() ?? heureParis(new Date()).jour,
+      [aller.depart, aller.arrivee],
     );
     return { ...resultatAller, retour, horaires_a_venir };
   });

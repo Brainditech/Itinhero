@@ -10,8 +10,8 @@ import { CarteEtape } from "@/composants/CarteEtape";
 import { CARTE } from "@/composants/carte-module";
 import { Fleche } from "@/composants/Fleches";
 import { iconeMode } from "@/composants/icones-mode";
-import { messageEchec, type Contact, type Etape, type Point } from "@/domaine/api";
-import { Numero } from "@/composants/AFaire";
+import { messageEchec, type Etape, type Point } from "@/domaine/api";
+import { Numero, NumerosPres } from "@/composants/AFaire";
 import { destinationMarche, distanceConsigne, phraseConsigne } from "@/domaine/consignes";
 import {
   arretsDeLaCourse,
@@ -460,13 +460,6 @@ export default function FenetreEtape() {
  * `POST /v1/numeros` (fiches validées ou pages publiques vérifiées) ; sans réseau, l'Uber reste proposé.
  */
 function TaxiPourLaMarche({ etape }: { etape: Etape }) {
-  const client = useClient();
-  const [numeros, setNumeros] = useState<{ etat: "attente" } | { etat: "ok"; liste: Contact[] } | { etat: "echec" } | null>(null);
-  const chercher = async () => {
-    setNumeros({ etat: "attente" });
-    const r = await client.numeros({ lat: etape.de.lat, lon: etape.de.lon }, "taxi");
-    setNumeros(r.etat === "ok" ? { etat: "ok", liste: r.donnees } : { etat: "echec" });
-  };
   return (
     <View className="gap-2">
       <View className="flex-row items-center gap-2">
@@ -475,19 +468,7 @@ function TaxiPourLaMarche({ etape }: { etape: Etape }) {
           {`Marche de ${formaterDuree(etape.duree_minutes)} : un taxi peut faire cette étape.`}
         </Text>
       </View>
-      {numeros === null ? (
-        <View className="items-start">
-          <Lien libelle="Numéros de taxi près du départ" onPress={() => void chercher()} />
-        </View>
-      ) : numeros.etat === "attente" ? (
-        <Text className="font-inter text-secondaire text-texte-secondaire">Recherche des numéros…</Text>
-      ) : numeros.etat === "echec" ? (
-        <Text className="font-inter text-secondaire text-erreur">Numéros indisponibles sans connexion au serveur.</Text>
-      ) : numeros.liste.length === 0 ? (
-        <Numero contact={null} />
-      ) : (
-        numeros.liste.map((c) => <Numero key={`${c.nom}-${c.numero}`} contact={c} />)
-      )}
+      <NumerosPres point={{ lat: etape.de.lat, lon: etape.de.lon }} />
     </View>
   );
 }

@@ -63,3 +63,8 @@ example
 
 # données nationales chargées dans MOTIS sur le PC (spec 08) — jamais dans le dépôt
 /donnees/
+
+# Spec 44 : dossiers de données du jour et fichier de bascule (ingestion nocturne)
+/donnees-20*/
+/donnees-avant-*/
+donnees-actives.env

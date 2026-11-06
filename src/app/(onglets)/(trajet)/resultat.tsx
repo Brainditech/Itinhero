@@ -7,10 +7,11 @@ import { SymbolView } from "expo-symbols";
 import { supprimerCarte } from "@/carte/packs";
 import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
+import { useCartes } from "@/cartes";
 import { AFaire } from "@/composants/AFaire";
 import { CarteTaxiDirect } from "@/composants/CarteTaxiDirect";
 import { EnDirect } from "@/composants/EnDirect";
-import { abonnerTrajet } from "@/temps-reel";
+import { abonnerTrajet, oublierTempsReel } from "@/temps-reel";
 import { useClient } from "@/session";
 import { BandeauInfo, CarteFlottante, Lien, Puce } from "@/composants/elements";
 import { LigneCarte } from "@/composants/LigneCarte";
@@ -199,11 +200,12 @@ function useEnregistrement(recherche: Recherche | null) {
           .then(() => supprimerCarte(ancien))
           .catch(() => undefined);
         await annulerRappels(ancien).catch(() => undefined);
+        await oublierTempsReel(db, client, ancien).catch(() => undefined);
       }
       // Spec 30 : rappels locaux du trajet ; un refus ou un échec n'empêche jamais l'enregistrement.
       await programmerRappels(cle, voyage).catch(() => 0);
       // Spec 42 : alertes poussées quand un projet Expo est configuré ; sinon rien (la relève locale suffit).
-      void abonnerTrajet(client, voyage).catch(() => 0);
+      void abonnerTrajet(db, client, cle, voyage).catch(() => 0);
       poser({ etat: "fait", cle, voyage, index, jeton: Date.now() });
       AccessibilityInfo.announceForAccessibility("Trajet enregistré dans Mes trajets");
     } catch {
@@ -303,7 +305,8 @@ function Sens({
   enregistrement: Enregistrement | null;
   horairesIncomplets: boolean;
 }) {
-  const rangees = trier(reponse.possibilites, tri);
+  const { cartes } = useCartes();
+  const rangees = trier(reponse.possibilites, tri, cartes);
   const etat = enregistrement?.sens[trajet];
   return (
     <>

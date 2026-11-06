@@ -41,3 +41,41 @@ export async function enregistrerDomicileEnBase(db: SQLiteDatabase, domicile: Do
     JSON.stringify(domicile),
   );
 }
+
+// ——— Cartes de réduction (spec 43, D124, invariant 7) : gardées ici seulement, jamais envoyées au serveur ———
+
+export async function lireCartesEnBase(db: SQLiteDatabase): Promise<string[]> {
+  const ligne = await db.getFirstAsync<{ valeur: string }>("SELECT valeur FROM reglages WHERE cle = ?", "cartes");
+  try {
+    const v: unknown = ligne ? JSON.parse(ligne.valeur) : [];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function enregistrerCartesEnBase(db: SQLiteDatabase, cartes: string[]): Promise<void> {
+  await db.runAsync(
+    "INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur",
+    "cartes",
+    JSON.stringify([...new Set(cartes)]),
+  );
+}
+
+/** Catalogue des cartes reçu de `GET /v1/fiches`, gardé pour les Réglages sans réseau. */
+export async function lireCatalogueCartes(db: SQLiteDatabase): Promise<unknown> {
+  const ligne = await db.getFirstAsync<{ valeur: string }>("SELECT valeur FROM reglages WHERE cle = ?", "catalogue_cartes");
+  try {
+    return ligne ? JSON.parse(ligne.valeur) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function enregistrerCatalogueCartes(db: SQLiteDatabase, catalogue: unknown): Promise<void> {
+  await db.runAsync(
+    "INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur",
+    "catalogue_cartes",
+    JSON.stringify(catalogue),
+  );
+}
