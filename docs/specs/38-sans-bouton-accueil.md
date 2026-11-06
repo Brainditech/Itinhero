@@ -1,7 +1,7 @@
 # Spec 38 — Plus de bouton « Aller à l'Accueil »
 
 - **Date** : 2026-11-06
-- **État** : **approuvée** par Brainditech (« ok vas y implemente tout ça », 2026-11-06). Règle : D116.
+- **État** : **approuvée** par Brainditech (« ok vas y implemente tout ça », 2026-11-06). Règle : D116. **Appliquée** et constatée sur le téléphone le 2026-11-06 (critères 1 à 3, captures `docs/screenshots/38-*.png`, non versionnées).
 - **Branche** : `app/sans-bouton-accueil`.
 - **Case de PLAN.md** : aucune ; demande consignée dans `docs/ETAT.md` (« vire les gros boutons Aller à l'Accueil »).
 - **Invariants** : aucun calcul ni donnée touchés ; affichage seulement.
