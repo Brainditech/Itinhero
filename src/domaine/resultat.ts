@@ -437,9 +437,14 @@ export function resumePossibilite(p: Possibilite): string {
 
 export const MARCHE_LONGUE_MIN = 15;
 
+/** D3 : une marche de plus de 15 min (16 et plus), qu'un taxi peut faire (spec 41). */
+export function estMarcheLongue(e: Etape): boolean {
+  return e.mode === "marche" && e.duree_minutes > MARCHE_LONGUE_MIN;
+}
+
 /** D3 : avertir quand une marche dépasse 15 min (16 et plus). */
 export function aMarcheLongue(p: Possibilite): boolean {
-  return p.etapes.some((e) => e.mode === "marche" && e.duree_minutes > MARCHE_LONGUE_MIN);
+  return p.etapes.some(estMarcheLongue);
 }
 
 /** Correspondances dites en mots. */

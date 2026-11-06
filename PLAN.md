@@ -311,9 +311,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Taxi comme étape au début et à la fin (D48) : heure de prise en charge et heure limite pour appeler.
   Preuve : tests (heure de prise en charge = départ de l'étape suivante − durée de route − attente ; sans fiche ⇒ « délai non connu »).
   Fait (spec 16, D80) : `serveur/src/itineraires/taxi.test.ts` (taxi au début : prise en charge 06:58 = train 07:15 − marge 5 − route 12) et `src/domaine/resultat.test.ts` (« Délai pour appeler non connu », aucun numéro), 2026-11-05 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : arrivée 18:07 avec un taxi au lieu du vendredi 06:32).
-- [ ] `data/tarifs.json` : schéma, collecte, validation par Brainditech, application des cartes côté client, puis le tri « Moins cher » (D97).
+- [x] `data/tarifs.json` : schéma, collecte, validation par Brainditech, application des cartes côté client, puis le tri « Moins cher » (D97).
   Preuve : test (« prix non publié » sans fiche ; tri « Moins cher », trajets sans prix à la fin), au moins une fiche tarifaire validée.
-  Fait en partie (spec 43, D124) : `serveur/src/tarifs/tarifs.json` (Mobigo car, ticket Métro-Train-RER, Némus, relevés le 2026-11-06, non validés), `serveur/src/tarifs/tarifs.test.ts`, `src/domaine/prix.test.ts` (total, partiel, « Prix non publié », « Moins cher ») ; puce « Moins cher » sur le téléphone (`docs/screenshots/fin/d2-spec43-moins-cher.png`). Manque : au moins un tarif **validé par Brainditech** (`valide_le`).
+  Fait (spec 43, D124) : `serveur/src/tarifs/tarifs.json` (Mobigo car, ticket Métro-Train-RER, Némus, relevés le 2026-11-06, non validés), `serveur/src/tarifs/tarifs.test.ts`, `src/domaine/prix.test.ts` (total, partiel, « Prix non publié », « Moins cher ») ; puce « Moins cher » sur le téléphone (`docs/screenshots/fin/d2-spec43-moins-cher.png`). Les trois tarifs validés par Brainditech le 2026-11-07 après relecture de leur source officielle (Mobigo 2 €, IDFM 2,55 €, Némus 1,10 €) ; constaté sur le téléphone par adb : Gare de Lyon → Châtelet ⇒ « Prix : 2,55 € » sur chaque trajet en métro, Réglages « Cartes de réduction » avec Avantages Jeunes (−100 %) et tarif réduit IDFM (−50 %) (`docs/screenshots/2026-11-07-paris-resultat.png`, `2026-11-07-reglages-cartes.png`).
 
 ### Phase 4 — Détail
 
@@ -329,9 +329,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : tests du domaine (annonces, écart, descente), captures des 5 états comparées à `design/guidage/`, essai sur le terrain par Brainditech.
 - [x] Perdu pendant une marche : nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé quand le véhicule suivant reste à portée (D96, spec 20).
   Preuve : tests du serveur et du domaine, test sur le MOTIS national, captures adb (nouveau chemin, véhicule plus à portée, 17 km).
-- [ ] Annuaire `data/fiches/` validé. Avertissement ⚠ au-delà de 15 min de marche, avec un taxi pour cette étape.
+- [x] Annuaire `data/fiches/` validé. Avertissement ⚠ au-delà de 15 min de marche, avec un taxi pour cette étape.
   Preuve : tests (« aucun numéro connu »), au moins une fiche taxi validée.
-  Fait en partie (spec 41, D122) : `serveur/src/fiches/fiches.json` (17 fiches candidates), tests de l'annuaire ; écran Étape d'une marche de plus de 15 min (avertissement, Uber, numéros). Manque : au moins une fiche taxi **validée par Brainditech** (`valide_le`), et la capture de l'écran d'une marche longue.
+  Fait (spec 41, D122) : `serveur/src/fiches/fiches.json` (17 fiches candidates), tests de l'annuaire ; écran Étape d'une marche de plus de 15 min (avertissement, Uber, numéros). Cinq fiches validées par Brainditech le 2026-11-07 après recoupement de leur source (TAD 864 Toucy ↔ Joigny, TAD Némus, LENOBLE TAXIS, A&H, Taxi KS) ; les 12 autres restent cachées ou « non vérifié ». Constaté par adb : étape Taxi d'arrivée à Joigny ⇒ « LENOBLE TAXIS · 03 86 91 49 87 », « Fiche validée le 07/11/2026 » ; écran Étape de la marche de 48 min ⇒ avertissement, Uber, numéros, après correction de l'issue 0029 (`docs/screenshots/2026-11-07-etape-taxi-joigny.png`, `2026-11-07-issue0029-marche-longue-taxi.png`).
 - [x] Lien Uber pré-rempli, et taxi de bout en bout (durée estimée, « prix non publié »).
   Preuve : test du lien, plus capture.
   Fait (spec 31, spec 41, D122) : `src/domaine/uber.test.ts`, `src/domaine/contacts.test.ts`, `serveur/src/routes/taxi-direct.test.ts` ; carte « Taxi de bout en bout » (4 h 22, 457 km, « Prix non publié. », « Commander un Uber ») le 2026-11-06 (`docs/screenshots/fin/c2-0025-flers-libelle.png`).

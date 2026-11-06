@@ -28,8 +28,8 @@
       ],
       "canal_vente": "À bord par carte bancaire sans contact (titre unitaire seulement, flash de la CB à la montée) ; m-ticket sur l'application Mobigo (QR code) ; carte rechargeable anonyme (5 €) chez les dépositaires",
       "url": "https://www.viamobigo.fr/ftp/document/grille-tarifaire-routier-bfc-totalite-maj-12-03-2026.pdf",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "idfm-ticket-metro-train-rer",
@@ -56,8 +56,8 @@
       ],
       "canal_vente": "Sans contact uniquement : passe Navigo Easy (points de vente, agents, automates des transporteurs, applications mobiles) ou téléphone via les applications proposant le service d'achat",
       "url": "https://tzen4.iledefrance-mobilites.fr/en/tarifs-titre-de-transport-en-commun-2026",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     },
     {
       "id": "nemus-ticket-unite",
@@ -76,8 +76,8 @@
       "reductions": [],
       "canal_vente": null,
       "url": "https://nemus.flers-agglo.fr/se-deplacer/transport-a-la-demande",
-      "lu_le": "2026-11-06",
-      "valide_le": null
+      "lu_le": "2026-11-07",
+      "valide_le": "2026-11-07"
     }
   ]
 }
