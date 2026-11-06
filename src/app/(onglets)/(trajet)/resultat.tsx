@@ -9,6 +9,7 @@ import { useCarteVoyage } from "@/carte/useCarteVoyage";
 import { Ecran } from "@/composants/Ecran";
 import { useCartes } from "@/cartes";
 import { AFaire } from "@/composants/AFaire";
+import { CarteCovoiturage } from "@/composants/CarteCovoiturage";
 import { CarteTaxiDirect } from "@/composants/CarteTaxiDirect";
 import { EnDirect } from "@/composants/EnDirect";
 import { abonnerTrajet, oublierTempsReel } from "@/temps-reel";
@@ -31,6 +32,7 @@ import {
   phraseHorairesAVenir,
   phraseVerdict,
 } from "@/domaine/resultat";
+import { covoiturageEnTete, type LieuCovoiturage } from "@/domaine/covoiturage";
 import { LIBELLES_TRIS, TRIS, trier, type Tri } from "@/domaine/tri";
 import { actionsDuTrajet, rappelVeille } from "@/domaine/rappels";
 import { bandeauVoyage, champsDepuisRecherche, possibiliteMontree, voyageDePossibilite, type TrisVoyage, type Voyage } from "@/domaine/voyages";
@@ -72,6 +74,13 @@ export default function Resultat() {
   // Spec 34 (D112, §3.4) : onglet Trajet ouvert avant toute recherche.
   if (!recherche?.reponse || !depart || !arrivee) return <AucunTrajet />;
   const { reponse, demande, rouvert } = recherche;
+  // Spec 47 : les deux bouts pour le lien de covoiturage (commune et point arrondi seulement).
+  const lieuDepart: LieuCovoiturage = { ...depart.point, nom: depart.nom, adresse: depart.adresse };
+  const lieuArrivee: LieuCovoiturage = {
+    ...arrivee.point,
+    nom: arrivee.nom,
+    adresse: adresseArrivee(demande.arrivee, arrivee.adresse, reponse.arrivee.adresse),
+  };
   const toutes = [...reponse.possibilites, ...(reponse.retour?.possibilites ?? [])];
   const du = horairesDu(toutes);
   const horaires = ligneHoraires(du, finHoraires(toutes));
@@ -118,6 +127,7 @@ export default function Resultat() {
         onChoisir={(t) => choisirTri("aller", t)}
         enregistrement={rouvert ? null : enregistrement}
         horairesIncomplets={aVenir !== null}
+        covoiturage={rouvert ? null : { de: lieuDepart, a: lieuArrivee }}
       />
       {/* Spec 41 : pas sur un trajet rouvert (il ne garde qu'une possibilité). */}
       {reponse.taxi_direct && !rouvert ? (
@@ -144,6 +154,7 @@ export default function Resultat() {
             onChoisir={(t) => choisirTri("retour", t)}
             enregistrement={rouvert ? null : enregistrement}
             horairesIncomplets={aVenir !== null}
+            covoiturage={rouvert ? null : { de: lieuArrivee, a: lieuDepart }}
           />
         </>
       ) : null}
@@ -304,6 +315,7 @@ function Sens({
   onChoisir,
   enregistrement,
   horairesIncomplets,
+  covoiturage,
 }: {
   reponse: ReponseSens;
   trajet: Trajet;
@@ -314,13 +326,20 @@ function Sens({
   onChoisir: (t: Tri) => void;
   enregistrement: Enregistrement | null;
   horairesIncomplets: boolean;
+  /** Spec 47 (D50) : nul sur un trajet rouvert. */
+  covoiturage: { de: LieuCovoiturage; a: LieuCovoiturage } | null;
 }) {
   const { cartes } = useCartes();
+  const enTete = covoiturageEnTete(reponse.possibilites);
+  const carteCovoiturage = covoiturage ? (
+    <CarteCovoiturage de={covoiturage.de} a={covoiturage.a} date={date} possibilites={reponse.possibilites} />
+  ) : null;
   const rangees = trier(reponse.possibilites, tri, cartes, trajet);
   const etat = enregistrement?.sens[trajet];
   return (
     <>
       <BlocVerdict reponse={reponse} trajet={trajet} horairesIncomplets={horairesIncomplets} />
+      {enTete ? carteCovoiturage : null}
       {reponse.possibilites.length >= 2 ? <PucesTri tri={tri} onChoisir={onChoisir} /> : null}
       {rangees.length === 0 && reponse.possibilites.length > 0 ? (
         <Text className="font-inter text-corps text-texte">Aucun trajet sans réservation ce jour-là.</Text>
@@ -342,6 +361,7 @@ function Sens({
           pied={etat?.index === i ? <EtatEnregistrement etat={etat} /> : undefined}
         />
       ))}
+      {enTete ? null : carteCovoiturage}
     </>
   );
 }

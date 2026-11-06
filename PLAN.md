@@ -388,10 +388,12 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 ### Phase 6 ter — Covoiturage (D50)
 
-- [ ] Source du covoiturage constatée (accès développeur BlaBlaCar ou lien profond, R14), décision écrite.
+- [x] Source du covoiturage constatée (accès développeur BlaBlaCar ou lien profond, R14), décision écrite.
   Preuve : doc officielle lue et datée dans `docs/decisions/`.
-- [ ] Covoiturage proposé quand aucun transport public n'arrive à l'heure, et en option sinon.
+  Fait (spec 47, D128) : portail développeur BlaBlaCar en 404 et API v3 fermée par clé, constatés le 2026-11-06 ; doc partenaire BlaBlaCar Daily lue (jeton sur demande) ; lien de recherche blablacar.fr constaté dans un navigateur (sa page d'aide est en 404 : format non documenté). Détail dans `docs/specs/47-covoiturage.md` §2.
+- [x] Covoiturage proposé quand aucun transport public n'arrive à l'heure, et en option sinon.
   Preuve : test (jour sans train ⇒ proposition de covoiturage), plus capture.
+  Fait (spec 47) : `src/domaine/covoiturage.test.ts` (aucun trajet ou taxi seulement ⇒ en tête) ; constaté par adb le 2026-11-06 (Joigny : en tête, BlaBlaCar ouvert pré-rempli ; Sens : après les trajets), captures `docs/screenshots/47-*.png`.
 
 ### Phase 7 — Temps réel et alertes
 
@@ -522,7 +524,7 @@ Révisé le 2026-11-04 par D45 : « France entière », « trajet dans Paris apr
 | R11 | Dates relatives (« jeudi », heure d'été) : le serveur fournit à Claude la date et le fuseau Europe/Paris | Phase 1 |
 | R12 | Compatibilité SDK 58 / RN 0.88.1 de MapLibre RN et de NativeWind (NativeWind constaté seulement en SDK 57 dans Tripagent) | Phases 0 et 4 |
 | R13 | Perte de la clé de signature release : aucune mise à jour possible de l'APK installé | Phase 11 |
-| R14 | Accès au covoiturage : accès développeur BlaBlaCar ouvert ou non, conditions ; à défaut, lien profond seulement | Phase 6 ter |
+| R14 | Accès au covoiturage : accès développeur BlaBlaCar ouvert ou non, conditions ; à défaut, lien profond seulement | Phase 6 ter — **tranché le 2026-11-06 (D128)** : aucun accès ouvert, lien profond ; jeton BlaBlaCar Daily à demander par Brainditech pour les trajets courts (facultatif) |
 | R15 | Nombre et qualité des GTFS régionaux et urbains, rythme de mise à jour de chacun, jeux cassés | Phases 2 bis et 8 |
 | R16 | Conditions d'utilisation des pages publiques où l'on lit les numéros (D49) | Phase 4 |
 | R17 | Taille du pack de carte hors ligne pour un voyage national | Phases 2 bis et 5 |
