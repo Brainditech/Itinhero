@@ -451,8 +451,9 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 - [x] Conteneurs sans utilisateur root, avec healthcheck.
   Preuve : `docker inspect` (User, Healthcheck).
   Fait (spec 26) : `docker inspect` sur le PC, 2026-11-06 : `api` `User=node` avec healthcheck `fetch /health`, `motis` `User=motis` avec healthcheck `wget /api/v1/health` (sortie dans `docs/specs/26-securisation-serveur.md` §7). À refaire sur le VPS (phase 10).
-- [ ] Dev et prod séparés (`.env`, DSN, données).
+- [x] Dev et prod séparés (`.env`, DSN, données).
   Preuve : diff de configuration.
+  Fait (spec 52, D136), 2026-11-07 : `docker-compose.prod.yml` ; configurations sans interpolation du PC (national) et de la prod, et leur diff (`docs/preuves/2026-11-07-fin/dev-prod/`) : projet et volumes `itinhero-prod`, étiquette `ITINHERO_VERSION` obligatoire (refus constaté avec un fichier factice), `SENTRY_ENVIRONNEMENT=prod`, DSN obligatoire, `restart: always`, journaux bornés, ports sur 127.0.0.1 ; `.env.example` par machine ; app : environnement Sentry selon le build (spec 50).
 - [x] Erreur volontaire vue dans Sentry (app et serveur), puis retirée.
   Preuve : capture de l'événement, puis commit de retrait.
   Fait (spec 50, issue 0030, D132), 2026-11-07, environnement `dev`, région de l'UE : serveur ITINHERO-SERVEUR-1 et -2 (envoyées depuis le conteneur de l'API, aucun code ajouté), app ITINHERO-APP-1 (bouton temporaire de Réglages pressé par adb à 00:59:20 sur le Galaxy S21 Ultra, retiré sans avoir été commité : rien à retirer dans l'historique). Capture regardée par Claude : `docs/screenshots/2026-11-07-sentry-evenements-app-serveur-ingestion.jpg` (non versionnée, D38).

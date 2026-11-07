@@ -14,14 +14,18 @@ RACINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$RACINE"
 # Revue : un nom par passage (date et heure), jamais celui en service, même relancé le même jour.
 JOUR="$(TZ=Europe/Paris date +%F-%H%M)"
-COMPOSE=(docker compose --env-file .env --env-file donnees-actives.env -p itinhero-national -f docker-compose.yml -f docker-compose.national.yml)
+# Spec 52 (D136) : sur le VPS, ITINHERO_PROJET=itinhero-prod ajoute docker-compose.prod.yml ; sur le PC, le national.
+PROJET="${ITINHERO_PROJET:-$(sed -n 's/^ITINHERO_PROJET=//p' .env 2>/dev/null | tail -1)}"
+PROJET="${PROJET:-itinhero-national}"
+COMPOSE=(docker compose --env-file .env --env-file donnees-actives.env -p "$PROJET" -f docker-compose.yml -f docker-compose.national.yml)
+if [ "$PROJET" = "itinhero-prod" ]; then COMPOSE+=(-f docker-compose.prod.yml); fi
 MOTIS_IMAGE="ghcr.io/motis-project/motis:2.11.4"
 
 touch donnees-actives.env
 # shellcheck disable=SC1091
 source donnees-actives.env
 ACTUEL="${DONNEES:-./donnees}"
-VOLUME_ACTUEL="${MOTIS_DONNEES:-itinhero-national_motis-data}"
+VOLUME_ACTUEL="${MOTIS_DONNEES:-${PROJET}_motis-data}"
 NOUVEAU="./donnees-$JOUR"
 VOLUME_NOUVEAU="itinhero-motis-$JOUR"
 if [ "$NOUVEAU" = "$ACTUEL" ] || [ -e "$NOUVEAU" ] || docker volume inspect "$VOLUME_NOUVEAU" >/dev/null 2>&1; then
