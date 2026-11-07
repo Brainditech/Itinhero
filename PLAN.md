@@ -319,10 +319,12 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [ ] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] Frise verticale et états d'horaire.
+- [x] Frise verticale et états d'horaire.
   Preuve : test de rendu, plus capture.
-- [ ] Gabarits de consignes et glossaire à la première occurrence.
+  Fait (spec 51, D134) : `src/domaine/frise.ts` construit chaque ligne affichée (heure du serveur, titre, phrase, réservation, état d'horaire « prévu », « Retard 7 min », « Supprimé », attentes, arrivée), `src/composants/Trajet.tsx` ne fait que l'afficher ; test de rendu `src/domaine/frise.test.ts` (8 tests), 2026-11-07 ; capture adb du Résultat déplié Domicile → Gare de Joigny le 12/11 (`docs/screenshots/fin-impl/51-frise-depliee.png`, non versionnée).
+- [x] Gabarits de consignes et glossaire à la première occurrence.
   Preuve : tests.
+  Fait : consignes (spec 11, `src/domaine/consignes.test.ts`, `src/domaine/guidage.test.ts`) ; glossaire (spec 51, D134) : `src/domaine/glossaire.ts` (TER, RER, Car, Tram, Transport à la demande, Train de banlieue ; textes à relire par Brainditech), première occurrence seulement, mot entier, tests dans `src/domaine/frise.test.ts`, 2026-11-07 ; « TER » souligné en pointillé, explication affichée au toucher, l'Étape s'ouvre toujours par le reste de la ligne (`docs/screenshots/fin-impl/51-glossaire-ter.png`).
 - [ ] Carte MapLibre : arrêts, tracé de marche, tuiles OpenFreeMap, attribution OSM.
   Preuve : capture.
 - [ ] Guidage en direct de porte à porte : marche virage par virage, attente à l'arrêt, arrêts restants, descente, écart au chemin (D72 à D75, spec 12).

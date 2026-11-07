@@ -5,11 +5,10 @@ import { SymbolView } from "expo-symbols";
 
 import type { Etape, Possibilite } from "@/domaine/api";
 import type { Trajet } from "@/domaine/demande";
-import { phraseMarche, phraseTrajetVehicule } from "@/domaine/guidage";
+import { lignesFrise, type LigneFrise } from "@/domaine/frise";
+import { GLOSSAIRE } from "@/domaine/glossaire";
 import {
   aMarcheLongue,
-  attenteApres,
-  directionEtape,
   formaterAttente,
   formaterDuree,
   jetonMode,
@@ -18,9 +17,6 @@ import {
   libelleCorrespondances,
   libelleEtape,
   nuitDehors,
-  phraseMontee,
-  phraseReservation,
-  phraseTaxi,
   resumePossibilite,
 } from "@/domaine/resultat";
 import { etapeAReserver } from "@/domaine/tri";
@@ -120,66 +116,89 @@ function PrixNonPublie() {
   );
 }
 
+type LigneEtapeFrise = Extract<LigneFrise, { type: "etape" }>;
+
 /**
- * Une étape dépliée : heure, arrêts, ligne, direction, et l'état « horaire prévu » (invariant 12).
- * La toucher ouvre sa fenêtre : la carte en fond, les consignes ou les arrêts en bas (spec 17, D84).
+ * Titre d'une étape : un mot du glossaire à sa première occurrence est souligné en pointillé ; le toucher montre son
+ * explication sous le titre (spec 51, D134).
  */
-function LigneEtape({ etape, suivante, ouvrir }: { etape: Etape; suivante?: Etape; ouvrir: () => void }) {
-  const marche = etape.mode === "marche";
-  const couleur = couleurs[jetonMode(etape.mode)];
-  const direction = directionEtape(etape);
-  const reservation = phraseReservation(etape) ?? phraseTaxi(etape);
+function TitreEtape({ ligne, explication, basculer }: { ligne: LigneEtapeFrise; explication: string | null; basculer: (terme: string) => void }) {
+  return (
+    <>
+      <Text className="font-inter-semibold text-secondaire text-texte">
+        {ligne.glossaire.map((m, k) =>
+          m.terme ? (
+            <Text
+              key={k}
+              accessibilityRole="button"
+              accessibilityLabel={`${m.terme}, explication disponible`}
+              onPress={() => basculer(m.terme as string)}
+              className="font-inter-semibold text-primaire"
+              style={{ textDecorationLine: "underline", textDecorationStyle: "dotted", textDecorationColor: couleurs.primaire }}
+            >
+              {m.texte}
+            </Text>
+          ) : (
+            <Text key={k}>{m.texte}</Text>
+          ),
+        )}
+        {ligne.direction ? <Text className="font-inter text-texte-secondaire">{` ${ligne.direction}`}</Text> : null}
+      </Text>
+      {explication ? (
+        <View className="flex-row gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: couleurs["primaire-doux"] }}>
+          <SymbolView name={{ android: "info", web: "info" }} size={16} tintColor={couleurs.primaire} />
+          <Text className="flex-1 font-inter text-badge text-texte">{explication}</Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Une étape dépliée : heure, arrêts, ligne, direction, et l'état d'horaire (invariant 12), tels que `lignesFrise` les
+ * donne (spec 51). La toucher ouvre sa fenêtre : la carte en fond, les consignes ou les arrêts en bas (spec 17, D84).
+ */
+function LigneEtape({ ligne, ouvrir }: { ligne: LigneEtapeFrise; ouvrir: () => void }) {
+  const [terme, setTerme] = useState<string | null>(null);
+  const marche = ligne.mode === "marche";
+  const couleur = couleurs[jetonMode(ligne.mode)];
+  const explication = terme ? (GLOSSAIRE[terme] ?? null) : null;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${etape.depart}, ${marche ? `Marche, ${phraseMarche(etape, suivante)}` : `${libelleEtape(etape)}${direction ? ` ${direction}` : ""}`}`}
+      accessibilityLabel={`${ligne.heure}, ${marche ? `Marche, ${ligne.phrase}` : `${ligne.titre}${ligne.direction ? ` ${ligne.direction}` : ""}`}`}
       accessibilityHint="Ouvre la carte de cette étape"
       onPress={ouvrir}
       // Pas de surbrillance au toucher : elle clignotait à chaque défilement du Résultat (retour de Brainditech).
       className="flex-row gap-3"
     >
       <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
-        {etape.depart}
+        {ligne.heure}
       </Text>
       <View className="items-center pt-1">
-        <SymbolView name={{ android: icone(etape.mode), web: icone(etape.mode) }} size={20} tintColor={couleur} />
+        <SymbolView name={{ android: icone(ligne.mode), web: icone(ligne.mode) }} size={20} tintColor={couleur} />
         <View className="mt-1 w-0.5 flex-1" style={{ backgroundColor: marche ? couleurs["bordure-carte"] : couleur }} />
       </View>
       <View className="flex-1 gap-1 pb-4">
-        <Text className="font-inter-semibold text-secondaire text-texte">
-          {marche ? "Marche" : libelleEtape(etape)}
-          {direction ? <Text className="font-inter text-texte-secondaire">{` ${direction}`}</Text> : null}
-        </Text>
-        {marche ? (
-          <>
-            <Text className="font-inter text-badge text-texte-secondaire">
-              {phraseMarche(etape, suivante)}
+        <TitreEtape ligne={ligne} explication={explication} basculer={(t) => setTerme((x) => (x === t ? null : t))} />
+        <Text className="font-inter text-badge text-texte-secondaire">{ligne.phrase}</Text>
+        {ligne.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{ligne.exploitant}</Text> : null}
+        {ligne.reservation ? (
+          <View className="flex-row items-center gap-2">
+            <SymbolView name={{ android: "call", web: "call" }} size={16} tintColor={couleurs.avertissement} />
+            <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
+              {ligne.reservation}
             </Text>
-          </>
-        ) : (
-          <>
-            <Text className="font-inter text-badge text-texte-secondaire">
-              {phraseTrajetVehicule(etape, formaterDuree(etape.duree_minutes))}
+          </View>
+        ) : null}
+        {ligne.horaire ? (
+          <View className="flex-row items-center gap-1 self-start rounded-full px-2 py-0.5" style={{ backgroundColor: couleurs["prevu-teinte"] }}>
+            <SymbolView name={{ android: "schedule", web: "schedule" }} size={14} tintColor={couleurs["prevu-texte"]} />
+            <Text className="font-inter text-badge" style={{ color: couleurs["prevu-texte"] }}>
+              {ligne.horaire.texte}
             </Text>
-            {etape.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{etape.exploitant}</Text> : null}
-            {reservation ? (
-              <View className="flex-row items-center gap-2">
-                <SymbolView name={{ android: "call", web: "call" }} size={16} tintColor={couleurs.avertissement} />
-                <Text className="flex-1 font-inter-semibold text-badge" style={{ color: couleurs.avertissement }}>
-                  {reservation}
-                </Text>
-              </View>
-            ) : null}
-            {etape.mode === "taxi" ? null : (
-              <View className="flex-row items-center gap-1 self-start rounded-full px-2 py-0.5" style={{ backgroundColor: couleurs["prevu-teinte"] }}>
-                <SymbolView name={{ android: "schedule", web: "schedule" }} size={14} tintColor={couleurs["prevu-texte"]} />
-                <Text className="font-inter text-badge" style={{ color: couleurs["prevu-texte"] }}>
-                  Horaire prévu, sans suivi en direct
-                </Text>
-              </View>
-            )}
-          </>
-        )}
+          </View>
+        ) : null}
       </View>
       <View className="min-h-12 w-8 items-center justify-center self-center">
         <SymbolView name={{ android: "chevron_right", web: "chevron_right" }} size={26} tintColor={couleurs.primaire} />
@@ -229,8 +248,6 @@ export function CartePossibilite({
 }) {
   const [ouverte, setOuverte] = useState(false);
   const p = possibilite;
-  const premiereMontee = p.etapes.findIndex((e) => e.mode !== "marche");
-  const montee = phraseMontee(p);
   // Un taxi se réserve toujours (spec 16, D48) ; même règle que le tri « Sans réservation » (spec 21, D97).
   const aReserver = etapeAReserver(p);
   const nuit = nuitDehors(p);
@@ -275,21 +292,17 @@ export function CartePossibilite({
       {pied}
       {ouverte ? (
         <View className="mt-2 border-t border-bordure-carte pt-4">
-          {p.etapes.map((e, i) => {
-            const attente = attenteApres(p.etapes, i);
-            // Avant la première montée, la ligne dit l'heure d'arrivée à l'arrêt et le passage du véhicule.
-            const texte = i === premiereMontee - 1 && montee ? montee : attente !== null ? `Attente ${formaterAttente(attente)}` : null;
-            return (
-              <View key={i}>
-                <LigneEtape
-                  etape={e}
-                  suivante={p.etapes[i + 1]}
-                  ouvrir={() => router.push({ pathname: "/etape", params: { i: String(index), e: String(i), t: trajet } })}
-                />
-                {texte ? <LigneAttente texte={texte} /> : null}
-              </View>
-            );
-          })}
+          {lignesFrise(p).map((l, k) =>
+            l.type === "etape" ? (
+              <LigneEtape
+                key={k}
+                ligne={l}
+                ouvrir={() => router.push({ pathname: "/etape", params: { i: String(index), e: String(l.index), t: trajet } })}
+              />
+            ) : l.type === "attente" ? (
+              <LigneAttente key={k} texte={l.texte} />
+            ) : null,
+          )}
           <View className="flex-row gap-3">
             <Text className="w-14 font-inter-semibold text-secondaire text-texte" style={{ fontVariant: ["tabular-nums"] }}>
               {p.arrivee}
