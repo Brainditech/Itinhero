@@ -268,8 +268,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 2 — Confirmation du lieu
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait autrement (spec 18, D90), 2026-11-07 : l'écran Confirmation n'existe plus ; capture côte à côte de la maquette 03 et de la liste des lieux sous le champ (« gare de Joigny » ⇒ 5 lieux, la gare en tête, « Choisissez le lieu dans la liste. »), et de la maquette 02 avec le formulaire et ses suggestions (`docs/screenshots/fin-impl/cote-a-cote-02.png`, `-03.png`, non versionnées). Écarts voulus : pas de « Quel lieu ? » à part ni de « C'est ce lieu » (D90).
 - [x] `GET /v1/lieux` (géocodeur MOTIS).
   Preuve : test « lieu de rendez-vous à Joigny », ou repli sur l'adresse saisie (R4).
   Fait (spec 09, D60, D61) : `npm run test:national`, « route de Chamvres Joigny » ⇒ un candidat à Joigny à moins de 500 m du lieu de rendez-vous, 2026-11-04 ; avec l'IGN, « 19 route de Chamvres Joigny » donne le numéro 19 aux coordonnées mêmes du lieu de rendez-vous (R4 levé pour cette adresse). Tests sans réseau : `serveur/src/routes/lieux.test.ts`, `serveur/src/lieux/*.test.ts`. 15 recherches sur 17 justes au premier rang face à Google Maps (`docs/specs/09-cle-lieux-itineraires.md` §11.3).
@@ -296,8 +297,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 3 — Résultat
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 04 et du Résultat Joigny du 12/11 (`cote-a-cote-04.png`). Écarts : récapitulatif « Votre trajet » au-dessus, verdict replié en bandeau (spec 36), pas de puce « Moins cher » sans prix publiés (spec 43), pas de grand bouton « Voir le trajet » (cartes dépliables, « Voir les étapes »), bouton flottant de l'Assistant (D130), onglets Accueil et Trajet (D112). À juger au visu par Brainditech (D118).
 - [x] `POST /v1/itineraires` : normalisation de la réponse MOTIS en segments sourcés.
   Preuve : test (chaque segment a un `source`).
   Fait (spec 09, D58) : `serveur/src/routes/itineraires.test.ts` (chaque étape a sa `source` : jeu, `trip_id`, date de service et version pour un transport, OSM pour une marche ; une possibilité sans source est retirée ; aucun chemin du PC ne sort), 2026-11-04 ; régression Brienon → Dijon (issue 0007) verte par la route sur le MOTIS national. 16 trajets comparés à Google Maps (§11.2 de la spec 09).
@@ -319,8 +321,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 4 — Détail
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 05 et de la frise dépliée du Résultat (`cote-a-cote-05.png`). Écarts : la frise est dans la carte du trajet, sans blocs colorés pleins ; la carte du trajet s'ouvre étape par étape (spec 17) ; pas d'en-tête « Partez à … » ; « TER » souligné comme dans la maquette (spec 51). À juger au visu par Brainditech (D118).
 - [x] Frise verticale et états d'horaire.
   Preuve : test de rendu, plus capture.
   Fait (spec 51, D134) : `src/domaine/frise.ts` construit chaque ligne affichée (heure du serveur, titre, phrase, réservation, état d'horaire « prévu », « Retard 7 min », « Supprimé », attentes, arrivée), `src/composants/Trajet.tsx` ne fait que l'afficher ; test de rendu `src/domaine/frise.test.ts` (8 tests), 2026-11-07 ; capture adb du Résultat déplié Domicile → Gare de Joigny le 12/11 (`docs/screenshots/fin-impl/51-frise-depliee.png`, non versionnée).
@@ -347,8 +350,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 5 — Mes trajets
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 06 et de Mes trajets en mode avion (`cote-a-cote-06.png`). Écarts : liste de tous les trajets avec pastilles « Sans réseau », « Carte », « Prévu » et « N appels à passer » (specs 22, 23, 24, 40) au lieu d'une seule grande carte ; **pas de bandeau « Hors connexion · dernier état connu affiché »** en mode avion ; pas de bouton « Ouvrir le trajet » (la carte s'ouvre au toucher). À juger au visu par Brainditech (D118).
 - [x] Instantané expo-sqlite, ouvert en mode avion (D98, spec 22).
   Preuve : vidéo ou capture en mode avion.
 - [x] Pack de carte de la zone du trajet.
@@ -364,8 +368,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 6 — Réglages
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 07 et des Réglages (`cote-a-cote-07.png`). Écarts : adresse complète du domicile, section « Clé d'appareil » (spec 10), cartes de réduction tirées du serveur (spec 43), pas d'interrupteur « Depuis ma position » (D66 : la permission d'Android suffit), pas de bouton « Enregistrer » (chaque réglage est gardé tout de suite). À juger au visu par Brainditech (D118).
 - [x] Domicile.
   Preuve : test, plus capture.
   Fait (spec 10, D65) : `src/domaine/domicile.test.ts` ; Réglages « Domicile » avec l'adresse choisie et « Modifier », toujours là après chaque relance de l'app le 2026-11-07 (`docs/screenshots/fin-impl/m07-reglages.png`, non versionnée : elle montre l'adresse).
