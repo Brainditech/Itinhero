@@ -57,3 +57,12 @@
 ## 5. Preuve
 
 Tests ; captures adb `docs/screenshots/fin-impl/51-*.png` (non versionnées, D38).
+
+## 6. Complément du 2026-11-07 : tarif et fiche validés affichés avec leur source (D135)
+
+Critère de fin de v1 : « au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app **avec leur source** ». Constaté par adb : la fiche taxi validée disait « Fiche validée le 07/11/2026 » sans son site, et aucun écran ne montrait le tarif d'une étape (seulement le total de la carte).
+
+1. `texteSource` (`src/domaine/contacts.ts`) : « Fiche validée le 07/11/2026, source : www.pagesjaunes.fr » (site de l'URL de la fiche ; URL illisible ⇒ sans source, comme avant).
+2. `texteBillet` (`src/domaine/prix.ts`) : sur l'Étape d'un véhicule, une ligne « Billet : Ticket Métro-Train-RER, 2,55 € », puis « Tarif Île-de-France Mobilités, relevé sur … le 07/11/2026 » ; carte cochée ⇒ montant réduit, plein tarif et nom de la carte ; sans tarif validé ⇒ « Billet : prix non publié » ; taxi ⇒ « Prix du taxi non publié » ; rien pour la marche.
+3. Tests : `src/domaine/contacts.test.ts`, `src/domaine/prix.test.ts` (4 tests de plus).
+4. Téléphone : Étape de la marche de 21 min (gare de Joigny → Gifi Joigny 2) ⇒ trois fiches validées avec « source : www.pagesjaunes.fr » (`docs/screenshots/fin-impl/v1-fiche-taxi-source.png`) ; Étape du métro 14 (gare de Lyon → Châtelet, 12/11) ⇒ ligne « Billet » et sa source (`docs/screenshots/fin-impl/v1-tarif-source.png`).

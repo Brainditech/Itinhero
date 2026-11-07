@@ -10,12 +10,17 @@ export const lienTel = (numero: string) => `tel:${numero.replace(/[^0-9+]/g, "")
 export function texteSource(c: Contact): string {
   const date = c.lu_le ? ` le ${c.lu_le.split("-").reverse().join("/")}` : "";
   if (c.source === "gtfs") return `Non vérifié : numéro publié par l'exploitant avec ses horaires${date ? `, lu${date}` : ""}`;
-  if (c.source === "fiche") return `Fiche validée${date}`;
-  let site = "une page publique";
+  const lieu = siteDe(c.url);
+  // Fiche validée : la date de validation et le site d'où elle vient (critère de fin de v1, invariant 16).
+  if (c.source === "fiche") return `Fiche validée${date}${lieu ? `, source : ${lieu}` : ""}`;
+  return `Non vérifié : lu sur ${lieu ?? "une page publique"}${date}`;
+}
+
+/** « www.pagesjaunes.fr », ou null pour une URL absente ou illisible. */
+export function siteDe(url: string | null | undefined): string | null {
   try {
-    if (c.url) site = new URL(c.url).hostname;
+    return url ? new URL(url).hostname : null;
   } catch {
-    // URL illisible : on garde « une page publique ».
+    return null;
   }
-  return `Non vérifié : lu sur ${site}${date}`;
 }

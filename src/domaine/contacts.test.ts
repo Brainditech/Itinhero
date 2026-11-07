@@ -8,7 +8,10 @@ const base = { nom: "Taxi A", numero: "+33 3 86 00 00 01", url: "https://www.mai
 
 describe("Source d'un numéro (spec 41, invariant 16)", () => {
   it("fiche validée, exploitant « non vérifié », page « non vérifié » avec son site et sa date", () => {
-    expect(texteSource({ ...base, source: "fiche", verifie: true, lu_le: "2026-11-07" })).toBe("Fiche validée le 07/11/2026");
+    expect(texteSource({ ...base, source: "fiche", verifie: true, lu_le: "2026-11-07", url: "https://www.pagesjaunes.fr/annuaire/joigny-89/taxis" })).toBe(
+      "Fiche validée le 07/11/2026, source : www.pagesjaunes.fr",
+    );
+    expect(texteSource({ ...base, source: "fiche", verifie: true, lu_le: "2026-11-07", url: "pas une url" })).toBe("Fiche validée le 07/11/2026");
     expect(texteSource({ ...base, source: "gtfs", verifie: false, lu_le: "2026-11-04" })).toBe(
       "Non vérifié : numéro publié par l'exploitant avec ses horaires, lu le 04/11/2026",
     );

@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { schemaPossibilite, type Possibilite, type TarifEtape } from "./api";
-import { comparerPrix, montantReduit, prixTrajet, textePrix } from "./prix";
+import { comparerPrix, montantReduit, prixTrajet, texteBillet, textePrix } from "./prix";
 import { trier } from "./tri";
 
 // Brienon → Dijon : marche, bus 803 (Mobigo), marche, TER K7, marche.
@@ -72,5 +72,25 @@ describe("Réductions, revue PR #61", () => {
     expect(montantReduit({ ...idfm, reductions: [{ ...idfm.reductions[0]!, montant_eur: null }] }, ["reduit"])).toBe(1.28);
     expect(montantReduit(MOBIGO, ["avantages-jeunes"], "aller")).toBe(0);
     expect(montantReduit(MOBIGO, ["avantages-jeunes"], "retour")).toBe(2);
+  });
+});
+
+describe("Ligne « Billet » de l'Étape, avec sa source (critère de fin de v1)", () => {
+  const train = avec(MOBIGO, TER).etapes[3];
+  it("tarif validé : produit, montant, réseau, site et date du relevé", () => {
+    expect(texteBillet(train, [])).toEqual({ billet: "Billet : Billet, 12,40 €", source: "Tarif TER, relevé sur www.viamobigo.fr le 06/11/2026" });
+  });
+  it("carte cochée : montant réduit, plein tarif et nom de la carte", () => {
+    expect(texteBillet(train, ["solidaire"])?.billet).toBe("Billet : Billet, 3,10 € (au lieu de 12,40 €, Solidaire)");
+  });
+  it("réduction « aller seulement » : pas au retour", () => {
+    const bus = avec(MOBIGO, TER).etapes[1];
+    expect(texteBillet(bus, ["avantages-jeunes"], "aller")?.billet).toBe("Billet : Ticket unitaire car, 0,00 € (au lieu de 2,00 €, Carte Avantages Jeunes)");
+    expect(texteBillet(bus, ["avantages-jeunes"], "retour")?.billet).toBe("Billet : Ticket unitaire car, 2,00 €");
+  });
+  it("sans tarif : « prix non publié », sans source ; marche : rien ; taxi : jamais de prix", () => {
+    expect(texteBillet(avec(null, null).etapes[3], [])).toEqual({ billet: "Billet : prix non publié", source: null });
+    expect(texteBillet(P.etapes[0], [])).toBeNull();
+    expect(texteBillet({ ...train, mode: "taxi" }, [])).toEqual({ billet: "Prix du taxi non publié", source: null });
   });
 });

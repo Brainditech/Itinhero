@@ -326,8 +326,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Gabarits de consignes et glossaire à la première occurrence.
   Preuve : tests.
   Fait : consignes (spec 11, `src/domaine/consignes.test.ts`, `src/domaine/guidage.test.ts`) ; glossaire (spec 51, D134) : `src/domaine/glossaire.ts` (TER, RER, Car, Tram, Transport à la demande, Train de banlieue ; textes à relire par Brainditech), première occurrence seulement, mot entier, tests dans `src/domaine/frise.test.ts`, 2026-11-07 ; « TER » souligné en pointillé, explication affichée au toucher, l'Étape s'ouvre toujours par le reste de la ligne (`docs/screenshots/fin-impl/51-glossaire-ter.png`).
-- [ ] Carte MapLibre : arrêts, tracé de marche, tuiles OpenFreeMap, attribution OSM.
+- [x] Carte MapLibre : arrêts, tracé de marche, tuiles OpenFreeMap, attribution OSM.
   Preuve : capture.
+  Fait (specs 03, 11, 17, 23) : captures adb du 2026-11-07, Étape du TER K7 (arrêts de montée et de descente, tracé du train) et Étape de la marche gare de Joigny → Gifi Joigny 2 (tracé à pied en pointillé, consignes), tuiles OpenFreeMap, attribution « © OpenMapTiles © OpenStreetMap » (`docs/screenshots/fin-impl/04-carte-etape-ter.png`, `04-carte-marche.png`, non versionnées).
 - [ ] Guidage en direct de porte à porte : marche virage par virage, attente à l'arrêt, arrêts restants, descente, écart au chemin (D72 à D75, spec 12).
   Preuve : tests du domaine (annonces, écart, descente), captures des 5 états comparées à `design/guidage/`, essai sur le terrain par Brainditech.
 - [x] Perdu pendant une marche : nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé quand le véhicule suivant reste à portée (D96, spec 20).
@@ -499,7 +500,8 @@ La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune av
   Fait (spec 50, issue 0030, D132) : les deux cases de la phase 9 cochées le 2026-11-07 (erreurs ITINHERO-SERVEUR-1, -2 et ITINHERO-APP-1, bouton temporaire jamais commité ; replay tout masqué ; JSON des événements sans lieu ni trajet).
 - [x] `.claude/settings.json` : lecture de `.env` refusée, testée.
   Fait (2026-11-07) : `Read .env.test` (fichier absent) ⇒ « File is in a directory that is denied by your permission settings. » ; règles `Read(.env)`, `Edit(.env)` et variantes toujours dans `.claude/settings.json` ; `Read .env` refusé le 2026-11-02 (journal d'ETAT).
-- [ ] Au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app avec leur source.
+- [x] Au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app avec leur source.
+  Fait (spec 51 §6, D135), 2026-11-07 : tarifs Mobigo, IDFM et Némus et 5 fiches taxi validés par Brainditech le 2026-11-07 ; Étape du métro 14 ⇒ « Billet : Ticket Métro-Train-RER, 2,55 € · Tarif Île-de-France Mobilités, relevé sur … le 07/11/2026 » ; Étape d'une marche de 21 min à Joigny ⇒ « A&H (taxi) · 06 87 34 96 01, Fiche validée le 07/11/2026, source : www.pagesjaunes.fr » (`docs/screenshots/fin-impl/v1-tarif-source.png`, `v1-fiche-taxi-source.png`).
 - [ ] Sur le VPS : la version déployée porte son étiquette (jamais seulement `latest`), et un retour à la version précédente a été essayé une fois.
 - [ ] Trajet national juste : Laroche-Migennes → Flers par Paris (métro ou RER), comparé à SNCF Connect ou Google Maps (D46).
 - [ ] Voyage planifié de porte à porte, aller et retour, avec taxi et heure d'appel, enregistré et rouvert en mode avion (D47, D48).

@@ -1,4 +1,5 @@
 import type { Etape, Possibilite, TarifEtape } from "./api";
+import { siteDe } from "./contacts";
 import { libelleEtape } from "./resultat";
 
 /**
@@ -65,4 +66,30 @@ export function comparerPrix(a: PrixTrajet, b: PrixTrajet): number {
   if (a.etat === "complet" && b.etat === "complet") return a.total - b.total;
   if (a.etat === "partiel" && b.etat === "partiel") return a.connu - b.connu;
   return 0;
+}
+
+/**
+ * Ligne « Billet » de l'Étape d'un véhicule (critère de fin de v1 : tarif affiché avec sa source, invariant 5) :
+ * produit et montant après la meilleure carte cochée, puis le réseau, le site et la date du relevé. Sans tarif
+ * validé : « prix non publié ». Rien pour la marche ; le taxi n'a jamais de prix.
+ */
+export function texteBillet(
+  e: Etape,
+  cartes: readonly string[],
+  trajet: "aller" | "retour" = "aller",
+): { billet: string; source: string | null } | null {
+  if (e.mode === "marche") return null;
+  if (e.mode === "taxi") return { billet: "Prix du taxi non publié", source: null };
+  const t = e.tarif;
+  if (!t) return { billet: "Billet : prix non publié", source: null };
+  const reduit = montantReduit(t, cartes, trajet);
+  const plein = Math.round(t.montant_eur * 100) / 100;
+  const carte = reduit < plein ? t.reductions.find((r) => cartes.includes(r.carte) && !(r.seulement_aller && trajet === "retour")) : undefined;
+  const reduction = reduit < plein ? ` (au lieu de ${euros(plein)}${carte ? `, ${carte.nom}` : ""})` : "";
+  const site = siteDe(t.url);
+  const date = t.lu_le.split("-").reverse().join("/");
+  return {
+    billet: `Billet : ${t.produit}, ${euros(reduit)}${reduction}`,
+    source: `Tarif ${t.reseau}${site ? `, relevé sur ${site}` : ""} le ${date}`,
+  };
 }
