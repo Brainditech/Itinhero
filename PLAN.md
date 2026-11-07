@@ -474,6 +474,7 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 - [ ] Choix du VPS argumenté à partir de la mesure de la phase 0 avec les données de toute la France.
   Preuve : décision dans `docs/decisions/`, avec le prix et sa source.
+  Préparé (D137, 2026-11-07) : `docs/decisions/0003-choix-vps.md`, 7 offres relevées sur les pages officielles ; proposition OVHcloud VPS-4 (24 Go, 23,49 € HT/mois, France), repli Hetzner AX41 (64 Go, 59 € HT). Manque : le choix de Brainditech.
 - [ ] Domaine et HTTPS (R10).
   Preuve : `/health` en HTTPS depuis le téléphone, PC éteint.
 - [ ] Même `docker compose`, images étiquetées (jamais seulement `latest`).
