@@ -110,3 +110,32 @@ describe("« À faire » d'un trajet enregistré (spec 40, critère 1)", () => {
     expect(appelsAVenir(BRIENON_DIJON, "Dijon", AVANT)).toBe(1);
   });
 });
+
+describe("Taxi à l'arrivée : appel pendant le trajet (issue 0031, D48)", () => {
+  // Brienon → Dijon, dernière marche remplacée par un taxi pris à Dijon à 10:24 (après le départ de la porte, 08:14).
+  const fin: Etape = { ...BRIENON_DIJON.etapes[4]!, mode: "taxi", reservation: null, depart: "10:24", depart_utc: "2026-11-14T09:24:00.000Z" };
+  const p: Possibilite = { ...BRIENON_DIJON, etapes: [...BRIENON_DIJON.etapes.slice(0, 4), fin] };
+
+  it("le rappel du taxi d'arrivée est programmé 60 min avant sa prise en charge, même après le départ", () => {
+    const r = rappelsDuTrajet(p, "Dijon", AVANT).find((x) => x.type === "taxi");
+    expect(r).toMatchObject({ cle: "taxi-4", titre: "Appelez le taxi maintenant" });
+    expect(r?.instant.toISOString()).toBe("2026-11-14T08:24:00.000Z");
+  });
+
+  it("« À faire » : « Appeler le taxi » à sa place dans l'ordre du temps, et « 2 appels à passer »", () => {
+    const actions = actionsDuTrajet(p, "Dijon", AVANT);
+    expect(actions.map((a) => a.type)).toEqual(["reserver", "partir", "taxi"]);
+    expect(actions.at(-1)).toMatchObject({ titre: "Appeler le taxi", detail: "Prise en charge à 10:24, Dijon.", rappel: "Rappel à 09:24" });
+    expect(appelsAVenir(p, "Dijon", AVANT)).toBe(2);
+  });
+
+  it("les autres rappels gardent la règle de la spec 30 : rien après le départ de la porte", () => {
+    expect(rappelsDuTrajet(p, "Dijon", AVANT).filter((x) => x.type !== "taxi").every((x) => x.instant.getTime() < new Date(p.depart_utc).getTime())).toBe(true);
+  });
+
+  it("taxi d'arrivée le lendemain : « Rappel le 15/11 à … », jamais « la veille »", () => {
+    const lendemain: Etape = { ...fin, depart: "06:10", depart_utc: "2026-11-15T05:10:00.000Z" };
+    const q: Possibilite = { ...p, etapes: [...p.etapes.slice(0, 4), lendemain] };
+    expect(actionsDuTrajet(q, "Dijon", AVANT).find((a) => a.type === "taxi")?.rappel).toBe("Rappel le 15/11 à 05:10");
+  });
+});

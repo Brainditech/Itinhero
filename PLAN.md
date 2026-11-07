@@ -290,8 +290,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Refus explicite hors des données chargées (étranger, réseau sans données).
   Preuve : test (départ ou arrivée hors données ⇒ « hors de la zone couverte », aucune possibilité affichée).
   Fait (spec 27, D105) : contour de l'extrait OSM chargé (`france.poly` de Geofabrik) ; `serveur/src/zone/zone.test.ts` (12 lieux dedans, 8 dehors dont l'outre-mer), `serveur/src/routes/itineraires.test.ts` (hors zone ⇒ 422 `hors_zone` sans appeler MOTIS), `src/domaine/api.test.ts` (« Le départ est hors de la zone couverte… »), 2026-11-06. Réseau sans données dans la zone : verdict « Impossible » avec sa raison (spec 15). Reste à voir le message sur le téléphone (spec 27, critère 4).
-- [ ] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
+- [x] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
   Preuve : carte de Flers affichée en mode avion.
+  Fait (spec 23, issue 0032), 2026-11-07 : aller Domicile → Gare de Flers (jeudi 12/11, taxi, TER, métro 6, TER K4) et son retour enregistrés ; taille mesurée dans la base `mbgl-offline.db` du téléphone : 6 zones, 366 tuiles, **24,8 Mo**, plus 6,5 Mo de style et polices communs à tous les voyages (sous la limite de 50 Mo d'OpenFreeMap) ; mode avion, port 3000 de l'API retiré, app fermée puis rouverte : carte du TER K4 Paris → Flers et rues autour de la gare de Flers (Rue Nationale, Rue de la Gare), jamais affichées en ligne avant l'enregistrement (`docs/screenshots/fin-impl/fl-06-*.png`, `fl-10-*.png`, non versionnées). R17 tranché.
 
 ### Phase 3 — Résultat
 
@@ -305,7 +306,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait (spec 15, D79) : `src/domaine/resultat.test.ts` (« Possible » avec rendez-vous et marge dans la phrase ; nuit dehors jamais en vert ; arrivée le lendemain dite « vendredi 06:32 » ; attente « 7 h 51 »), 2026-11-04 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : « Nuit dehors », orange).
 - [x] Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21).
   Preuve : tests du domaine (ordre, égalités, rang gardé), captures adb (trois puces, guidage ouvert depuis une carte rangée, retour).
-  Fait (spec 21, D97) : `src/domaine/tri.test.ts` (15 tests : ordre, égalités, rang gardé) ; captures adb du 2026-11-06 (trois puces, carte rangée ⇒ Étape ⇒ Guidage du bon trajet, « Sans réservation », aller et retour, spec 21 §6.2) ; annonce « Trajets classés : moins de marche » et état coché relevés le 2026-11-07 (`docs/preuves/2026-11-07-fin/spec21-annonce-talkback.txt`).
+  Fait (spec 21, D97) : `src/domaine/tri.test.ts` (15 tests : ordre, égalités, rang gardé) ; captures adb du 2026-11-06 (trois puces, carte rangée ⇒ Étape ⇒ Guidage du bon trajet, « Sans réservation », aller et retour, spec 21 §6.2) ; annonce « Trajets classés : moins de marche » et état coché relevés le 2026-11-07 (`docs/preuves/2026-11-07-fin/spec21-annonce-talkback.txt`, non versionné, D38).
 - [x] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
   Preuve : test Joigny aller et retour (fin du rendez-vous donnée ⇒ retour du même jour, ou « impossible » dit clairement).
   Fait (spec 19, D94) : `serveur/src/routes/itineraires.test.ts`, `joigny-retour.national.test.ts` (fin 11:30 ⇒ retour du jour ; fin 22:30 ⇒ jamais le lendemain), tests de l'app, 2026-11-05 ; constaté sur le téléphone par adb (Domicile → Gifi Joigny 2, fin 16:00 ⇒ retour « Possible · Départ 16:23 » ; fin 23:30 ⇒ « Aucun retour ce jour-là après 23:30. »), issue 0021 corrigée.
@@ -453,7 +454,7 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
   Fait (spec 26) : `docker inspect` sur le PC, 2026-11-06 : `api` `User=node` avec healthcheck `fetch /health`, `motis` `User=motis` avec healthcheck `wget /api/v1/health` (sortie dans `docs/specs/26-securisation-serveur.md` §7). À refaire sur le VPS (phase 10).
 - [x] Dev et prod séparés (`.env`, DSN, données).
   Preuve : diff de configuration.
-  Fait (spec 52, D136), 2026-11-07 : `docker-compose.prod.yml` ; configurations sans interpolation du PC (national) et de la prod, et leur diff (`docs/preuves/2026-11-07-fin/dev-prod/`) : projet et volumes `itinhero-prod`, étiquette `ITINHERO_VERSION` obligatoire (refus constaté avec un fichier factice), `SENTRY_ENVIRONNEMENT=prod`, DSN obligatoire, `restart: always`, journaux bornés, ports sur 127.0.0.1 ; `.env.example` par machine ; app : environnement Sentry selon le build (spec 50).
+  Fait (spec 52, D136), 2026-11-07 : `docker-compose.prod.yml` ; configurations sans interpolation du PC (national) et de la prod, et leur diff (`docs/preuves/2026-11-07-fin/dev-prod/`, non versionné, D38) : projet et volumes `itinhero-prod`, étiquette `ITINHERO_VERSION` obligatoire (refus constaté avec un fichier factice), `SENTRY_ENVIRONNEMENT=prod`, DSN obligatoire, `restart: always`, journaux bornés, ports sur 127.0.0.1 ; `.env.example` par machine ; app : environnement Sentry selon le build (spec 50).
 - [x] Erreur volontaire vue dans Sentry (app et serveur), puis retirée.
   Preuve : capture de l'événement, puis commit de retrait.
   Fait (spec 50, issue 0030, D132), 2026-11-07, environnement `dev`, région de l'UE : serveur ITINHERO-SERVEUR-1 et -2 (envoyées depuis le conteneur de l'API, aucun code ajouté), app ITINHERO-APP-1 (bouton temporaire de Réglages pressé par adb à 00:59:20 sur le Galaxy S21 Ultra, retiré sans avoir été commité : rien à retirer dans l'historique). Capture regardée par Claude : `docs/screenshots/2026-11-07-sentry-evenements-app-serveur-ingestion.jpg` (non versionnée, D38).
@@ -505,9 +506,12 @@ La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune av
   Fait (spec 51 §6, D135), 2026-11-07 : tarifs Mobigo, IDFM et Némus et 5 fiches taxi validés par Brainditech le 2026-11-07 ; Étape du métro 14 ⇒ « Billet : Ticket Métro-Train-RER, 2,55 € · Tarif Île-de-France Mobilités, relevé sur … le 07/11/2026 » ; Étape d'une marche de 21 min à Joigny ⇒ « A&H (taxi) · 06 87 34 96 01, Fiche validée le 07/11/2026, source : www.pagesjaunes.fr » (`docs/screenshots/fin-impl/v1-tarif-source.png`, `v1-fiche-taxi-source.png`).
 - [ ] Sur le VPS : la version déployée porte son étiquette (jamais seulement `latest`), et un retour à la version précédente a été essayé une fois.
 - [ ] Trajet national juste : Laroche-Migennes → Flers par Paris (métro ou RER), comparé à SNCF Connect ou Google Maps (D46).
-- [ ] Voyage planifié de porte à porte, aller et retour, avec taxi et heure d'appel, enregistré et rouvert en mode avion (D47, D48).
-- [ ] Un numéro « non vérifié » affiché avec sa source (D49).
-- [ ] Covoiturage proposé un jour sans train (D50).
+- [x] Voyage planifié de porte à porte, aller et retour, avec taxi et heure d'appel, enregistré et rouvert en mode avion (D47, D48).
+  Fait (specs 19, 16, 40, issue 0031), 2026-11-07 : Domicile → Gare de Flers, jeudi 12/11, arriver avant 11:00, fin du rendez-vous 15:00 ; aller 04:46 → 10:02 avec « Appeler le taxi, prise en charge à 04:46, rappel à 03:46 » ; retour 16:38 → 22:08 avec « Appeler le taxi, prise en charge à 21:56, Laroche - Migennes, rappel à 20:56 » et un numéro de fiche validée ; les deux enregistrés, rouverts en mode avion app fermée (`fl-04-*.png`, `fl-09-*.png`, non versionnées) ; alarmes exactes constatées par `dumpsys alarm`.
+- [x] Un numéro « non vérifié » affiché avec sa source (D49).
+  Fait (spec 41, D49), 2026-11-07 : Étape du bus 803 sur réservation (Brienon → Dijon, 12/11) ⇒ « Mobigo LR803 Saint-Florentin <> Auxerre · 03 80 11 29 29 », « Non vérifié : lu sur www.ville-brienon.fr le 07/11/2026 » (`docs/screenshots/fin-impl/v1-numero-non-verifie.png`, non versionnée).
+- [x] Covoiturage proposé un jour sans train (D50).
+  Fait (spec 47, D128), 2026-11-07 : Domicile → Gare de Joigny, dimanche 15/11, arriver avant 06:00 : aucun transport public seul n'arrive à l'heure (le seul trajet passe par un taxi) ⇒ carte « Covoiturage, Brienon-sur-Armançon → Joigny. Sans taxi, aucun transport public n'arrive à l'heure. », « Chercher sur BlaBlaCar », en tête (`docs/screenshots/fin-impl/v1-covoiturage-dimanche.png`, non versionnée).
 - [ ] Alternative reçue après une suppression simulée (D51).
 
 ## 8. Hors v1
@@ -540,4 +544,4 @@ Révisé le 2026-11-04 par D45 : « France entière », « trajet dans Paris apr
 | R14 | Accès au covoiturage : accès développeur BlaBlaCar ouvert ou non, conditions ; à défaut, lien profond seulement | Phase 6 ter — **tranché le 2026-11-06 (D128)** : aucun accès ouvert, lien profond ; jeton BlaBlaCar Daily à demander par Brainditech pour les trajets courts (facultatif) |
 | R15 | Nombre et qualité des GTFS régionaux et urbains, rythme de mise à jour de chacun, jeux cassés | Phases 2 bis et 8 |
 | R16 | Conditions d'utilisation des pages publiques où l'on lit les numéros (D49) | Phase 4 |
-| R17 | Taille du pack de carte hors ligne pour un voyage national | Phases 2 bis et 5 |
+| R17 | Taille du pack de carte hors ligne pour un voyage national | Phases 2 bis et 5 — **tranché le 2026-11-07** : aller et retour Brienon → Flers, 24,8 Mo de tuiles (366) plus 6,5 Mo de style communs, sous les 50 Mo d'un téléchargement OpenFreeMap |

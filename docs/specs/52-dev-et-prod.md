@@ -40,6 +40,6 @@ Aujourd'hui un seul jeu de fichiers sert au PC : `docker-compose.yml` (fixtures)
 ## 5. Constats (2026-11-07)
 
 - Doc lue : Docker Compose v5.6.1 installé ; page « Variable interpolation » (`--env-file` remplace le `.env` du projet ; ordre : shell, `--env-file`, `.env`) et `docker compose config` (`--no-interpolate`, `-q`).
-- Critères 1 et 2 : `docs/preuves/2026-11-07-fin/dev-prod/config-pc-national.yml`, `config-prod.yml`, `diff-pc-prod.diff`. Le diff a fait trouver un piège corrigé : sans `MOTIS_DONNEES`, la prod aurait pris le volume du PC (`itinhero-national_motis-data`) ; elle prend `itinhero-prod_motis-data`.
+- Critères 1 et 2 (fichiers non versionnés, D38 ; à refaire par la même commande) : `docs/preuves/2026-11-07-fin/dev-prod/config-pc-national.yml`, `config-prod.yml`, `diff-pc-prod.diff`. Le diff a fait trouver un piège corrigé : sans `MOTIS_DONNEES`, la prod aurait pris le volume du PC (`itinhero-national_motis-data`) ; elle prend `itinhero-prod_motis-data`.
 - Critère 3 : `etiquette-obligatoire.txt` (refus « required variable ITINHERO_VERSION is missing a value », code 1 ; avec l'étiquette, code 0), fichier d'environnement factice, aucun `.env` lu.
 - `scripts/ingestion-nuit.sh` : le projet vient de `ITINHERO_PROJET` (environnement, puis `.env` de la machine), `itinhero-national` par défaut ; `itinhero-prod` ajoute `docker-compose.prod.yml` et prend ses volumes.

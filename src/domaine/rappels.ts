@@ -69,6 +69,9 @@ function veilleDe(jour: string): string {
 
 const premierTransport = (p: Possibilite): Etape | undefined => p.etapes.find((e) => e.mode !== "marche");
 
+/** Heure de prise en charge d'une étape (son départ, ou celui du trajet sans heure UTC d'étape). */
+const priseEnCharge = (p: Possibilite, i: number): Date => new Date(p.etapes[i]?.depart_utc ?? p.depart_utc);
+
 /** Tous les rappels du trajet, passés compris, avec l'étape qui les porte (spec 40). */
 function tousLesRappels(p: Possibilite, nomArrivee: string): (Rappel & { etape: number | null })[] {
   const depart = new Date(p.depart_utc);
@@ -91,7 +94,7 @@ function tousLesRappels(p: Possibilite, nomArrivee: string): (Rappel & { etape: 
         etape: i,
         cle: `taxi-${i}`,
         type: "taxi",
-        instant: new Date(new Date(e.depart_utc ?? p.depart_utc).getTime() - AVANCE_TAXI_MIN * MINUTE),
+        instant: new Date(priseEnCharge(p, i).getTime() - AVANCE_TAXI_MIN * MINUTE),
         titre: "Appelez le taxi maintenant",
         corps: `Prise en charge à ${e.depart}, ${e.de.nom}. Délai pour appeler non connu.`,
       });
@@ -114,8 +117,10 @@ function tousLesRappels(p: Possibilite, nomArrivee: string): (Rappel & { etape: 
     titre: `Partez dans ${AVANCE_DEPART_MIN} min`,
     corps: `Départ ${p.depart} vers ${nomArrivee} : ${suite}.`,
   });
+  // Un rappel qui tomberait après le départ de la porte n'a pas de sens (spec 30), sauf celui d'un taxi pris en
+  // cours de route ou à l'arrivée (D48) : on l'appelle pendant le trajet, avant sa propre prise en charge (issue 0031).
   return rappels
-    .filter((r) => r.instant.getTime() < depart.getTime())
+    .filter((r) => r.instant.getTime() < (r.type === "taxi" && r.etape !== null ? priseEnCharge(p, r.etape) : depart).getTime())
     .sort((a, b) => a.instant.getTime() - b.instant.getTime());
 }
 
@@ -144,7 +149,12 @@ export type Action = {
 
 function texteRappel(instant: Date, depart: Date): string {
   const heure = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(instant);
-  return jourDeParis(instant) === jourDeParis(depart) ? `Rappel à ${heure}` : `Rappel la veille à ${heure}`;
+  const jour = jourDeParis(instant);
+  const jourDepart = jourDeParis(depart);
+  if (jour === jourDepart) return `Rappel à ${heure}`;
+  // Taxi d'arrivée le lendemain (nuit dehors) : le jour est dit, jamais « la veille » (issue 0031).
+  if (jour > jourDepart) return `Rappel le ${jour.slice(8, 10)}/${jour.slice(5, 7)} à ${heure}`;
+  return `Rappel la veille à ${heure}`;
 }
 
 /**

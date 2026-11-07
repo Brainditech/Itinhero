@@ -9,7 +9,7 @@ import { CARTE } from "@/composants/carte-module";
 import { iconeMode } from "@/composants/icones-mode";
 import type { Point, Possibilite } from "@/domaine/api";
 import { arretsDuTrajet, finMarche, pointsEtape, type ArretDeLaCourse } from "@/domaine/etape";
-import { boite } from "@/domaine/geo";
+import { boiteAuMoins } from "@/domaine/geo";
 import { jetonMode, nomLieuEtape } from "@/domaine/resultat";
 import { couleurs } from "@/theme/jetons";
 
@@ -83,7 +83,7 @@ export function CarteEtape({
   const points = useMemo(() => pointsEtape(etape), [etape]);
   // La carte cadre l'étape, même avec toute la course : vue de loin, les noms de la montée et de la descente
   // se chevauchent (essai du 2026-11-05) ; les autres arrêts restent autour, en gris.
-  const cadre = useMemo(() => (points.length > 0 ? boite(points) : null), [points]);
+  const cadre = useMemo(() => (points.length > 0 ? boiteAuMoins(points) : null), [points]);
   const camera = useRef<CameraRef>(null);
 
   const geo = useMemo(() => {
