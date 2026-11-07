@@ -354,9 +354,10 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Pack de carte de la zone du trajet.
   Preuve : carte affichée en mode avion.
   Fait (spec 23, D99) : `src/domaine/pack-carte.test.ts` ; le 2026-11-07, cache ambiant de MapLibre vidé, mode avion, app fermée puis rouverte, l'Étape de la marche gare de Joigny → Gifi Joigny 2 montre rues et noms (`docs/screenshots/spec-23/2026-11-07-04-etape-marche-mode-avion.png`) ; « Supprimer » retire les packs du voyage (16 → 12).
-- [ ] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
+- [x] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
   Preuve : test de programmation, plus notification reçue.
   Fait en partie (spec 30, D108) : `expo-notifications` 58.1.8, `src/domaine/rappels.ts` (veille 19:00, réservation la veille 10:00, taxi 60 min avant, partir 15 min avant) et `src/rappels.ts` (programmés à l'enregistrement, annulés avec le trajet) ; tests `src/domaine/rappels.test.ts`, 2026-11-06. Manque : le development build et une notification reçue sur le téléphone (spec 30, critère 4).
+  Fait (spec 30, issue 0026, D120), 2026-11-07 : rappels du trajet enregistré Domicile → Gifi Joigny 2 (samedi 07/11, taxi 08:35) reçus app fermée, à l'heure : « Appelez le taxi maintenant » à 07:35:00 et « Partez dans 15 min » à 08:20:00 (`adb shell dumpsys notification`, `docs/preuves/2026-11-07-fin/rappels-recus.txt`, non versionné, D38).
 - [x] Plan de voyage complet enregistré : aller, retour, appels à passer (taxi, transport à la demande) avec leurs rappels (« appelez le taxi maintenant »).
   Preuve : test de l'instantané, plus capture en mode avion.
   Fait (spec 40, D121) : `src/domaine/rappels.test.ts` (« À faire »), `src/domaine/voyages.test.ts` (« N appels à passer ») ; « À faire » du trajet rouvert en mode avion, 2026-11-06 (`docs/screenshots/fin/c6-spec40-mode-avion.png`).
@@ -365,13 +366,15 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 - [ ] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] Domicile.
+- [x] Domicile.
   Preuve : test, plus capture.
+  Fait (spec 10, D65) : `src/domaine/domicile.test.ts` ; Réglages « Domicile » avec l'adresse choisie et « Modifier », toujours là après chaque relance de l'app le 2026-11-07 (`docs/screenshots/fin-impl/m07-reglages.png`, non versionnée : elle montre l'adresse).
 - [x] Cartes de réduction (stockées sur le téléphone, prix ajusté).
   Preuve : test (Solidaire −75 % sur un train Mobigo), aucune carte envoyée au serveur.
   Fait (spec 43, D124) : `src/domaine/prix.test.ts` (« carte cochée ⇒ réduit (Solidaire −75 % sur le train) », « la carte change l'ordre ») ; cartes dans la table `reglages` du téléphone (`src/stockage/reglages.ts`), aucune route ne les reçoit (`GET /v1/fiches` n'a pas d'entrée) ; section « Cartes de réduction » des Réglages (`docs/screenshots/fin/d1-spec43-reglages.png`, 2026-11-06 : « Aucune carte : aucun tarif n'est encore validé »).
-- [ ] « Depuis ma position » (autorisation au premier plan seulement).
+- [x] « Depuis ma position » (autorisation au premier plan seulement).
   Preuve : capture de la demande d'autorisation, plus test.
+  Fait (spec 10, D66), 2026-11-07 : permission retirée par adb, « Ma position » puis « Chercher » ⇒ demande d'Android avec seulement « Lorsque vous utilisez l'appli », « Uniquement cette fois-ci », « Ne pas autoriser » (aucune position en arrière-plan) ; refus ⇒ « Sans accès à votre position, choisissez Domicile. » (`docs/screenshots/fin-impl/06-position-*.png`, non versionnées) ; permission rendue ensuite. Tests : départ `position` dans `src/domaine/demande.test.ts`, `comprendre.test.ts`, `resultat.test.ts` (« Ma position »).
 
 ### Phase 6 bis — Assistant (D31, réécrite par D117, spec 39)
 
