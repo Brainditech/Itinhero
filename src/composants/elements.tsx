@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
+import { Image } from "expo-image";
 import { SymbolView, type AndroidSymbol } from "expo-symbols";
 
 import type { Candidat } from "@/domaine/api";
@@ -8,12 +9,18 @@ import { detailCandidat } from "@/domaine/resultat";
 import { annonceSuggestions, iconeCandidat, MESSAGES_SUGGESTIONS, type EtatSuggestions, type IconeLieu } from "@/domaine/suggestions";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
 
-/** Mot « Itinhero » en haut à gauche de chaque écran. */
+/** Symbole du logo en `primaire` (scripts/generer-icones.py), 30 × 160 px. */
+const SYMBOLE = require("../../assets/images/symbole-primaire.png");
+const HAUTEUR_SYMBOLE = 32; // ≈ 2 fois la hauteur des majuscules, comme sur design/logo/logo.png
+const LARGEUR_SYMBOLE = (HAUTEUR_SYMBOLE * 30) / 160;
+
+/** Logo « symbole + Itinhero » en haut à gauche de chaque écran (spec 54, D139). */
 export function MotItinhero() {
   return (
-    <Text accessibilityRole="header" className="font-inter-semibold text-titre-ecran text-primaire">
-      Itinhero
-    </Text>
+    <View accessible accessibilityRole="header" accessibilityLabel="Itinhero" className="flex-row items-center gap-4">
+      <Image source={SYMBOLE} style={{ width: LARGEUR_SYMBOLE, height: HAUTEUR_SYMBOLE }} contentFit="contain" />
+      <Text className="font-inter-semibold text-titre-ecran text-primaire">Itinhero</Text>
+    </View>
   );
 }
 
