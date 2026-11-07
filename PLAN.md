@@ -171,7 +171,7 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Fait : `design/design-system.md` et `design/design-system/design-system.png`, 2026-11-02, validés par Brainditech (défauts connus listés dans `design/design-system.md`).
 - [x] Logo, notre propre identité.
   Preuve : `design/logo.*`, validé.
-  Fait : `design/logo/logo.png`, 2026-11-02, validé par Brainditech (symbole monochrome ; fichier d'icône 1024 px à produire en phase 0).
+  Fait : `design/logo/logo.png`, 2026-11-02, validé par Brainditech (symbole monochrome ; fichier d'icône 1024 px à produire en phase 0) ; appliqué à l'icône par la spec 53, case de la phase 0).
 - [x] Chaque écran principal agrandi : Accueil, Confirmation du lieu, Résultat, Détail, Mes trajets, Réglages.
   Preuve : `design/ecrans/NN-*.png`, validés.
   Fait (chemin changé par D32) : `design/accueil/01-accueil.png`, `02-formulaire-repli.png`, `design/confirmation-lieu/03-confirmation-lieu.png`, `design/resultat/04-resultat.png`, `design/detail/05-detail.png`, `design/mes-trajets/06-mes-trajets.png`, `design/reglages/07-reglages.png`, `design/notifications/08-notifications.png`, `design/assistant/09-assistant.png`, 2026-11-02, validés par Brainditech.
@@ -187,6 +187,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Skills officielles des services dans `.claude/skills`.
   Preuve : liste et source de chaque skill dans le commit.
   Fait : `.claude/skills/SOURCES.md` (Sentry, Inngest, MapLibre, épinglées à leur commit ; Expo par plugin ; aucune skill officielle pour MOTIS, NativeWind, Zod, vitest), 2026-11-02, spec 00.
+- [ ] Icône de l'app et écran de démarrage tirés du logo (symbole blanc sur `primaire`, plus aucune image du modèle Expo).
+  Preuve : capture de l'icône sur l'écran d'accueil du téléphone, après un nouveau build.
+  Fait en partie (spec 53, D138, 2026-11-07) : symbole vectoriel `design/logo/symbole.svg`, images produites par `scripts/generer-icones.py`, `app.json` à jour, `assets/expo.icon` retiré ; lint, types, tests et `expo-doctor` verts. Reste : nouveau build lancé par Brainditech, puis capture par adb. L'écran de démarrage ne se constate que sur le build de release (phase 11).
 - [x] NativeWind installé et configuré avec les jetons du design system (compatibilité SDK 58 vérifiée, R12).
   Preuve : composant de démonstration stylé, plus capture.
   Fait : NativeWind 4.2.7 (Tailwind 3.4.19), jetons dans `src/theme/jetons.js`, écran d'Accueil stylé sur le téléphone de Brainditech (Expo Go) : `docs/preuves/2026-11-02-phase1-accueil-en-dur.jpg`, 2026-11-02. R12 levé pour NativeWind.
