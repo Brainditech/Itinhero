@@ -142,3 +142,16 @@ export function boite(points: Point[]): [number, number, number, number] {
   }
   return [o, s, e, n];
 }
+
+/**
+ * Boîte des points, élargie autour de son centre pour mesurer au moins `cote` mètres de chaque sens (issue 0032) :
+ * une marche de quelques mètres ne zoome plus au-delà de ce que montrent les tuiles (vides vues de si près).
+ */
+export function boiteAuMoins(points: Point[], cote = 200): [number, number, number, number] {
+  const [o, s, e, n] = boite(points);
+  const latMilieu = (s + n) / 2;
+  const demiLat = Math.max((n - s) / 2, cote / 2 / 111_320);
+  const demiLon = Math.max((e - o) / 2, cote / 2 / (111_320 * Math.cos((latMilieu * Math.PI) / 180)));
+  const lonMilieu = (o + e) / 2;
+  return [lonMilieu - demiLon, latMilieu - demiLat, lonMilieu + demiLon, latMilieu + demiLat];
+}

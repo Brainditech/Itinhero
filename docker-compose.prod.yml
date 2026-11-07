@@ -1,0 +1,33 @@
+# Production sur le VPS (spec 52, D136), posée par-dessus le national :
+#   docker compose -p itinhero-prod -f docker-compose.yml -f docker-compose.national.yml -f docker-compose.prod.yml up -d
+# Le .env du VPS est le sien : jamais copié du PC, jamais versionné (invariant 9).
+# MOTIS et l'API restent sur 127.0.0.1 : le HTTPS passe par le proxy de la phase 10 (R10).
+
+x-journaux: &journaux
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  motis-import:
+    <<: *journaux
+
+  motis:
+    <<: *journaux
+    restart: always
+
+  api:
+    <<: *journaux
+    # Étiquette obligatoire, jamais « latest » ni l'étiquette du PC par défaut (phase 10).
+    image: itinhero-api:${ITINHERO_VERSION:?étiquette de l'image à mettre dans le .env du VPS (ex. 2026.11.07-1)}
+    environment:
+      SENTRY_ENVIRONNEMENT: prod
+      SENTRY_DSN_SERVEUR: ${SENTRY_DSN_SERVEUR:?DSN Sentry du serveur à mettre dans le .env du VPS}
+    restart: always
+
+volumes:
+  # Le volume du jour choisi par l'ingestion nocturne (spec 44) ; par défaut celui de la prod, jamais celui du PC.
+  motis-data:
+    name: ${MOTIS_DONNEES:-itinhero-prod_motis-data}

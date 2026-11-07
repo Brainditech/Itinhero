@@ -212,3 +212,18 @@ Corrigé dans `fusionner` (`serveur/src/lieux/ign-geocode.ts`) :
 Résultat (même point) : « 3 rue de la gare joigny » ⇒ 1. l'arrêt 3 RUE DE LA GARE, Joigny ; 2. Rue de la Gare, Joigny ; Joigny-sur-Meuse en 4e. « chatelet » ⇒ 1. Châtelet, Paris (métro), puis Montereau et Corquilleroy. « 10 rue de rivoli paris » : les rues de Rivoli passent devant « Rue de Paris à Genève 10 » (Dannemoine). 17 autres recherches comparées avant et après (joigny, auxerre, sens, migennes, saint michel sur orge, gare de lyon, basilique saint denis, tribunal judiciaire dijon, musee du louvre paris, gare d auxerre, place de la republique, mairie auxerre, hopital auxerre, saint florentin, orly, chatelet depuis Paris, rue de la gare joigny) : premières places inchangées.
 
 Tests : trois tests de régression dans `ign-geocode.test.ts` ; les deux premiers échouent sur l'ancien code. Serveur : 224 tests verts.
+
+## 13. Critères 10 et 11 constatés (2026-11-07, par Claude via `adb` et le navigateur, D133)
+
+- **Critère 10.** API rendue injoignable pour le téléphone (`adb reverse --remove tcp:3000`), « gare de Sens » tapé dans l'Arrivée du formulaire ⇒ « Suggestions indisponibles pour l'instant. » sous le champ, la saisie continue ; port remis ⇒ 5 lieux, la gare de Sens en tête. Chaque ligne a son libellé d'accessibilité (« Gare de Sens, Gare, Sens, 89100, à 34 km »), lu par TalkBack. Capture côte à côte avec la maquette 02 : `docs/screenshots/fin-impl/cote-a-cote-02.png` (non versionnée). **Reste : l'écart accepté par Brainditech.**
+- **Critère 11.** Cinq recherches, comparées au premier résultat de Google Maps :
+
+| Saisie | Google Maps | Itinhero (5 lieux) |
+|---|---|---|
+| 3 rue de la Gare Saint-Florentin | 3 Rue de la Gare, 89600 Vergigny | 1er : Gare de Saint-Florentin-Vergigny (même lieu) ; l'adresse elle-même n'est pas proposée |
+| 19 route de Chamvres Joigny | 19 Rte de Chamvres, 89300 Joigny | 1er : 19 Route de Chamvres, Joigny |
+| gare Auxerre | Auxerre-St-Gervais | 1er : Gare d'Auxerre-Saint-Gervais |
+| hôpital de Sens | Centre Hospitalier de Sens | 2e : « Hôpital, Sens » à la même distance (32 km) ; « centre hospitalier Sens » ⇒ Centre hospitalier de Sens en tête |
+| pharmacie Brienon | Pharmacie Goudon | 2e : Pharmacie Goudon (1er : la commune) |
+
+  Le bon lieu est dans les 5 à chaque fois. Écart noté : une adresse numérotée dont la rue porte le nom d'un lieu (« 3 rue de la Gare ») ramène le lieu, pas l'adresse.

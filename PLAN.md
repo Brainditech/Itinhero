@@ -268,8 +268,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 2 — Confirmation du lieu
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait autrement (spec 18, D90), 2026-11-07 : l'écran Confirmation n'existe plus ; capture côte à côte de la maquette 03 et de la liste des lieux sous le champ (« gare de Joigny » ⇒ 5 lieux, la gare en tête, « Choisissez le lieu dans la liste. »), et de la maquette 02 avec le formulaire et ses suggestions (`docs/screenshots/fin-impl/cote-a-cote-02.png`, `-03.png`, non versionnées). Écarts voulus : pas de « Quel lieu ? » à part ni de « C'est ce lieu » (D90).
 - [x] `GET /v1/lieux` (géocodeur MOTIS).
   Preuve : test « lieu de rendez-vous à Joigny », ou repli sur l'adresse saisie (R4).
   Fait (spec 09, D60, D61) : `npm run test:national`, « route de Chamvres Joigny » ⇒ un candidat à Joigny à moins de 500 m du lieu de rendez-vous, 2026-11-04 ; avec l'IGN, « 19 route de Chamvres Joigny » donne le numéro 19 aux coordonnées mêmes du lieu de rendez-vous (R4 levé pour cette adresse). Tests sans réseau : `serveur/src/routes/lieux.test.ts`, `serveur/src/lieux/*.test.ts`. 15 recherches sur 17 justes au premier rang face à Google Maps (`docs/specs/09-cle-lieux-itineraires.md` §11.3).
@@ -290,21 +291,24 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Refus explicite hors des données chargées (étranger, réseau sans données).
   Preuve : test (départ ou arrivée hors données ⇒ « hors de la zone couverte », aucune possibilité affichée).
   Fait (spec 27, D105) : contour de l'extrait OSM chargé (`france.poly` de Geofabrik) ; `serveur/src/zone/zone.test.ts` (12 lieux dedans, 8 dehors dont l'outre-mer), `serveur/src/routes/itineraires.test.ts` (hors zone ⇒ 422 `hors_zone` sans appeler MOTIS), `src/domaine/api.test.ts` (« Le départ est hors de la zone couverte… »), 2026-11-06. Réseau sans données dans la zone : verdict « Impossible » avec sa raison (spec 15). Reste à voir le message sur le téléphone (spec 27, critère 4).
-- [ ] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
+- [x] Pack de carte hors ligne d'un voyage national (taille mesurée, R17).
   Preuve : carte de Flers affichée en mode avion.
+  Fait (spec 23, issue 0032), 2026-11-07 : aller Domicile → Gare de Flers (jeudi 12/11, taxi, TER, métro 6, TER K4) et son retour enregistrés ; taille mesurée dans la base `mbgl-offline.db` du téléphone : 6 zones, 366 tuiles, **24,8 Mo**, plus 6,5 Mo de style et polices communs à tous les voyages (sous la limite de 50 Mo d'OpenFreeMap) ; mode avion, port 3000 de l'API retiré, app fermée puis rouverte : carte du TER K4 Paris → Flers et rues autour de la gare de Flers (Rue Nationale, Rue de la Gare), jamais affichées en ligne avant l'enregistrement (`docs/screenshots/fin-impl/fl-06-*.png`, `fl-10-*.png`, non versionnées). R17 tranché.
 
 ### Phase 3 — Résultat
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 04 et du Résultat Joigny du 12/11 (`cote-a-cote-04.png`). Écarts : récapitulatif « Votre trajet » au-dessus, verdict replié en bandeau (spec 36), pas de puce « Moins cher » sans prix publiés (spec 43), pas de grand bouton « Voir le trajet » (cartes dépliables, « Voir les étapes »), bouton flottant de l'Assistant (D130), onglets Accueil et Trajet (D112). À juger au visu par Brainditech (D118).
 - [x] `POST /v1/itineraires` : normalisation de la réponse MOTIS en segments sourcés.
   Preuve : test (chaque segment a un `source`).
   Fait (spec 09, D58) : `serveur/src/routes/itineraires.test.ts` (chaque étape a sa `source` : jeu, `trip_id`, date de service et version pour un transport, OSM pour une marche ; une possibilité sans source est retirée ; aucun chemin du PC ne sort), 2026-11-04 ; régression Brienon → Dijon (issue 0007) verte par la route sur le MOTIS national. 16 trajets comparés à Google Maps (§11.2 de la spec 09).
 - [x] Verdict et marge, sans changement de jour silencieux.
   Preuve : tests (Joigny « possible, départ 06:27 », 11/11, marge dite dans la phrase).
   Fait (spec 15, D79) : `src/domaine/resultat.test.ts` (« Possible » avec rendez-vous et marge dans la phrase ; nuit dehors jamais en vert ; arrivée le lendemain dite « vendredi 06:32 » ; attente « 7 h 51 »), 2026-11-04 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : « Nuit dehors », orange).
-- [ ] Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21).
+- [x] Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21).
   Preuve : tests du domaine (ordre, égalités, rang gardé), captures adb (trois puces, guidage ouvert depuis une carte rangée, retour).
+  Fait (spec 21, D97) : `src/domaine/tri.test.ts` (15 tests : ordre, égalités, rang gardé) ; captures adb du 2026-11-06 (trois puces, carte rangée ⇒ Étape ⇒ Guidage du bon trajet, « Sans réservation », aller et retour, spec 21 §6.2) ; annonce « Trajets classés : moins de marche » et état coché relevés le 2026-11-07 (`docs/preuves/2026-11-07-fin/spec21-annonce-talkback.txt`, non versionné, D38).
 - [x] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
   Preuve : test Joigny aller et retour (fin du rendez-vous donnée ⇒ retour du même jour, ou « impossible » dit clairement).
   Fait (spec 19, D94) : `serveur/src/routes/itineraires.test.ts`, `joigny-retour.national.test.ts` (fin 11:30 ⇒ retour du jour ; fin 22:30 ⇒ jamais le lendemain), tests de l'app, 2026-11-05 ; constaté sur le téléphone par adb (Domicile → Gifi Joigny 2, fin 16:00 ⇒ retour « Possible · Départ 16:23 » ; fin 23:30 ⇒ « Aucun retour ce jour-là après 23:30. »), issue 0021 corrigée.
@@ -317,14 +321,18 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 4 — Détail
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] Frise verticale et états d'horaire.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 05 et de la frise dépliée du Résultat (`cote-a-cote-05.png`). Écarts : la frise est dans la carte du trajet, sans blocs colorés pleins ; la carte du trajet s'ouvre étape par étape (spec 17) ; pas d'en-tête « Partez à … » ; « TER » souligné comme dans la maquette (spec 51). À juger au visu par Brainditech (D118).
+- [x] Frise verticale et états d'horaire.
   Preuve : test de rendu, plus capture.
-- [ ] Gabarits de consignes et glossaire à la première occurrence.
+  Fait (spec 51, D134) : `src/domaine/frise.ts` construit chaque ligne affichée (heure du serveur, titre, phrase, réservation, état d'horaire « prévu », « Retard 7 min », « Supprimé », attentes, arrivée), `src/composants/Trajet.tsx` ne fait que l'afficher ; test de rendu `src/domaine/frise.test.ts` (8 tests), 2026-11-07 ; capture adb du Résultat déplié Domicile → Gare de Joigny le 12/11 (`docs/screenshots/fin-impl/51-frise-depliee.png`, non versionnée).
+- [x] Gabarits de consignes et glossaire à la première occurrence.
   Preuve : tests.
-- [ ] Carte MapLibre : arrêts, tracé de marche, tuiles OpenFreeMap, attribution OSM.
+  Fait : consignes (spec 11, `src/domaine/consignes.test.ts`, `src/domaine/guidage.test.ts`) ; glossaire (spec 51, D134) : `src/domaine/glossaire.ts` (TER, RER, Car, Tram, Transport à la demande, Train de banlieue ; textes à relire par Brainditech), première occurrence seulement, mot entier, tests dans `src/domaine/frise.test.ts`, 2026-11-07 ; « TER » souligné en pointillé, explication affichée au toucher, l'Étape s'ouvre toujours par le reste de la ligne (`docs/screenshots/fin-impl/51-glossaire-ter.png`).
+- [x] Carte MapLibre : arrêts, tracé de marche, tuiles OpenFreeMap, attribution OSM.
   Preuve : capture.
+  Fait (specs 03, 11, 17, 23) : captures adb du 2026-11-07, Étape du TER K7 (arrêts de montée et de descente, tracé du train) et Étape de la marche gare de Joigny → Gifi Joigny 2 (tracé à pied en pointillé, consignes), tuiles OpenFreeMap, attribution « © OpenMapTiles © OpenStreetMap » (`docs/screenshots/fin-impl/04-carte-etape-ter.png`, `04-carte-marche.png`, non versionnées).
 - [ ] Guidage en direct de porte à porte : marche virage par virage, attente à l'arrêt, arrêts restants, descente, écart au chemin (D72 à D75, spec 12).
   Preuve : tests du domaine (annonces, écart, descente), captures des 5 états comparées à `design/guidage/`, essai sur le terrain par Brainditech.
 - [x] Perdu pendant une marche : nouveau chemin à pied jusqu'à la fin de la marche, le reste du trajet gardé quand le véhicule suivant reste à portée (D96, spec 20).
@@ -342,31 +350,36 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 
 ### Phase 5 — Mes trajets
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 06 et de Mes trajets en mode avion (`cote-a-cote-06.png`). Écarts : liste de tous les trajets avec pastilles « Sans réseau », « Carte », « Prévu » et « N appels à passer » (specs 22, 23, 24, 40) au lieu d'une seule grande carte ; **pas de bandeau « Hors connexion · dernier état connu affiché »** en mode avion ; pas de bouton « Ouvrir le trajet » (la carte s'ouvre au toucher). À juger au visu par Brainditech (D118).
 - [x] Instantané expo-sqlite, ouvert en mode avion (D98, spec 22).
   Preuve : vidéo ou capture en mode avion.
 - [x] Pack de carte de la zone du trajet.
   Preuve : carte affichée en mode avion.
   Fait (spec 23, D99) : `src/domaine/pack-carte.test.ts` ; le 2026-11-07, cache ambiant de MapLibre vidé, mode avion, app fermée puis rouverte, l'Étape de la marche gare de Joigny → Gifi Joigny 2 montre rues et noms (`docs/screenshots/spec-23/2026-11-07-04-etape-marche-mode-avion.png`) ; « Supprimer » retire les packs du voyage (16 → 12).
-- [ ] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
+- [x] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
   Preuve : test de programmation, plus notification reçue.
   Fait en partie (spec 30, D108) : `expo-notifications` 58.1.8, `src/domaine/rappels.ts` (veille 19:00, réservation la veille 10:00, taxi 60 min avant, partir 15 min avant) et `src/rappels.ts` (programmés à l'enregistrement, annulés avec le trajet) ; tests `src/domaine/rappels.test.ts`, 2026-11-06. Manque : le development build et une notification reçue sur le téléphone (spec 30, critère 4).
+  Fait (spec 30, issue 0026, D120), 2026-11-07 : rappels du trajet enregistré Domicile → Gifi Joigny 2 (samedi 07/11, taxi 08:35) reçus app fermée, à l'heure : « Appelez le taxi maintenant » à 07:35:00 et « Partez dans 15 min » à 08:20:00 (`adb shell dumpsys notification`, `docs/preuves/2026-11-07-fin/rappels-recus.txt`, non versionné, D38).
 - [x] Plan de voyage complet enregistré : aller, retour, appels à passer (taxi, transport à la demande) avec leurs rappels (« appelez le taxi maintenant »).
   Preuve : test de l'instantané, plus capture en mode avion.
   Fait (spec 40, D121) : `src/domaine/rappels.test.ts` (« À faire »), `src/domaine/voyages.test.ts` (« N appels à passer ») ; « À faire » du trajet rouvert en mode avion, 2026-11-06 (`docs/screenshots/fin/c6-spec40-mode-avion.png`).
 
 ### Phase 6 — Réglages
 
-- [ ] Écran en valeurs en dur, comparé à sa maquette.
+- [x] Écran en valeurs en dur, comparé à sa maquette.
   Preuve : capture côte à côte.
-- [ ] Domicile.
+  Fait, 2026-11-07 : capture côte à côte de la maquette 07 et des Réglages (`cote-a-cote-07.png`). Écarts : adresse complète du domicile, section « Clé d'appareil » (spec 10), cartes de réduction tirées du serveur (spec 43), pas d'interrupteur « Depuis ma position » (D66 : la permission d'Android suffit), pas de bouton « Enregistrer » (chaque réglage est gardé tout de suite). À juger au visu par Brainditech (D118).
+- [x] Domicile.
   Preuve : test, plus capture.
+  Fait (spec 10, D65) : `src/domaine/domicile.test.ts` ; Réglages « Domicile » avec l'adresse choisie et « Modifier », toujours là après chaque relance de l'app le 2026-11-07 (`docs/screenshots/fin-impl/m07-reglages.png`, non versionnée : elle montre l'adresse).
 - [x] Cartes de réduction (stockées sur le téléphone, prix ajusté).
   Preuve : test (Solidaire −75 % sur un train Mobigo), aucune carte envoyée au serveur.
   Fait (spec 43, D124) : `src/domaine/prix.test.ts` (« carte cochée ⇒ réduit (Solidaire −75 % sur le train) », « la carte change l'ordre ») ; cartes dans la table `reglages` du téléphone (`src/stockage/reglages.ts`), aucune route ne les reçoit (`GET /v1/fiches` n'a pas d'entrée) ; section « Cartes de réduction » des Réglages (`docs/screenshots/fin/d1-spec43-reglages.png`, 2026-11-06 : « Aucune carte : aucun tarif n'est encore validé »).
-- [ ] « Depuis ma position » (autorisation au premier plan seulement).
+- [x] « Depuis ma position » (autorisation au premier plan seulement).
   Preuve : capture de la demande d'autorisation, plus test.
+  Fait (spec 10, D66), 2026-11-07 : permission retirée par adb, « Ma position » puis « Chercher » ⇒ demande d'Android avec seulement « Lorsque vous utilisez l'appli », « Uniquement cette fois-ci », « Ne pas autoriser » (aucune position en arrière-plan) ; refus ⇒ « Sans accès à votre position, choisissez Domicile. » (`docs/screenshots/fin-impl/06-position-*.png`, non versionnées) ; permission rendue ensuite. Tests : départ `position` dans `src/domaine/demande.test.ts`, `comprendre.test.ts`, `resultat.test.ts` (« Ma position »).
 
 ### Phase 6 bis — Assistant (D31, réécrite par D117, spec 39)
 
@@ -447,8 +460,9 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 - [x] Conteneurs sans utilisateur root, avec healthcheck.
   Preuve : `docker inspect` (User, Healthcheck).
   Fait (spec 26) : `docker inspect` sur le PC, 2026-11-06 : `api` `User=node` avec healthcheck `fetch /health`, `motis` `User=motis` avec healthcheck `wget /api/v1/health` (sortie dans `docs/specs/26-securisation-serveur.md` §7). À refaire sur le VPS (phase 10).
-- [ ] Dev et prod séparés (`.env`, DSN, données).
+- [x] Dev et prod séparés (`.env`, DSN, données).
   Preuve : diff de configuration.
+  Fait (spec 52, D136), 2026-11-07 : `docker-compose.prod.yml` ; configurations sans interpolation du PC (national) et de la prod, et leur diff (`docs/preuves/2026-11-07-fin/dev-prod/`, non versionné, D38) : projet et volumes `itinhero-prod`, étiquette `ITINHERO_VERSION` obligatoire (refus constaté avec un fichier factice), `SENTRY_ENVIRONNEMENT=prod`, DSN obligatoire, `restart: always`, journaux bornés, ports sur 127.0.0.1 ; `.env.example` par machine ; app : environnement Sentry selon le build (spec 50).
 - [x] Erreur volontaire vue dans Sentry (app et serveur), puis retirée.
   Preuve : capture de l'événement, puis commit de retrait.
   Fait (spec 50, issue 0030, D132), 2026-11-07, environnement `dev`, région de l'UE : serveur ITINHERO-SERVEUR-1 et -2 (envoyées depuis le conteneur de l'API, aucun code ajouté), app ITINHERO-APP-1 (bouton temporaire de Réglages pressé par adb à 00:59:20 sur le Galaxy S21 Ultra, retiré sans avoir été commité : rien à retirer dans l'historique). Capture regardée par Claude : `docs/screenshots/2026-11-07-sentry-evenements-app-serveur-ingestion.jpg` (non versionnée, D38).
@@ -460,6 +474,7 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 - [ ] Choix du VPS argumenté à partir de la mesure de la phase 0 avec les données de toute la France.
   Preuve : décision dans `docs/decisions/`, avec le prix et sa source.
+  Préparé (D137, 2026-11-07) : `docs/decisions/0003-choix-vps.md`, 7 offres relevées sur les pages officielles ; proposition OVHcloud VPS-4 (24 Go, 23,49 € HT/mois, France), repli Hetzner AX41 (64 Go, 59 € HT). Manque : le choix de Brainditech.
 - [ ] Domaine et HTTPS (R10).
   Preuve : `/health` en HTTPS depuis le téléphone, PC éteint.
 - [ ] Même `docker compose`, images étiquetées (jamais seulement `latest`).
@@ -483,22 +498,30 @@ Critères de fin : voir la section 7.
 
 La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune avec sa preuve :
 
-- [ ] Test Joigny vert en CI (GTFS figés, cas limites compris).
+- [x] Test Joigny vert en CI (GTFS figés, cas limites compris).
+  Fait (2026-11-07) : job `joigny` vert sur `main` (commit cd71e64), 4 tests : 12/11 « possible », 11/11 férié et dimanche 15/11 « impossible », correspondance 803 de 0 min exclue, GTFS figés de `fixtures/` : https://github.com/Brainditech/Itinhero/actions/runs/42319085483/job/128238951665
 - [ ] Parcours réel sur le **binaire de release signé** avec la clé de Brainditech (pas le development build) : phrase dictée, verdict, liste, frise, enregistrement, frise rouverte en mode avion. Capture ou vidéo datée.
 - [ ] Serveur déployé sur le VPS, joignable PC éteint, avec ingestion nocturne et suivi des retards actifs.
 - [ ] Alerte de retard simulée (flux GTFS-RT de test) reçue sur le téléphone, app fermée.
 - [ ] Aucun secret dans l'APK (vérifié sur le fichier construit).
-- [ ] Sentry :
+- [x] Sentry :
   - erreur volontaire vue (app et serveur), puis le bouton retiré ;
   - aucune donnée de trajet dans les événements reçus ;
   - masquage du replay activé.
-- [ ] `.claude/settings.json` : lecture de `.env` refusée, testée.
-- [ ] Au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app avec leur source.
+  Fait (spec 50, issue 0030, D132) : les deux cases de la phase 9 cochées le 2026-11-07 (erreurs ITINHERO-SERVEUR-1, -2 et ITINHERO-APP-1, bouton temporaire jamais commité ; replay tout masqué ; JSON des événements sans lieu ni trajet).
+- [x] `.claude/settings.json` : lecture de `.env` refusée, testée.
+  Fait (2026-11-07) : `Read .env.test` (fichier absent) ⇒ « File is in a directory that is denied by your permission settings. » ; règles `Read(.env)`, `Edit(.env)` et variantes toujours dans `.claude/settings.json` ; `Read .env` refusé le 2026-11-02 (journal d'ETAT).
+- [x] Au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app avec leur source.
+  Fait (spec 51 §6, D135), 2026-11-07 : tarifs Mobigo, IDFM et Némus et 5 fiches taxi validés par Brainditech le 2026-11-07 ; Étape du métro 14 ⇒ « Billet : Ticket Métro-Train-RER, 2,55 € · Tarif Île-de-France Mobilités, relevé sur … le 07/11/2026 » ; Étape d'une marche de 21 min à Joigny ⇒ « A&H (taxi) · 06 87 34 96 01, Fiche validée le 07/11/2026, source : www.pagesjaunes.fr » (`docs/screenshots/fin-impl/v1-tarif-source.png`, `v1-fiche-taxi-source.png`).
 - [ ] Sur le VPS : la version déployée porte son étiquette (jamais seulement `latest`), et un retour à la version précédente a été essayé une fois.
-- [ ] Trajet national juste : Laroche-Migennes → Flers par Paris (métro ou RER), comparé à SNCF Connect ou Google Maps (D46).
-- [ ] Voyage planifié de porte à porte, aller et retour, avec taxi et heure d'appel, enregistré et rouvert en mode avion (D47, D48).
-- [ ] Un numéro « non vérifié » affiché avec sa source (D49).
-- [ ] Covoiturage proposé un jour sans train (D50).
+- [x] Trajet national juste : Laroche-Migennes → Flers par Paris (métro ou RER), comparé à SNCF Connect ou Google Maps (D46).
+  Fait (spec 08, D46), 2026-11-07 : dans l'app, gare de Laroche-Migennes → gare de Flers, jeudi 12/11, arriver avant 10:30 ⇒ TER P31 n° 891150 05:03 → Bercy, métro 6 06:42, TER K4 n° 3401 07:14 → Flers 10:01, arrivée 10:02 ; Google Maps, même demande ⇒ 05:03 (jeudi) → 10:01, TER, métro 6, TER, 4 h 58 : mêmes trains, mêmes heures (`docs/screenshots/fin-impl/v1-laroche-flers.png`, `v1-laroche-flers-google-maps.jpg`, non versionnées).
+- [x] Voyage planifié de porte à porte, aller et retour, avec taxi et heure d'appel, enregistré et rouvert en mode avion (D47, D48).
+  Fait (specs 19, 16, 40, issue 0031), 2026-11-07 : Domicile → Gare de Flers, jeudi 12/11, arriver avant 11:00, fin du rendez-vous 15:00 ; aller 04:46 → 10:02 avec « Appeler le taxi, prise en charge à 04:46, rappel à 03:46 » ; retour 16:38 → 22:08 avec « Appeler le taxi, prise en charge à 21:56, Laroche - Migennes, rappel à 20:56 » et un numéro de fiche validée ; les deux enregistrés, rouverts en mode avion app fermée (`fl-04-*.png`, `fl-09-*.png`, non versionnées) ; alarmes exactes constatées par `dumpsys alarm`.
+- [x] Un numéro « non vérifié » affiché avec sa source (D49).
+  Fait (spec 41, D49), 2026-11-07 : Étape du bus 803 sur réservation (Brienon → Dijon, 12/11) ⇒ « Mobigo LR803 Saint-Florentin <> Auxerre · 03 80 11 29 29 », « Non vérifié : lu sur www.ville-brienon.fr le 07/11/2026 » (`docs/screenshots/fin-impl/v1-numero-non-verifie.png`, non versionnée).
+- [x] Covoiturage proposé un jour sans train (D50).
+  Fait (spec 47, D128), 2026-11-07 : Domicile → Gare de Joigny, dimanche 15/11, arriver avant 06:00 : aucun transport public seul n'arrive à l'heure (le seul trajet passe par un taxi) ⇒ carte « Covoiturage, Brienon-sur-Armançon → Joigny. Sans taxi, aucun transport public n'arrive à l'heure. », « Chercher sur BlaBlaCar », en tête (`docs/screenshots/fin-impl/v1-covoiturage-dimanche.png`, non versionnée).
 - [ ] Alternative reçue après une suppression simulée (D51).
 
 ## 8. Hors v1
@@ -531,4 +554,4 @@ Révisé le 2026-11-04 par D45 : « France entière », « trajet dans Paris apr
 | R14 | Accès au covoiturage : accès développeur BlaBlaCar ouvert ou non, conditions ; à défaut, lien profond seulement | Phase 6 ter — **tranché le 2026-11-06 (D128)** : aucun accès ouvert, lien profond ; jeton BlaBlaCar Daily à demander par Brainditech pour les trajets courts (facultatif) |
 | R15 | Nombre et qualité des GTFS régionaux et urbains, rythme de mise à jour de chacun, jeux cassés | Phases 2 bis et 8 |
 | R16 | Conditions d'utilisation des pages publiques où l'on lit les numéros (D49) | Phase 4 |
-| R17 | Taille du pack de carte hors ligne pour un voyage national | Phases 2 bis et 5 |
+| R17 | Taille du pack de carte hors ligne pour un voyage national | Phases 2 bis et 5 — **tranché le 2026-11-07** : aller et retour Brienon → Flers, 24,8 Mo de tuiles (366) plus 6,5 Mo de style communs, sous les 50 Mo d'un téléchargement OpenFreeMap |

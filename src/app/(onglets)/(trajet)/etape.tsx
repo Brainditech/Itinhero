@@ -36,6 +36,8 @@ import {
 } from "@/domaine/resultat";
 import { Lien } from "@/composants/elements";
 import { lienUber } from "@/domaine/uber";
+import { texteBillet } from "@/domaine/prix";
+import { useCartes } from "@/cartes";
 import { useRecherche } from "@/recherche";
 import { useClient } from "@/session";
 import { couleurs, ombreFlottante } from "@/theme/jetons";
@@ -131,8 +133,11 @@ function ListeVehicule({
   voirCourse,
   masquerCourse,
   reperer,
+  trajet,
 }: {
   etape: Etape;
+  /** Aller ou retour (spec 19) : une réduction « aller seulement » ne vaut pas au retour. */
+  trajet: "aller" | "retour";
   choisi: number | null;
   choisir: (i: number, p: Point) => void;
   course: EtatCourse;
@@ -148,6 +153,8 @@ function ListeVehicule({
   const reservation = phraseReservation(etape) ?? phraseTaxi(etape);
   const uber = lienUber(etape);
   const taxi = vientVousChercher(etape);
+  const { cartes } = useCartes();
+  const billet = texteBillet(etape, cartes, trajet);
   const descente = duTrajet.find((a) => a.role === "descente");
   const m = arrets.findIndex((a) => a.role === "montee");
   const d = arrets.findIndex((a) => a.role === "descente");
@@ -230,6 +237,16 @@ function ListeVehicule({
         </View>
       )}
       {etape.exploitant ? <Text className="font-inter text-badge text-texte-secondaire">{etape.exploitant}</Text> : null}
+      {/* Critère de fin de v1 : le tarif validé avec sa source (réseau, site, date du relevé), invariant 5. */}
+      {billet ? (
+        <View className="flex-row gap-2">
+          <SymbolView name={{ android: "euro", web: "euro" }} size={18} tintColor={couleurs["texte-secondaire"]} />
+          <View className="flex-1 gap-0.5">
+            <Text className="font-inter-semibold text-badge text-texte">{billet.billet}</Text>
+            {billet.source ? <Text className="font-inter text-badge text-texte-secondaire">{billet.source}</Text> : null}
+          </View>
+        </View>
+      ) : null}
       {reservation ? (
         <View className="flex-row items-center gap-2">
           <SymbolView name={{ android: "call", web: "call" }} size={18} tintColor={couleurs.avertissement} />
@@ -446,6 +463,7 @@ export default function FenetreEtape() {
           ) : (
             <ListeVehicule
               etape={etape}
+              trajet={trajetDuParametre(params.t)}
               choisi={choisi?.i ?? null}
               choisir={choisir}
               course={course}
