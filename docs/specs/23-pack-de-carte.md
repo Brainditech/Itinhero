@@ -85,6 +85,20 @@ D9 promet une carte « hors ligne de la zone du trajet à l'enregistrement » : 
 - Le build installé n'a pas le module : Mes trajets et le Résultat s'affichent comme avant, sans ligne « Carte » ni plantage (`docs/screenshots/spec-23/2026-11-06-01`).
 - **Reste à faire** : nouveau development build par Brainditech (module natif ajouté), puis le critère 2. **Case non cochée** jusque-là.
 
+### 6.3 Téléphone, development build avec le module (2026-11-07, adb)
+
+Essai mené par Claude à la demande de Brainditech (« vas-y, effectue tous les tests »), mode avion passé et retiré par adb (`cmd connectivity airplane-mode enable|disable`).
+
+- **Cache ambiant vidé** avant l'essai par un bouton temporaire de Réglages (`OfflineManager.clearAmbientCache()`, « ESSAI-SPEC23 cache ambiant vidé » dans Metro), jamais commité, retiré après l'essai.
+- **Mode avion** : `airplane_mode_on=1`, `ping 1.1.1.1` ⇒ « Network is unreachable », `tiles.openfreemap.org` ⇒ « unknown host ». adb et ses redirections (Metro, port 3000) passent par le câble et restent ; elles ne touchent pas aux tuiles.
+- **App fermée** (`am force-stop`, plus aucun processus) **puis rouverte** en mode avion : Mes trajets montre « Domicile → Gifi Joigny 2 » avec l'étiquette « Carte » (`docs/screenshots/spec-23/2026-11-07-02`).
+- **Étape de la marche de 21 min** (gare de Joigny → Gifi Joigny 2), jamais affichée depuis le cache vidé : la carte montre les rues, l'Yonne, « Joigny », D 20, D 955, D 959, le tracé de marche et ses deux étiquettes (`2026-11-07-04-etape-marche-mode-avion.png`). Le fond de carte de l'Accueil s'affiche aussi (zone d'ensemble, `2026-11-07-01`).
+- **Enregistrer** (réseau revenu, voyage jetable « Domicile → Joigny », jeudi 12/11) ⇒ « Enregistré dans Mes trajets » puis « Carte enregistrée » en moins de 5 s : les tuiles communes déjà en base ne sont pas retéléchargées (`2026-11-07-05`).
+- **Supprimer** : `getPacks()` lu par un second bouton temporaire (journal `adb logcat`, nombre de packs seulement, aucune zone : invariant 10) ⇒ 12 packs avant, **16** après l'enregistrement du voyage jetable, **12** après sa suppression dans Mes trajets.
+- User-Agent et 4 requêtes : lus dans `ReseauCarteModule.kt` ; le module répond (`PACKS_POSSIBLES` vrai : les lignes « Carte » s'affichent et les packs se créent).
+
+Critère 2 tenu ; case de la phase 5 cochée.
+
 ## 7. Ce qui n'est pas fait ici
 
 - **Rappels locaux** et appels à passer : cases suivantes de la phase 5 (`expo-notifications`).

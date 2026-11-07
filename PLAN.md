@@ -346,8 +346,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
   Preuve : capture côte à côte.
 - [x] Instantané expo-sqlite, ouvert en mode avion (D98, spec 22).
   Preuve : vidéo ou capture en mode avion.
-- [ ] Pack de carte de la zone du trajet.
+- [x] Pack de carte de la zone du trajet.
   Preuve : carte affichée en mode avion.
+  Fait (spec 23, D99) : `src/domaine/pack-carte.test.ts` ; le 2026-11-07, cache ambiant de MapLibre vidé, mode avion, app fermée puis rouverte, l'Étape de la marche gare de Joigny → Gifi Joigny 2 montre rues et noms (`docs/screenshots/spec-23/2026-11-07-04-etape-marche-mode-avion.png`) ; « Supprimer » retire les packs du voyage (16 → 12).
 - [ ] Rappels locaux : veille, échéance de réservation, « partez dans N min ».
   Preuve : test de programmation, plus notification reçue.
   Fait en partie (spec 30, D108) : `expo-notifications` 58.1.8, `src/domaine/rappels.ts` (veille 19:00, réservation la veille 10:00, taxi 60 min avant, partir 15 min avant) et `src/rappels.ts` (programmés à l'enregistrement, annulés avec le trajet) ; tests `src/domaine/rappels.test.ts`, 2026-11-06. Manque : le development build et une notification reçue sur le téléphone (spec 30, critère 4).
