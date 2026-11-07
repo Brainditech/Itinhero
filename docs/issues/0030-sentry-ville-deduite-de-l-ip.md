@@ -1,7 +1,7 @@
 # Issue 0030 — Sentry déduit la ville de l'adresse IP
 
 - **Date** : 2026-11-07
-- **État** : **corrigée** le 2026-11-07 (analyse approuvée par Brainditech : « je prends ta recommandation », A et B) ; constat serveur fait, constat app avec l'erreur volontaire de l'app.
+- **État** : **corrigée** le 2026-11-07 (analyse approuvée par Brainditech : « je prends ta recommandation », A et B) ; constatée côté serveur et côté app (PR #65).
 - **Branche** : `etapes/sentry-dsn`. Spec : 50 (D131). Invariant : 10 (rien de personnel dans Sentry).
 
 ## 1. Reproduction
@@ -48,4 +48,5 @@ Appliqué :
 - A seule : événement `054f5f06…` ⇒ `user.geo` à `null`, `_meta` « rem organization:0 ».
 - A et B, image de l'API reconstruite, erreur envoyée par `initSentry()` : événement `a1e43b51…` ⇒ `user` = `{ ip_address: null, sentry_user: "ip:[ip]" }`, **aucun champ `geo`**.
 - Lint, types, tests : app 444, serveur 472, verts. Le test `envoi.test.ts` (faux Sentry local) a échoué une fois au premier lancement puis passé 6 fois : délai, sans lien avec l'IP.
-- App : à constater avec l'erreur volontaire de l'app (Metro relancé avec le DSN).
+- App : Metro relancé avec le cache vidé, erreur volontaire envoyée depuis Réglages par adb à 00:59:20 ⇒ ITINHERO-APP-1, `ac3cef3c…` : `user` = `{ ip_address: null, sentry_user: "ip:[ip]" }`, **aucun champ `geo`**, rien sur Joigny ; replay attaché, tout masqué.
+- Message d'ingestion (spec 44) envoyé depuis le conteneur ⇒ ITINHERO-SERVEUR-3, `49ba5a52…` : même `user`, aucun champ `geo`.
