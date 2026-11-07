@@ -1,7 +1,7 @@
 # Spec 50 — Sentry dans l'app et sur le serveur, sans donnée de trajet
 
 - **Date** : 2026-11-06
-- **État** : **approuvée par délégation** de Brainditech (D119, étape 15 « Sentry » ; demande du 2026-11-06 : « implémente les specs une fois que les tests sont ok sur adb »). Règle : D131. Remplace la spec 07, jamais versionnée. **Appliquée** le 2026-11-06 (critères 1 à 3) ; critère 4 constaté le 2026-11-06 (§6) ; critère 5 avec les DSN.
+- **État** : **approuvée par délégation** de Brainditech (D119, étape 15 « Sentry » ; demande du 2026-11-06 : « implémente les specs une fois que les tests sont ok sur adb »). Règle : D131. Remplace la spec 07, jamais versionnée. **Appliquée** le 2026-11-06 (critères 1 à 3) ; critère 4 constaté le 2026-11-06 (§6) ; critère 5 constaté le 2026-11-07 avec les DSN (ITINHERO-SERVEUR-1 à 3, ITINHERO-APP-1 et son replay masqué ; ville déduite de l'IP corrigée par l'issue 0030, D132).
 - **Branche** : `phase-0/sentry`.
 - **Case de PLAN.md** : Phase 0 · « Sentry installé dans l'app et sur le serveur, sans donnée de trajet » (preuve : configuration, plus test du nettoyage `beforeSend`). Prépare sans les cocher : Phase 9 · « Erreur volontaire vue dans Sentry », « Replay Sentry masqué » ; Phase 8 · « événement Sentry » de l'ingestion (spec 44). Ces trois-là demandent les DSN de Brainditech.
 - **Invariants** : 10 (rien de personnel dans les journaux ni Sentry, replay jamais démasqué), 17 (dev et prod ne partagent pas d'environnement Sentry), 2 (aucun secret dans l'app : le DSN n'est pas un secret).

@@ -418,7 +418,7 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
 
 - [ ] `ingestion-gtfs` pour chaque jeu (D46) : import à part, contrôles par jeu (arrêt Brienon Mairie présent, couverture au-delà de J+30), bascule ou alerte ; un jeu cassé n'empêche pas les autres.
   Preuve : tests (fichier cassé ⇒ ancien jeu conservé, plus événement Sentry).
-  Fait en partie (spec 44, D125) : `serveur/src/donnees/nuit.ts` (décision par jeu, préparation à part), `scripts/ingestion-nuit.sh` (import dans un volume neuf, bascule, retour arrière), `serveur/src/donnees/nuit.test.ts` (fichier cassé ⇒ ancien gardé), 2026-11-06. Message Sentry codé (spec 50 : un message par nuit qui garde ou écarte un jeu, `messageNuit` testé dans `nuit.test.ts`). Manque : ce message vu dans Sentry (DSN de Brainditech) et la bascule essayée sur le serveur (phase 10).
+  Fait en partie (spec 44, D125) : `serveur/src/donnees/nuit.ts` (décision par jeu, préparation à part), `scripts/ingestion-nuit.sh` (import dans un volume neuf, bascule, retour arrière), `serveur/src/donnees/nuit.test.ts` (fichier cassé ⇒ ancien gardé), 2026-11-06. Message Sentry codé (spec 50 : un message par nuit qui garde ou écarte un jeu, `messageNuit` testé dans `nuit.test.ts`). Message vu dans Sentry le 2026-11-07 : ITINHERO-SERVEUR-3, niveau `warning`, envoyé depuis le conteneur de l'API par le vrai `messageNuit` avec un jeu fictif `essai-phase-8` gardé (« fichier cassé »), sans ville ni lieu. Manque : la bascule essayée sur le serveur (phase 10).
 - [x] « Horaires du JJ/MM » et bandeau au-delà de 7 jours.
   Preuve : test, plus capture.
   Fait (spec 32, D110, issue 0025) : `date_horaires` dans la source GTFS (serveur), ligne « Horaires publiés le …, valables jusqu'au … » et bandeau au-delà de 7 jours au Résultat ; réseaux pas encore publiés pour le jour demandé ; tests `src/domaine/horaires.test.ts`, `serveur/src/routes/horaires-a-venir.test.ts`, 2026-11-06. Captures : `docs/screenshots/fin/a3-joigny-20-11.png` (bandeau à J+14), `c2-0025-flers-libelle.png` (28/12).
@@ -448,10 +448,12 @@ L'Assistant est une discussion (D117) : il ne modifie plus la recherche. Retiré
   Fait (spec 26) : `docker inspect` sur le PC, 2026-11-06 : `api` `User=node` avec healthcheck `fetch /health`, `motis` `User=motis` avec healthcheck `wget /api/v1/health` (sortie dans `docs/specs/26-securisation-serveur.md` §7). À refaire sur le VPS (phase 10).
 - [ ] Dev et prod séparés (`.env`, DSN, données).
   Preuve : diff de configuration.
-- [ ] Erreur volontaire vue dans Sentry (app et serveur), puis retirée.
+- [x] Erreur volontaire vue dans Sentry (app et serveur), puis retirée.
   Preuve : capture de l'événement, puis commit de retrait.
-- [ ] Replay Sentry masqué, aucune donnée de trajet dans les événements reçus.
+  Fait (spec 50, issue 0030, D132), 2026-11-07, environnement `dev`, région de l'UE : serveur ITINHERO-SERVEUR-1 et -2 (envoyées depuis le conteneur de l'API, aucun code ajouté), app ITINHERO-APP-1 (bouton temporaire de Réglages pressé par adb à 00:59:20 sur le Galaxy S21 Ultra, retiré sans avoir été commité : rien à retirer dans l'historique). Capture regardée par Claude : `docs/screenshots/2026-11-07-sentry-evenements-app-serveur-ingestion.jpg` (non versionnée, D38).
+- [x] Replay Sentry masqué, aucune donnée de trajet dans les événements reçus.
   Preuve : capture d'un replay masqué.
+  Fait (spec 50, issue 0030), 2026-11-07 : replay d'ITINHERO-APP-1 tout masqué (textes et images en barres, adresse du domicile invisible), capture `docs/screenshots/2026-11-07-sentry-replay-app-masque.png`. JSON des événements reçus : lieux en `«…»`, coordonnées en `[coord]`, requête d'URL retirée, aucun champ `geo` ni ville, `user.ip_address` vide (app, serveur et message d'ingestion).
 
 ### Phase 10 — Déploiement VPS
 
