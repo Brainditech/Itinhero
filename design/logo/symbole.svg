@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 51 275" width="51" height="275">
+  <!-- Symbole d'Itinhero : le « I » dessiné comme une frise (spec 53, D138).
+       Mesures relevées sur design/logo/logo.png, validé le 2026-11-02.
+       Monochrome : blanc sur primaire (#3730A3) pour l'icône, primaire sur blanc pour le logo + nom. -->
+  <g fill="currentColor">
+    <circle cx="25.5" cy="26" r="25.5"/>
+    <rect x="16.5" y="26" width="18" height="86" rx="9"/>
+    <circle cx="25.5" cy="132" r="9"/>
+    <circle cx="25.5" cy="161" r="9"/>
+    <rect x="16.5" y="181" width="18" height="68" rx="9"/>
+    <circle cx="25.5" cy="249" r="25.5"/>
+  </g>
+</svg>
