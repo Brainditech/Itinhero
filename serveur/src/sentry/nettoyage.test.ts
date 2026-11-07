@@ -28,9 +28,13 @@ const charge = () => ({
 describe("nettoyerEvenement (spec 50)", () => {
   it("ne laisse ni phrase, ni lieu, ni coordonnée, ni en-tête, ni utilisateur", () => {
     const sortie = JSON.stringify(nettoyerEvenement(charge()));
-    for (const interdit of ["Joigny", "47.99", "3.617", "Boulevard", "Bearer", "secret", "ip_address", "phrase", "depart", "q="]) {
+    for (const interdit of ["Joigny", "47.99", "3.617", "Boulevard", "Bearer", "secret", "{{auto}}", "phrase", "depart", "q="]) {
       expect(sortie, interdit).not.toContain(interdit);
     }
+  });
+
+  it("remplace l'utilisateur par l'IP fictive, pour que Sentry ne déduise aucune ville (issue 0030)", () => {
+    expect(nettoyerEvenement(charge()).user).toEqual({ ip_address: "0.0.0.0" });
   });
 
   it("garde la pile, le type d'erreur, le chemin et les contextes techniques", () => {

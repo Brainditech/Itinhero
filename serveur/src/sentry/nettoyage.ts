@@ -23,6 +23,9 @@ export interface MietteSentry {
   data?: { [cle: string]: unknown };
 }
 
+/** Issue 0030 : IP fictive envoyée à la place de l'utilisateur, pour que Sentry ne déduise aucune ville. */
+export const IP_FICTIVE = "0.0.0.0";
+
 const CATEGORIES_RESEAU = new Set(["http", "fetch", "xhr"]);
 
 /** Une URL réduite à son chemin, sans requête ni fragment ; un texte qui n'est pas une URL perd quand même sa requête. */
@@ -77,7 +80,8 @@ export function nettoyerMiette<M extends MietteSentry>(miette: M): M | null {
 /** `beforeSend` : l'événement sans rien de personnel. */
 export function nettoyerEvenement<E extends EvenementSentry>(evenement: E): E {
   const propre: E = { ...evenement };
-  delete propre.user;
+  // Issue 0030 : sans IP fournie, Sentry déduit la ville de l'IP de connexion ; « 0.0.0.0 » l'en empêche (constaté), `null` non.
+  propre.user = { ip_address: IP_FICTIVE };
   delete propre.extra;
   if (propre.request) {
     // Tout le reste de la requête (corps, en-têtes, cookies, requête d'URL) disparaît.
