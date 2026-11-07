@@ -1,4 +1,5 @@
-"""Icône de l'app, icône adaptative Android, écran de démarrage et favicon (spec 53, D138).
+"""Icône de l'app, icône adaptative Android, écran de démarrage et favicon (spec 53, D138),
+et symbole `primaire` du logo affiché en haut des écrans (spec 54, D139).
 
 Dessine le symbole d'Itinhero (le « I » en frise) à partir des mêmes mesures que
 design/logo/symbole.svg, relevées sur design/logo/logo.png (validé le 2026-11-02).
@@ -56,6 +57,14 @@ def image(cote: int, fond, hauteur_symbole: float, couleur=BLANC, rayon_coin: fl
     return img.resize((cote, cote), Image.LANCZOS), tuple(v / SUR for v in boite)
 
 
+def symbole_seul(hauteur: int, couleur) -> Image.Image:
+    """Symbole seul sur fond transparent, recadré à sa largeur (logo + nom des écrans)."""
+    largeur = math.ceil(hauteur * LARGEUR_S / HAUTEUR_S)
+    img = Image.new("RGBA", (largeur * SUR, hauteur * SUR), TRANSPARENT)
+    dessiner_symbole(img, hauteur * SUR, couleur)
+    return img.resize((largeur, hauteur), Image.LANCZOS)
+
+
 def dans_zone_sure(boite: tuple, cote: int) -> bool:
     """Les quatre coins de la boîte du symbole sont dans le disque de 66/108 du canevas."""
     rayon = cote * 66 / 108 / 2
@@ -86,7 +95,10 @@ def main() -> None:
     favicon, _ = image(48, PRIMAIRE, 48 * 0.72, rayon_coin=10)
     favicon.save(dossier / "favicon.png")
 
-    for nom in ("icon", "android-icon-foreground", "android-icon-background", "android-icon-monochrome", "splash-icon", "favicon"):
+    # 160 px de haut : net jusqu'à une densité de 5 pour un symbole de 32 dp.
+    symbole_seul(160, PRIMAIRE).save(dossier / "symbole-primaire.png")
+
+    for nom in ("symbole-primaire", "icon", "android-icon-foreground", "android-icon-background", "android-icon-monochrome", "splash-icon", "favicon"):
         f = dossier / f"{nom}.png"
         with Image.open(f) as im:
             print(f"{f} {im.size[0]}x{im.size[1]} {im.mode}")

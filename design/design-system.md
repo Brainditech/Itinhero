@@ -101,7 +101,7 @@ Les mêmes couleurs servent aux icônes des notifications (supprimé, retard, co
 
 | Composant | Règle | Maquette |
 |---|---|---|
-| Mot « Itinhero » | `titre-ecran`, `primaire`, en haut à gauche de chaque écran de l'app | toutes |
+| Mot « Itinhero » | logo + nom : symbole `primaire` de 32 dp, écart 16 dp, puis « Itinhero » en `titre-ecran`, `primaire`, en haut à gauche de chaque écran de l'app (spec 54) | toutes |
 | Carte flottante | `fond`, `rayon-carte`, bordure `bordure-carte`, `ombre-flottante` | toutes |
 | Bouton principal | plein `primaire`, texte blanc 20 sp 600, pleine largeur moins `marge-ecran`, `hauteur-bouton`, `rayon-bouton` ; un seul par écran | toutes |
 | Bouton secondaire | contour 1,5 dp `primaire`, texte `primaire` | design system |
