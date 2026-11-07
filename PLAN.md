@@ -483,16 +483,19 @@ Critères de fin : voir la section 7.
 
 La v1 n'est terminée que lorsque **toutes** ces cases sont cochées, chacune avec sa preuve :
 
-- [ ] Test Joigny vert en CI (GTFS figés, cas limites compris).
+- [x] Test Joigny vert en CI (GTFS figés, cas limites compris).
+  Fait (2026-11-07) : job `joigny` vert sur `main` (commit cd71e64), 4 tests : 12/11 « possible », 11/11 férié et dimanche 15/11 « impossible », correspondance 803 de 0 min exclue, GTFS figés de `fixtures/` : https://github.com/Brainditech/Itinhero/actions/runs/42319085483/job/128238951665
 - [ ] Parcours réel sur le **binaire de release signé** avec la clé de Brainditech (pas le development build) : phrase dictée, verdict, liste, frise, enregistrement, frise rouverte en mode avion. Capture ou vidéo datée.
 - [ ] Serveur déployé sur le VPS, joignable PC éteint, avec ingestion nocturne et suivi des retards actifs.
 - [ ] Alerte de retard simulée (flux GTFS-RT de test) reçue sur le téléphone, app fermée.
 - [ ] Aucun secret dans l'APK (vérifié sur le fichier construit).
-- [ ] Sentry :
+- [x] Sentry :
   - erreur volontaire vue (app et serveur), puis le bouton retiré ;
   - aucune donnée de trajet dans les événements reçus ;
   - masquage du replay activé.
-- [ ] `.claude/settings.json` : lecture de `.env` refusée, testée.
+  Fait (spec 50, issue 0030, D132) : les deux cases de la phase 9 cochées le 2026-11-07 (erreurs ITINHERO-SERVEUR-1, -2 et ITINHERO-APP-1, bouton temporaire jamais commité ; replay tout masqué ; JSON des événements sans lieu ni trajet).
+- [x] `.claude/settings.json` : lecture de `.env` refusée, testée.
+  Fait (2026-11-07) : `Read .env.test` (fichier absent) ⇒ « File is in a directory that is denied by your permission settings. » ; règles `Read(.env)`, `Edit(.env)` et variantes toujours dans `.claude/settings.json` ; `Read .env` refusé le 2026-11-02 (journal d'ETAT).
 - [ ] Au moins une fiche tarifaire et une fiche taxi validées par Brainditech et affichées dans l'app avec leur source.
 - [ ] Sur le VPS : la version déployée porte son étiquette (jamais seulement `latest`), et un retour à la version précédente a été essayé une fois.
 - [ ] Trajet national juste : Laroche-Migennes → Flers par Paris (métro ou RER), comparé à SNCF Connect ou Google Maps (D46).
