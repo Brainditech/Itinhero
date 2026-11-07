@@ -1,7 +1,7 @@
 # Spec 53 — Icône de l'app et écran de démarrage tirés du logo
 
 - **Date** : 2026-11-07
-- **État** : **approuvée par Brainditech le 2026-11-07** (« vas-y et intègre-le », après le constat que le logo n'était appliqué nulle part). Règle : D138.
+- **État** : **approuvée par Brainditech le 2026-11-07** (« vas-y et intègre-le », après le constat que le logo n'était appliqué nulle part). Règle : D138. **Appliquée** le 2026-11-07, critères 1 à 4 constatés (§5).
 - **Branche** : `app/icone-logo`.
 - **Case de PLAN.md** : phase 0 · « Icône de l'app et écran de démarrage tirés du logo » (nouvelle case ; preuve : capture de l'icône sur l'écran d'accueil du téléphone).
 - **Sources** : logo validé le 2026-11-02 (`design/logo/logo.png`), `design/design-system.md` § Logo et jeton `primaire` (`#3730A3`). Doc Expo lue le 2026-11-07 : « Splash screen and app icon » (docs.expo.dev, modifiée le 2026-11-02), référence de `app.json` v58.0.0 (`icon`, `android.adaptiveIcon`), `expo-splash-screen` ~58.0.13 (options du plugin) ; recommandations Android sur les icônes adaptatives (canevas 108 dp, zone sûre ronde de 66 dp).
@@ -54,3 +54,11 @@ Cause : la spec 00 (§1) rangeait « icône 1024 px tirée du logo » dans une s
 3. Lint, types et tests sont verts, et `npx expo-doctor` ne signale aucune erreur sur les icônes.
 4. Sur le téléphone, après un nouveau build (`npx expo prebuild --platform android --clean` puis `npx expo run:android`, lancés par Brainditech) : l'icône de l'écran d'accueil montre le symbole blanc sur `primaire`, sans « A » d'Expo. Capture par adb dans `docs/screenshots/`. Brainditech juge le rendu.
 5. L'écran de démarrage n'est visible fidèlement que sur un build de release (doc Expo). Il sera constaté avec la phase 11 ; d'ici là, seule l'icône prouve la case.
+
+## 5. Constaté (2026-11-07)
+
+1. Le script a produit les six images aux tailles prévues. Les deux vérifications du script passent : `icon.png` n'a aucun pixel transparent, et le symbole tient dans la zone sûre.
+2. `app.json` ne pointe plus vers les images du modèle Expo, et `assets/expo.icon` est retiré.
+3. Lint, types et les 468 tests sont verts ; `expo-doctor` donne 20/20.
+4. Brainditech a demandé à Claude de faire le build lui-même (« fais-le toi »). `npx expo prebuild --platform android --clean` a régénéré le projet natif (`iconBackground` et `splashscreen_background` à `#3730A3`). Ensuite, `npx expo run:android --no-bundler` a compilé en 3 min et installé l'app à 09:59. Dans le tiroir d'applications, l'icône Itinhero montre le symbole blanc entier sur indigo, dans le masque de Samsung : `docs/preuves/2026-11-07-spec53-icone-telephone.png`. Plus aucun « A » d'Expo.
+5. L'écran de démarrage reste à constater sur le build de release (phase 11).
