@@ -39,3 +39,19 @@ Prix en hausse en 2026 (hausse du prix de la mémoire, citée par Contabo).
 ## 5. Après le choix
 
 Brainditech loue le serveur (compte, paiement), ajoute sa clé SSH et un nom de domaine qui pointe vers lui (R10). Claude installe Docker, le dépôt, le `.env` du VPS (rempli par Brainditech) et lance `docker compose -p itinhero-prod -f docker-compose.yml -f docker-compose.national.yml -f docker-compose.prod.yml` (spec 52), puis mesure la mémoire réelle de l'import sur le serveur.
+
+## 6. Complément du 2026-11-07 : gratuit ou moins cher (demande de Brainditech)
+
+Relevé le 2026-11-07 à la demande « un VPS free ou bien peu cher ».
+
+| Offre | Mémoire | Prix | Source |
+|---|---|---|---|
+| **Oracle Cloud, compte gratuit (Always Free)**, Ampere A1 (ARM) | **12 Go** (2 OCPU) depuis le 15/06/2026 (24 Go avant) ; 200 Go de disque ; 10 To sortants par mois ; région d'attache seulement (Paris ou Marseille possibles) | 0 € | doc officielle « Always Free Resources » : « For Always Free tenancies, this is equivalent to 2 OCPUs and 12 GB of memory » ; https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm |
+| **Oracle Cloud, compte payant à l'usage (PAYG)**, Ampere A1 | 24 Go gratuits **si** les comptes payants gardent 3 000 OCPU-h et 18 000 Go-h par mois (page des prix A1) ; la doc gratuite dit « all tenancies get the first 1,500 OCPU hours and 9,000 GB hours » : **contradiction non tranchée** | au-delà : 0,01 $ par OCPU-h et 0,0015 $ par Go-h, soit, pour 4 OCPU et 32 Go, **≈ 9 $/mois** (franchise de 24 Go) ou **≈ 37 $/mois** (franchise de 12 Go) | https://www.oracle.com/cloud/compute/arm/pricing/ (page refusée à la lecture automatique, chiffres lus sur sa copie régionale), fil Oracle https://community.oracle.com/customerconnect/discussion/979422 |
+| Hetzner Cloud CAX41 (ARM) | 32 Go | 40,99 € HT/mois depuis le 15/06/2026 : plus cher qu'OVH VPS-4 | https://cloudtally.eu/hetzner-cloud-prices (prix non lu sur le site de Hetzner) |
+
+Lecture :
+
+- **Oracle gratuit (12 Go)** : MOTIS au repos (7,0 Gio) et pendant les recherches (7,4 Gio) tient ; **l'import ne tient pas** (pic de 15,6 Gio) sans fichier d'échange de 8 Go au moins, et la bascule à chaud de la spec 44 est impossible : il faudrait couper le service pendant l'import de nuit (≈ 15 min mesurées sur le PC, sans doute bien plus avec l'échange et 2 cœurs). C'est un changement de la spec 44, à décider.
+- Risques Oracle relevés : places A1 souvent « Out of capacity » dans les régions demandées, carte bancaire demandée à l'inscription, règle des instances inactives reprises (moins de 20 % de processeur, de réseau et de mémoire sur 7 jours : MOTIS occupe plus de 20 % de la mémoire, donc non concerné), limites changées sans annonce le 15/06/2026.
+- La proposition du §3 (OVHcloud VPS-4, 23,49 € HT) reste l'offre payante au mois la moins chère vérifiée qui tient l'import et la bascule à chaud.
