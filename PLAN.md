@@ -303,8 +303,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Verdict et marge, sans changement de jour silencieux.
   Preuve : tests (Joigny « possible, départ 06:27 », 11/11, marge dite dans la phrase).
   Fait (spec 15, D79) : `src/domaine/resultat.test.ts` (« Possible » avec rendez-vous et marge dans la phrase ; nuit dehors jamais en vert ; arrivée le lendemain dite « vendredi 06:32 » ; attente « 7 h 51 »), 2026-11-04 ; constaté sur le téléphone (Gifi Joigny → Domicile à 17:00 : « Nuit dehors », orange).
-- [ ] Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21).
+- [x] Tris : arrivée la plus tôt, moins de marche, sans réservation (D97, spec 21).
   Preuve : tests du domaine (ordre, égalités, rang gardé), captures adb (trois puces, guidage ouvert depuis une carte rangée, retour).
+  Fait (spec 21, D97) : `src/domaine/tri.test.ts` (15 tests : ordre, égalités, rang gardé) ; captures adb du 2026-11-06 (trois puces, carte rangée ⇒ Étape ⇒ Guidage du bon trajet, « Sans réservation », aller et retour, spec 21 §6.2) ; annonce « Trajets classés : moins de marche » et état coché relevés le 2026-11-07 (`docs/preuves/2026-11-07-fin/spec21-annonce-talkback.txt`).
 - [x] Retour planifié à partir de l'heure de fin du rendez-vous (D47).
   Preuve : test Joigny aller et retour (fin du rendez-vous donnée ⇒ retour du même jour, ou « impossible » dit clairement).
   Fait (spec 19, D94) : `serveur/src/routes/itineraires.test.ts`, `joigny-retour.national.test.ts` (fin 11:30 ⇒ retour du jour ; fin 22:30 ⇒ jamais le lendemain), tests de l'app, 2026-11-05 ; constaté sur le téléphone par adb (Domicile → Gifi Joigny 2, fin 16:00 ⇒ retour « Possible · Départ 16:23 » ; fin 23:30 ⇒ « Aucun retour ce jour-là après 23:30. »), issue 0021 corrigée.

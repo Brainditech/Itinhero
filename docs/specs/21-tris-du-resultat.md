@@ -91,7 +91,7 @@ Captures `docs/screenshots/spec-21/01` à `07` (non versionnées, D93).
 
 - La phrase « Aucun trajet sans réservation ce jour-là. » n'est pas apparue : chaque recherche essayée gardait au moins un trajet sans réservation. Ce cas n'est vérifié que par les tests.
 - La puce « Sans réservation » est coupée par le bord droit et la rangée défile de côté : c'est voulu (maquette 04, §4).
-- **Case non cochée** : il manque l'annonce TalkBack.
+- **Complété le 2026-11-07** (D133) : toucher « Moins de marche » émet l'annonce d'accessibilité « Trajets classés : moins de marche » (`TYPE_ANNOUNCEMENT`, lue par `adb shell uiautomator events`, sans activer TalkBack), et la puce passe `checked="true"` dans le groupe « Classer les trajets » (`docs/preuves/2026-11-07-fin/spec21-annonce-talkback.txt`). Case cochée.
 
 ## 7. Ce qui n'est pas fait ici
 
