@@ -187,9 +187,9 @@ Inspiration : la frise de Transit et l'accueil de SNCF Connect (`docs/04-dissect
 - [x] Skills officielles des services dans `.claude/skills`.
   Preuve : liste et source de chaque skill dans le commit.
   Fait : `.claude/skills/SOURCES.md` (Sentry, Inngest, MapLibre, épinglées à leur commit ; Expo par plugin ; aucune skill officielle pour MOTIS, NativeWind, Zod, vitest), 2026-11-02, spec 00.
-- [ ] Icône de l'app et écran de démarrage tirés du logo (symbole blanc sur `primaire`, plus aucune image du modèle Expo).
+- [x] Icône de l'app et écran de démarrage tirés du logo (symbole blanc sur `primaire`, plus aucune image du modèle Expo).
   Preuve : capture de l'icône sur l'écran d'accueil du téléphone, après un nouveau build.
-  Fait en partie (spec 53, D138, 2026-11-07) : symbole vectoriel `design/logo/symbole.svg`, images produites par `scripts/generer-icones.py`, `app.json` à jour, `assets/expo.icon` retiré ; lint, types, tests et `expo-doctor` verts. Reste : nouveau build lancé par Brainditech, puis capture par adb. L'écran de démarrage ne se constate que sur le build de release (phase 11).
+  Fait (spec 53, D138, 2026-11-07) : symbole vectoriel `design/logo/symbole.svg`, images produites par `scripts/generer-icones.py`, `app.json` à jour, `assets/expo.icon` retiré ; build refait par Claude à la demande de Brainditech (`prebuild --clean`, `run:android --no-bundler`, installé à 09:59) ; icône constatée dans le tiroir du téléphone (masque Samsung, symbole entier) : `docs/preuves/2026-11-07-spec53-icone-telephone.png`. L'écran de démarrage se constate sur le build de release (phase 11).
 - [x] NativeWind installé et configuré avec les jetons du design system (compatibilité SDK 58 vérifiée, R12).
   Preuve : composant de démonstration stylé, plus capture.
   Fait : NativeWind 4.2.7 (Tailwind 3.4.19), jetons dans `src/theme/jetons.js`, écran d'Accueil stylé sur le téléphone de Brainditech (Expo Go) : `docs/preuves/2026-11-02-phase1-accueil-en-dur.jpg`, 2026-11-02. R12 levé pour NativeWind.
